@@ -5,17 +5,20 @@ DPD_CFLAGS= -w
 DPD_INC=../inc
 DPD_SRC=../src
 
-TEST_OBJS=fixap.o
+TEST_OBJS=fixap.o fixap_vec3d.o
 
 .PHONY: all
 
-all: fixap_tests $(TEST_OBJS)
+all: fixap_tests fixap_vec3d_tests $(TEST_OBJS)
 
 %.o: $(DPD_INC)/%.h $(DPD_SRC)/%.c
 	gcc $(DPD_CFLAGS) -I $(DPD_INC) -c $(DPD_SRC)/$*.c -o $@ -lm
 
 fixap_tests: fixap_tests.c $(DPD_INC)/fixap.h $(DPD_SRC)/fixap.c $(TEST_OBJS)
 	gcc $(DPD_CFLAGS) -I $(DPD_INC) fixap_tests.c $(TEST_OBJS) -o fixap_tests -lm
+
+fixap_vec3d_tests: fixap_vec3d_tests.c $(DPD_INC)/fixap_vec3d.h $(DPD_SRC)/fixap_vec3d.c $(TEST_OBJS)
+	gcc $(DPD_CFLAGS) -I $(DPD_INC) fixap_vec3d_tests.c $(TEST_OBJS) -o fixap_vec3d_tests -lm
 
 clean:
 	rm -f fixap_tests
