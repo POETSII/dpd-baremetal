@@ -75,9 +75,24 @@ test_res test_div(fix16_t a, fix16_t b, fix16_t expected) {
    return Pass;
 }
 
+test_res test_sqrt(fix16_t a, fix16_t expected) {
+   printf("testing sqrt %.6f = ... ", fix2float(a)); 
+
+   fix16_t c = fixap_sqrt(a);
+
+   printf("%.6f", fix2float(c));
+   if(c != expected) { 
+      printf("\t\tfail\n");
+      return Fail;
+   }
+   printf("\t\tpass\n");
+   return Pass;
+}
+
 int main() {
 
   test_res t = Pass;
+ 
   // addition tests
 	t |= test_add(float2fix(0.2), float2fix(1.5), float2fix(1.7));
 	t |= test_add(float2fix(-0.5), float2fix(1.8), float2fix(1.3));
@@ -92,6 +107,10 @@ int main() {
 
   // division tests
   t |= test_div(float2fix(2.2), float2fix(1.1), float2fix(2.0));
+
+  // sqrt test
+  t |= test_sqrt(float2fix(0.16), float2fix(0.400024));
+  t |= test_sqrt(float2fix(1.5), float2fix(1.2247));
 
 	printf("\n-----------------------------\n");
 	if(t == Fail) {

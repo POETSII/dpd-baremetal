@@ -16,5 +16,7 @@ fix16_t fixap_mul(fix16_t a, fix16_t b);
 // fixed point division
 fix16_t fixap_div(fix16_t a, fix16_t b);
 
+// square root
+fix16_t fixap_sqrt(fix16_t a);
 
 #endif /* _FIX_AP_H */
