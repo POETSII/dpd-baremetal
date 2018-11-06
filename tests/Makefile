@@ -21,5 +21,5 @@ fixap_vec3d_tests: fixap_vec3d_tests.c $(DPD_INC)/fixap_vec3d.h $(DPD_SRC)/fixap
 	gcc $(DPD_CFLAGS) -I $(DPD_INC) fixap_vec3d_tests.c $(TEST_OBJS) -o fixap_vec3d_tests -lm
 
 clean:
-	rm -f fixap_tests
+	rm -f fixap_tests fixap_vec3d_tests
 	rm -f *.o
