@@ -8,17 +8,21 @@
 
 int main()
 {
-  HostLink hostLink;
 
-  // Load application
-  hostLink.boot("code.v", "data.v");
+  printf("size of bead = %lu\n", sizeof(bead_t));
+  printf("size of message = %lu\n", sizeof(msg_t));
+
+  //HostLink hostLink;
+
+  //// Load application
+  //hostLink.boot("code.v", "data.v");
 
   // Start timer
   struct timeval start, finish, diff;
   gettimeofday(&start, NULL);
 
   // Start application
-  hostLink.go();
+  //hostLink.go();
 
   // Stop timer
   gettimeofday(&finish, NULL);
