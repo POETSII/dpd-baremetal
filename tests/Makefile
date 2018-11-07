@@ -9,7 +9,11 @@ TEST_OBJS=fixap.o fixap_vec3d.o
 
 .PHONY: all
 
-all: fixap_tests fixap_vec3d_tests $(TEST_OBJS)
+all: fixap_tests fixap_vec3d_tests $(TEST_OBJS) tests
+
+tests: fixap_tests fixap_vec3d_tests
+	./fixap_tests
+	./fixap_vec3d_tests
 
 %.o: $(DPD_INC)/%.h $(DPD_SRC)/%.c
 	gcc $(DPD_CFLAGS) -I $(DPD_INC) -c $(DPD_SRC)/$*.c -o $@ -lm

@@ -54,6 +54,10 @@ $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN)
           -ljtag_atlantic -ljtag_client -L $(QUARTUS_ROOTDIR)/linux64/ \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64
 
+.PHONY: tests
+tests:
+	make -C ./tests
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) 
