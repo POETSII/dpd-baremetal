@@ -5,7 +5,6 @@
 
 typedef int test_res; // 0 - PASS, 1 - FAIL
 
-
 // fixed point addition
 test_res test_add(fix16_t a, fix16_t b, fix16_t expected) {
    printf("testing fix_add %.6f + %.6f = ... ", fix2float(a), fix2float(b)); 
@@ -80,12 +79,12 @@ test_res test_sqrt(fix16_t a, fix16_t expected) {
    return 0;
 }
 
+const fix16_t f_static = float2fix_const(1.5); // 1.5
+
 int main() {
 
   int t = 0;
-
-  const fix16_t f = float2fix(1.5); // 1.5
-  printf("fixed const test 1.5 = %.4f\n", fix2float(f));
+  printf("fixed const test 1.5 = %.4f\n", fix2float(f_static));
  
   // addition tests
 	t |= test_add(float2fix(0.2), float2fix(1.5), float2fix(1.7));

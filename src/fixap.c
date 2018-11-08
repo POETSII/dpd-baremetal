@@ -1,15 +1,6 @@
 // Implementation of the fixed point precision arithmetic operators
 #include "fixap.h"
 
-// conversion functions
-constexpr const fix16_t float2fix_const(float a){
-    return round(a * FPScaleF);
-}
-
-constexpr const float fix2float_const(fix16_t a){
-   return ((float)a/FPScaleF);
-}
-
 fix16_t float2fix(float a){
     return round(a * FPScaleF);
 }
