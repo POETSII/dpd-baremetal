@@ -49,7 +49,11 @@ class fixap
         float get_float() const {
             return ((float)_value/(1<<F));
         }
-
+      
+        fixap<C, F> half() const {
+              return fixap<C,F>(_value >> 1);
+        }
+        
         // multiplication
         // uint8_t
         fixap<uint8_t,F> operator *(fixap<uint8_t,F> const& a){
@@ -83,6 +87,38 @@ class fixap
              return fixap<uint32_t, F>(((int64_t)this->_value *(1<<F))/(int64_t)a._value); 
         }
         
+        // addition
+        fixap<C,F> operator +(fixap<uint8_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+        fixap<C,F> operator +(fixap<uint16_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+        fixap<C,F> operator +(fixap<uint32_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+        fixap<C,F> operator +(fixap<uint64_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+
+        // subtraction
+        fixap<C,F> operator -(fixap<uint8_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+        fixap<C,F> operator -(fixap<uint16_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+        fixap<C,F> operator -(fixap<uint32_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+        fixap<C,F> operator -(fixap<uint64_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+
+
+        // inverse_sqrt -- newton raphson method
+        // adapted from https://stackoverflow.com/questions/6286450/inverse-sqrt-for-fixed-point
+        fixap<C, F> inv_sqrt(uint16_t iters) {
+           fixap<C,F> three(3.0); 
+ 
+           // initial guess taken from https://sites.math.washington.edu/~morrow/336_12/papers/ben.pdf
+           uint32_t t = _value >> 1;
+           fixap<C,F> y = 0x5f3759df - t; // magic number
+
+           for(uint32_t i=0; i<iters; i++) {
+              y = y * (three - (*this * y * y)).half(); 
+           }
+           return y;
+        }
+
+        // sqrt - recipriocal of the inverse square root
+        fixap<C,F> sqrt(uint32_t iters) {
+            return fixap<C,F>(1.0)/this->inv_sqrt(iters);
+        }
 
 };
 
