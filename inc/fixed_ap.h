@@ -65,9 +65,24 @@ class fixap
              return fixap<uint16_t, F>(((int32_t)this->_value * (int32_t)a._value)/(1<<F)); 
         }
 
-        // uint8_t
+        // uint32_t
         fixap<uint32_t,F> operator *(fixap<uint32_t,F> const& a){
              return fixap<uint32_t, F>(((int64_t)this->_value * (int64_t)a._value)/(1<<F)); 
+        }
+
+        // int8_t
+        fixap<int8_t,F> operator *(fixap<int8_t,F> const& a){
+             return fixap<int8_t, F>(((int16_t)this->_value * (int16_t)a._value)/(1<<F)); 
+        }
+
+        // int16_t
+        fixap<int16_t,F> operator *(fixap<int16_t,F> const& a){
+             return fixap<int16_t, F>(((int32_t)this->_value * (int32_t)a._value)/(1<<F)); 
+        }
+
+        // int32_t
+        fixap<int32_t,F> operator *(fixap<int32_t,F> const& a){
+             return fixap<int32_t, F>(((int64_t)this->_value * (int64_t)a._value)/(1<<F)); 
         }
 
 
@@ -87,17 +102,42 @@ class fixap
              return fixap<uint32_t, F>(((int64_t)this->_value *(1<<F))/(int64_t)a._value); 
         }
         
+        // int8_t
+        fixap<int8_t,F> operator /(fixap<int8_t,F> const& a){
+             return fixap<int8_t, F>(((int16_t)this->_value *(1<<F))/(int16_t)a._value); 
+        }
+
+        // int16_t
+        fixap<int16_t,F> operator /(fixap<int16_t,F> const& a){
+             return fixap<int16_t, F>(((int32_t)this->_value *(1<<F))/(int32_t)a._value); 
+        }
+        
+        // int32_t
+        fixap<int32_t,F> operator /(fixap<int32_t,F> const& a){
+             return fixap<int32_t, F>(((int64_t)this->_value *(1<<F))/(int64_t)a._value); 
+        }
+
         // addition
         fixap<C,F> operator +(fixap<uint8_t,F> const& a){ return fixap<C,F>(_value + a._value); }
         fixap<C,F> operator +(fixap<uint16_t,F> const& a){ return fixap<C,F>(_value + a._value); }
         fixap<C,F> operator +(fixap<uint32_t,F> const& a){ return fixap<C,F>(_value + a._value); }
         fixap<C,F> operator +(fixap<uint64_t,F> const& a){ return fixap<C,F>(_value + a._value); }
 
+        fixap<C,F> operator +(fixap<int8_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+        fixap<C,F> operator +(fixap<int16_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+        fixap<C,F> operator +(fixap<int32_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+        fixap<C,F> operator +(fixap<int64_t,F> const& a){ return fixap<C,F>(_value + a._value); }
+
         // subtraction
         fixap<C,F> operator -(fixap<uint8_t,F> const& a){ return fixap<C,F>(_value - a._value); }
         fixap<C,F> operator -(fixap<uint16_t,F> const& a){ return fixap<C,F>(_value - a._value); }
         fixap<C,F> operator -(fixap<uint32_t,F> const& a){ return fixap<C,F>(_value - a._value); }
         fixap<C,F> operator -(fixap<uint64_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+
+        fixap<C,F> operator -(fixap<int8_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+        fixap<C,F> operator -(fixap<int16_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+        fixap<C,F> operator -(fixap<int32_t,F> const& a){ return fixap<C,F>(_value - a._value); }
+        fixap<C,F> operator -(fixap<int64_t,F> const& a){ return fixap<C,F>(_value - a._value); }
 
 
         // inverse_sqrt -- newton raphson method

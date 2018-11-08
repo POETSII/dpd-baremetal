@@ -1,5 +1,6 @@
 // A test file for the fixed point arithmetic stuff
 #include "fixed_ap.h"
+#include "vec3d.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -47,6 +48,33 @@ int main() {
 
   fixap<uint16_t, 14> a12(1.5);
   printf("<16,14> sqrt(1.5) = %.4f\n", (float)a12.sqrt(20)); 
+
+  // -------------------------------
+  //  vector testing
+  // -------------------------------
+
+  vec3d<int16_t, 13> vec_a1(0.67, 0.56, 0.89);
+  vec3d<int16_t, 13> vec_b1(1.2, 0.68, 0.92);
+
+  // vector - vector addition
+  vec3d<int16_t, 13> vec_out1 = vec_a1 + vec_b1;
+  printf("%s + %s = %s\n", vec_a1.str().c_str(), vec_b1.str().c_str(),vec_out1.str().c_str());
+
+  vec3d<int16_t, 13> vec_out2 = vec_a1 + 0.65;
+  printf("%s + 0.65 = %s\n", vec_a1.str().c_str(), vec_out2.str().c_str());
+
+  vec3d<int16_t, 13> vec_out3 = vec_a1 + fixap<int16_t, 13>(0.65);
+  printf("%s + 0.65 = %s\n", vec_a1.str().c_str(), vec_out3.str().c_str());
+
+  // vector - vector subtraction
+  vec3d<int16_t, 13> vec_out4 = vec_a1 - vec_b1;
+  printf("%s - %s = %s\n", vec_a1.str().c_str(), vec_b1.str().c_str(),vec_out4.str().c_str());
+
+  vec3d<int16_t, 13> vec_out5 = vec_a1 - 0.65;
+  printf("%s - 0.65 = %s\n", vec_a1.str().c_str(), vec_out5.str().c_str());
+
+  vec3d<int16_t, 13> vec_out6 = vec_a1 - fixap<int16_t, 13>(0.65);
+  printf("%s - 0.65 = %s\n", vec_a1.str().c_str(), vec_out6.str().c_str());
 
 
 	printf("\n-----------------------------\n");
