@@ -76,6 +76,15 @@ int main() {
   vec3d<int16_t, 13> vec_out6 = vec_a1 - fixap<int16_t, 13>(0.65);
   printf("%s - 0.65 = %s\n", vec_a1.str().c_str(), vec_out6.str().c_str());
 
+  // scalar mult and div
+  vec3d<int16_t, 13> vec_out7 = vec_a1 * 0.05;
+  printf("%s * 0.05 = %s\n", vec_a1.str().c_str(), vec_out7.str().c_str());
+
+  vec3d<int16_t, 13> vec_out8 = vec_a1 / 1.2;
+  printf("%s / 1.2 = %s\n", vec_a1.str().c_str(), vec_out8.str().c_str());
+
+  // magnitude
+  printf("mag(%s) = %.4f\n", vec_a1.str().c_str(), (float)vec_a1.mag());
 
 	printf("\n-----------------------------\n");
 	if(t == 1) {
