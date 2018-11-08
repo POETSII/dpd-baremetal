@@ -2,18 +2,8 @@
 #include "fixap.h"
 #include "fixap_vec3d.h"
 #include <stdio.h>
-#include <math.h>
 
-typedef enum _test_res { Pass=0, Fail=1 } test_res;
-
-// conversion test functions
-fix16_t float2fix(float a){
-    return round(a * FPScaleF);
-}
-
-float fix2float(fix16_t a){
-   return ((float)a/FPScaleF);
-}
+typedef int test_res;
 
 
 // vector scalar multiplication 
@@ -25,10 +15,10 @@ test_res test_scalar_mul(vec_t a, fix16_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - scalar addition 
@@ -40,10 +30,10 @@ test_res test_scalar_add(vec_t a, fix16_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - scalar subtraction 
@@ -55,10 +45,10 @@ test_res test_scalar_sub(vec_t a, fix16_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - vector addition 
@@ -70,10 +60,10 @@ test_res test_vec_addition(vec_t a, vec_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - scalar subtraction 
@@ -85,10 +75,10 @@ test_res test_scalar_div(vec_t a, fix16_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - vector subtraction 
@@ -100,10 +90,10 @@ test_res test_vec_subtraction(vec_t a, vec_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - vector distance 
@@ -115,10 +105,10 @@ test_res test_vec_distance(vec_t a, vec_t b, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if( c != expected ) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - vector dot product 
@@ -130,10 +120,10 @@ test_res test_vec_dot(vec_t a, vec_t b, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if( c != expected ) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // vector - vector cross product 
@@ -145,15 +135,15 @@ test_res test_vec_cross(vec_t a, vec_t b, vec_t expected) {
    printf("<%.6f,%.6f,%.6f>", fix2float(c.x),fix2float(c.y),fix2float(c.z));
    if( (c.x != expected.x) || (c.y != expected.y) || (c.z != expected.z)) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 
 // vector magnitude 
-test_res test_mag(vec_t a, fix16_t expected) {
+int test_mag(vec_t a, fix16_t expected) {
    printf("testing vector_magnitude <%.6f,%.6f,%.6f> ... ", fix2float(a.x), fix2float(a.y), fix2float(a.z)); 
 
    fix16_t c = vec3d_mag(a);
@@ -161,18 +151,15 @@ test_res test_mag(vec_t a, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if( c != expected ) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 int main() {
 
-  test_res t = Pass;
-
-  //vec_t a, b;
-  //vec_t expected;
+  int t = 0;
 
   // scalar - vector tests
   // scalar multiplication
@@ -231,7 +218,7 @@ int main() {
   t |= test_mag(a_mag, e_mag);  
 
 	printf("\n-----------------------------\n");
-	if(t == Fail) {
+	if(t == 1) {
            printf("Overall: fail.\n");
 	   return -1;
 	}

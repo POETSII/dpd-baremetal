@@ -1,6 +1,24 @@
 // Implementation of the fixed point precision arithmetic operators
 #include "fixap.h"
 
+// conversion functions
+constexpr const fix16_t float2fix_const(float a){
+    return round(a * FPScaleF);
+}
+
+constexpr const float fix2float_const(fix16_t a){
+   return ((float)a/FPScaleF);
+}
+
+fix16_t float2fix(float a){
+    return round(a * FPScaleF);
+}
+
+float fix2float(fix16_t a){
+   return ((float)a/FPScaleF);
+}
+
+
 // multiplies two fix16_t numbers together in 1sign 2.13 format
 fix16_t fixap_mul(fix16_t a, fix16_t b){
    return  ((int32_t)a * (int32_t)b) / FPScaleF;
@@ -27,7 +45,7 @@ fix16_t fixap_sqrt(fix16_t a) {
 
  root = 0;       /* Clear root */
  remHi = 0;      /* Clear high part of partial remainder */
- remLo = val;      /* Get argument into low part of partial remainder */
+ remLo = val;     /* Get argument into low part of partial remainder */
  count = 14;     /* Load loop counter */
 
  do {

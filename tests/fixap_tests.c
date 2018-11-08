@@ -3,16 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 
-typedef enum _test_res { Pass=0, Fail=1 } test_res;
-
-// conversion test functions
-fix16_t float2fix(float a){
-    return round(a * FPScaleF);
-}
-
-float fix2float(fix16_t a){
-   return ((float)a/FPScaleF);
-}
+typedef int test_res; // 0 - PASS, 1 - FAIL
 
 
 // fixed point addition
@@ -24,10 +15,10 @@ test_res test_add(fix16_t a, fix16_t b, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if(c != expected) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // fixed point subtraction
@@ -39,10 +30,10 @@ test_res test_sub(fix16_t a, fix16_t b, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if(c != expected) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // fixed point multiplication
@@ -54,10 +45,10 @@ test_res test_mul(fix16_t a, fix16_t b, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if(c != expected) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 // fixed point division 
@@ -69,10 +60,10 @@ test_res test_div(fix16_t a, fix16_t b, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if(c != expected) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 test_res test_sqrt(fix16_t a, fix16_t expected) {
@@ -83,15 +74,18 @@ test_res test_sqrt(fix16_t a, fix16_t expected) {
    printf("%.6f", fix2float(c));
    if(c != expected) { 
       printf("\t\tfail\n");
-      return Fail;
+      return 1;
    }
    printf("\t\tpass\n");
-   return Pass;
+   return 0;
 }
 
 int main() {
 
-  test_res t = Pass;
+  int t = 0;
+
+  const fix16_t f = float2fix(1.5); // 1.5
+  printf("fixed const test 1.5 = %.4f\n", fix2float(f));
  
   // addition tests
 	t |= test_add(float2fix(0.2), float2fix(1.5), float2fix(1.7));
@@ -113,7 +107,7 @@ int main() {
   t |= test_sqrt(float2fix(1.5), float2fix(1.2247));
 
 	printf("\n-----------------------------\n");
-	if(t == Fail) {
+	if(t == 1) {
            printf("Overall: fail.\n");
 	   return -1;
 	}
