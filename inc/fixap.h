@@ -11,8 +11,6 @@
 #define FRAC_BITS 13
 #define FPScaleF (1 << FRAC_BITS) 
 
-//#define FIXED_CONST(A,B) (uint32_t)((A<<13) + ((B + 0.00006103515625))*8192)
-
 typedef int16_t fix16_t; 
 
 // fixed-point conversion functions
@@ -27,7 +25,6 @@ constexpr fix16_t float2fix_const(float a){
 constexpr float fix2float_const(fix16_t a){
    return ((float)a/FPScaleF);
 }
-
 
 // fixed point multiplication
 fix16_t fixap_mul(fix16_t a, fix16_t b);

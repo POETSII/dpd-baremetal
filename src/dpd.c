@@ -3,16 +3,20 @@
 #include <tinsel.h>
 #include "dpd.h"
 
-// I need a static way to convienently write fixed point constants
-// This needs to be precomputed... also it will overflow the current fixed point type...
-const fix16_t A[3][3] = { {25.0, 75.0, 35.0},
-                          {75.0, 25.0, 50.0},
-                          {35.0, 50.0, 25.0} }; // interaction matrix
+const fix16_t A[3][3] = { // interaction matrix
+                          {float2fix_const(25.0/16), float2fix_const(75.0/16), float2fix_const(35.0/16)},
+                          {float2fix_const(75.0/16), float2fix_const(25.0/16), float2fix_const(50.0/16)},
+                          {float2fix_const(35.0/16), float2fix_const(50.0/16), float2fix_const(25.0/16)} 
+                        }; 
+
 
 // assumption r_c is 1.0
 // function used to update the force of two particles
 vec_t forces(vec_t apos, vec_t bpos, vec_t avelo, vec_t bvelo){
-     
+    printf("The interaction matrix:\n");
+    for(int i=0; i<3; i++) {
+        printf("\t%.4f, %.4f, %.4f\n", float2fix(A[i][0]), float2fix(A[i][1]), float2fix(A[i][2])); 
+    }
 }
 
 // -------------------------
