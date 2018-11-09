@@ -17,8 +17,8 @@ tests: fixed_ap_tests
 %.o: $(DPD_INC)/%.h $(DPD_SRC)/%.cpp
 	g++ $(DPD_CFLAGS) -I $(DPD_INC) -c $(DPD_SRC)/$*.cpp -o $@ -lm
 
-fixed_ap_tests: fixed_ap_tests.cpp $(DPD_INC)/fixed_ap.h 
-	g++ $(DPD_CFLAGS) -I $(DPD_INC) fixed_ap_tests.cpp -o fixed_ap_tests -lm
+fixed_ap_tests: fixed_ap_tests.cpp $(DPD_INC)/fixed_ap.h $(TEST_OBJS) 
+	g++ $(DPD_CFLAGS) -I $(DPD_INC) fixed_ap_tests.cpp $(TEST_OBJS) -o fixed_ap_tests -lm
 
 force_tests: force_tests.cpp $(DPD_INC)/fixed_ap.h $(TEST_OBJS) 
 	g++ $(DPD_CFLAGS) -I $(DPD_INC) force_tests.cpp $(TEST_OBJS) -o force_tests -lm
