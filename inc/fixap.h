@@ -7,6 +7,7 @@
 #include "stdint.h"
 #include "stdio.h"
 #include "math.h"
+#include <cstdlib>
 
 #define FRAC_BITS 13
 #define FPScaleF (1 << FRAC_BITS) 

@@ -16,13 +16,25 @@ class vec3d {
   public:
      constexpr explicit vec3d(float x, float y, float z) : _x(fixap<C,F>(x)), _y(fixap<C,F>(y)), _z(fixap<C,F>(z)) {} 
      constexpr explicit vec3d(double x, double y, double z) : _x(fixap<C,F>(x)), _y(fixap<C,F>(y)), _z(fixap<C,F>(z)) {} 
-     vec3d<C,F>(vec3d<C,F> x, vec3d<C,F> y, vec3d<C,F> z) : _x(x), _y(y), _z(z) {}
+     vec3d<C,F>(fixap<C,F> x, fixap<C,F> y, fixap<C,F> z) : _x(x), _y(y), _z(z) {}
     
      // getters
      fixap<C,F> x() { return _x; }
      fixap<C,F> y() { return _y; }
      fixap<C,F> z() { return _z; }
 
+     // converters
+     vec3d<uint8_t,F>  convert_u8()  const { return vec3d<uint8_t,F>(_x.convert_u8(), _y.convert_u8(), _z.convert_u8()   ); }
+     vec3d<uint16_t,F> convert_u16() const { return vec3d<uint16_t,F>(_x.convert_u16(), _y.convert_u16(), _z.convert_u16()); }
+     vec3d<uint32_t,F> convert_u32() const { return vec3d<uint32_t,F>(_x.convert_u32(), _y.convert_u32(), _z.convert_u32()); }
+     vec3d<uint64_t,F> convert_u64() const { return vec3d<uint64_t,F>(_x.convert_u64(), _y.convert_u64(), _z.convert_u64()); }
+
+     vec3d<int8_t,F>  convert_s8()  const  { return vec3d<int8_t,F>(_x.convert_u8(), _y.convert_u8(), _z.convert_u8()   );  }
+     vec3d<int16_t,F> convert_s16() const  { return vec3d<int16_t,F>(_x.convert_u16(), _y.convert_u16(), _z.convert_u16());  }
+     vec3d<int32_t,F> convert_s32() const  { return vec3d<int32_t,F>(_x.convert_u32(), _y.convert_u32(), _z.convert_u32());  }
+     vec3d<int64_t,F> convert_s64() const  { return vec3d<int64_t,F>(_x.convert_u64(), _y.convert_u64(), _z.convert_u64());  }
+ 
+     // vector arithmetic operations
      // addition
      vec3d<C,F> operator+(vec3d<C,F> const& a) { return vec3d<C,F>(_x + a._x, _y + a._y, _z + a._z); }
      vec3d<C,F> operator+(float a) { return vec3d<C,F>(_x + fixap<C,F>(a), _y + fixap<C,F>(a), _z + fixap<C,F>(a)); }
@@ -44,10 +56,10 @@ class vec3d {
      vec3d<C,F> operator * (float a) { return vec3d<C,F>(_x*fixap<C,F>(a), _y*fixap<C,F>(a), _z*fixap<C,F>(a)); } 
      vec3d<C,F> operator * (double a) { return vec3d<C,F>(_x*fixap<C,F>(a), _y*fixap<C,F>(a), _z*fixap<C,F>(a)); } 
      vec3d<C,F> operator * (fixap<C,F> a) { return vec3d<C,F>(_x*a, _y*a, _z*a); } 
-     
+
      // mag -- returns the magnitude of this vector
      fixap<C,F> mag() { 
-           fixap<C,F> t = (this->_x*this->_x ) +(_y*_y) + (_z*_z); 
+           fixap<C,F> t = (this->_x*this->_x ) +(this->_y*this->_y) + (this->_z*this->_z); 
            return t.sqrt(25);
      }
 

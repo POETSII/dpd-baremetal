@@ -46,8 +46,15 @@ int main() {
   fixap<uint32_t, 30> a11(1.5);
   printf("<32,30> inv_sqrt(1.5) = %.4f\n", (float)a11.inv_sqrt(20)); 
 
+  fixap<uint32_t, 30> a11_a(1.5546);
+  printf("<32,13> inv_sqrt(1.5546) = %.4f\n", (float)a11_a.inv_sqrt(25)); 
+
   fixap<uint16_t, 14> a12(1.5);
   printf("<16,14> sqrt(1.5) = %.4f\n", (float)a12.sqrt(20)); 
+
+  // half test
+  fixap<uint32_t, 30> ht1(2.4);
+  printf("<32,30> 2.4/2 = %.4f\n", (float)ht1.half());
 
   // -------------------------------
   //  vector testing
@@ -84,7 +91,7 @@ int main() {
   printf("%s / 1.2 = %s\n", vec_a1.str().c_str(), vec_out8.str().c_str());
 
   // magnitude
-  printf("mag(%s) = %.4f\n", vec_a1.str().c_str(), (float)vec_a1.mag());
+  printf("mag(%s) = %.4f\n", vec_a1.str().c_str(), (float)vec_a1.convert_u16().mag());
 
 	printf("\n-----------------------------\n");
 	if(t == 1) {
