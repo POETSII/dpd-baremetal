@@ -10,9 +10,9 @@
 
 // floating point values
 const double A_dp[3][3] = {
-   {25.0, 75.0, 35.0},
-   {75.0, 25.0, 50.0},
-   {35.0, 50.0, 25.0}
+   {25.0/32, 75.0/32, 35.0/32},
+   {75.0/32, 25.0/32, 50.0/32},
+   {35.0/32, 50.0/32, 25.0/32}
 };
 
 constexpr double drag_coef_dp = (4.5/32);
@@ -36,7 +36,7 @@ constexpr fixap<int16_t, 13> sigma(sqrt(4.5*2)/32);
 // C - the container for the type uint16_t / int16_t 
 // F - the number of bits in the container allocated as fractional (the remaining bits are integer)
 template<class C, unsigned F>
-vec3d<int32_t, F> forces(vec3d<C,F> a_pos, vec3d<C,F> b_pos, vec3d<C,F> a_velo, vec3d<C,F> b_velo, uint16_t a_type, uint16_t b_type){
+vec3d<C, F> forces(vec3d<C,F> a_pos, vec3d<C,F> b_pos, vec3d<C,F> a_velo, vec3d<C,F> b_velo, uint16_t a_type, uint16_t b_type){
     printf("The interaction matrix:\n");
     for(int i=0; i<3; i++) {
         printf("\t%.4f, %.4f, %.4f\n", (float)A[i][0], (float)A[i][1], (float)A[i][2]); 
@@ -46,7 +46,7 @@ vec3d<int32_t, F> forces(vec3d<C,F> a_pos, vec3d<C,F> b_pos, vec3d<C,F> a_velo, 
     printf("sigma = %.4f\n", (float)sigma);
 
     // the force value we are computing
-    vec3d<int32_t,F> force(0.0, 0.0, 0.0);
+    vec3d<C,F> force(0.0, 0.0, 0.0);
     
     // common things
     fixap<C,F> r_ij_dist = a_pos.dist(b_pos); 
@@ -61,7 +61,7 @@ vec3d<int32_t, F> forces(vec3d<C,F> a_pos, vec3d<C,F> b_pos, vec3d<C,F> a_velo, 
 
     // force components
     //     1. conservative force
-    force = force + ((r_ij / r_ij_dist) * (A[a_type][b_type] * w_r)).convert_s32(); 
+    force = force + (r_ij / r_ij_dist) * (A[a_type][b_type] * w_r); 
     
     return force;
 }
@@ -96,17 +96,17 @@ int main()
  
   const int atype = 1;
   const int btype = 2;
-  constexpr vec3d<int16_t, 13> a_pos(0.5, 0.25, 1.01);
-  constexpr vec3d<int16_t, 13> b_pos(0.85, 0.1, 1.2);
-  constexpr vec3d<int16_t, 13> a_velo(0.1, 0.25, 1.2);
-  constexpr vec3d<int16_t, 13> b_velo(0.15, 0.1, 0.89);
+  constexpr vec3d<int16_t, 13> a_pos  (0.5, 0.25, 1.01);
+  constexpr vec3d<int16_t, 13> b_pos  (0.85, 0.1, 1.2);
+  constexpr vec3d<int16_t, 13> a_velo (0.1, 0.25, 1.2);
+  constexpr vec3d<int16_t, 13> b_velo (0.15, 0.1, 0.89);
 
-  vec3d<int32_t, 13> t_force1 = forces(a_pos, b_pos, a_velo, b_velo, atype, btype); 
+  vec3d<int16_t, 13> t_force1 = forces(a_pos, b_pos, a_velo, b_velo, atype, btype); 
 
-  vec3d_double a_pos_dp(0.5, 0.25, 1.01);
-  vec3d_double b_pos_dp(0.85, 0.1, 1.2);
-  vec3d_double a_velo_dp(0.1, 0.25, 1.2);
-  vec3d_double b_velo_dp(0.15, 0.1, 0.89);
+  vec3d_double a_pos_dp  (0.5, 0.25, 1.01);
+  vec3d_double b_pos_dp  (0.85, 0.1, 1.2);
+  vec3d_double a_velo_dp (0.1, 0.25, 1.2);
+  vec3d_double b_velo_dp (0.15, 0.1, 0.89);
 
   vec3d_double t_force_dp = forces_dp(a_pos_dp, b_pos_dp, a_velo_dp, b_velo_dp, atype, btype); 
 

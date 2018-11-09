@@ -11,8 +11,9 @@ TEST_OBJS= vec3d_double.o
 
 all: fixed_ap_tests force_tests $(TEST_OBJS) tests
 
-tests: fixed_ap_tests 
+tests: fixed_ap_tests force_tests 
 	./fixed_ap_tests
+	./force_tests
 
 %.o: $(DPD_INC)/%.h $(DPD_SRC)/%.cpp
 	g++ $(DPD_CFLAGS) -I $(DPD_INC) -c $(DPD_SRC)/$*.cpp -o $@ -lm
