@@ -29,10 +29,10 @@ class vec3d {
      vec3d<uint32_t,F> convert_u32() const { return vec3d<uint32_t,F>(_x.convert_u32(), _y.convert_u32(), _z.convert_u32()); }
      vec3d<uint64_t,F> convert_u64() const { return vec3d<uint64_t,F>(_x.convert_u64(), _y.convert_u64(), _z.convert_u64()); }
 
-     vec3d<int8_t,F>  convert_s8()  const  { return vec3d<int8_t,F>(_x.convert_u8(), _y.convert_u8(), _z.convert_u8()   );  }
-     vec3d<int16_t,F> convert_s16() const  { return vec3d<int16_t,F>(_x.convert_u16(), _y.convert_u16(), _z.convert_u16());  }
-     vec3d<int32_t,F> convert_s32() const  { return vec3d<int32_t,F>(_x.convert_u32(), _y.convert_u32(), _z.convert_u32());  }
-     vec3d<int64_t,F> convert_s64() const  { return vec3d<int64_t,F>(_x.convert_u64(), _y.convert_u64(), _z.convert_u64());  }
+     vec3d<int8_t,F>  convert_s8()  const  { return vec3d<int8_t,F>(_x.convert_s8(), _y.convert_s8(), _z.convert_s8()   );  }
+     vec3d<int16_t,F> convert_s16() const  { return vec3d<int16_t,F>(_x.convert_s16(), _y.convert_s16(), _z.convert_s16());  }
+     vec3d<int32_t,F> convert_s32() const  { return vec3d<int32_t,F>(_x.convert_s32(), _y.convert_s32(), _z.convert_s32());  }
+     vec3d<int64_t,F> convert_s64() const  { return vec3d<int64_t,F>(_x.convert_s64(), _y.convert_s64(), _z.convert_s64());  }
  
      // vector arithmetic operations
      // addition

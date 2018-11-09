@@ -64,6 +64,30 @@ int main() {
   fixap<uint32_t, 30> ht1(2.4);
   printf("<32,30> 2.4/2 = %.4f\n\n", (float)ht1.half());
 
+  printf(" --- conversion tests --- \n");
+
+  fixap<int8_t, 4> conv(0.42);
+  printf("<s8,4> original = %.4f\n", (float)conv); 
+  printf("<s16,4> = %.4f\n", (float)conv.convert_s16()); 
+  printf("<s32,4> = %.4f\n", (float)conv.convert_s32()); 
+  printf("<s64,4> = %.4f\n\n", (float)conv.convert_s64()); 
+  
+  fixap<int8_t, 4> nconv(-0.42);
+  printf("<s8,4> original = %.4f\n", (float)nconv); 
+  printf("<s16,4> = %.4f\n", (float)nconv.convert_s16()); 
+  printf("<s32,4> = %.4f\n", (float)nconv.convert_s32()); 
+  printf("<s64,4> = %.4f\n\n", (float)nconv.convert_s64()); 
+
+  fixap<int16_t, 13> conv1(0.42);
+  printf("<s16,13> original = %.4f\n", (float)conv1); 
+  printf("<s32,13> = %.4f\n", (float)conv1.convert_s32()); 
+  printf("<s64,13> = %.4f\n\n", (float)conv1.convert_s64()); 
+  
+  fixap<int16_t, 13> nconv1(-0.738892);
+  printf("<s16,13> original = %.4f\n", (float)nconv1); 
+  printf("<s32,13> = %.4f\n", (float)nconv1.convert_s32()); 
+  printf("<s64,13> = %.4f\n\n", (float)nconv1.convert_s64()); 
+
   printf("----------------------\n");
   printf("  vector testing      \n");
   printf("----------------------\n\n");

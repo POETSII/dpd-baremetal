@@ -140,15 +140,15 @@ class fixap
         fixap<C,F> operator -(fixap<int64_t,F> const& a) { return fixap<C,F>(_value - a._value); }
 
         // conversion functions to increase/decrease the word size
-        fixap<uint8_t,F>  convert_u8()  const { return fixap<uint8_t , F>(_value); }
-        fixap<uint16_t,F> convert_u16() const { return fixap<uint16_t, F>(_value); }
-        fixap<uint32_t,F> convert_u32() const { return fixap<uint32_t, F>(_value); }
-        fixap<uint64_t,F> convert_u64() const { return fixap<uint64_t, F>(_value); }
+        fixap<uint8_t,F>  convert_u8()  const { return fixap<uint8_t , F>((uint8_t)_value); }
+        fixap<uint16_t,F> convert_u16() const { return fixap<uint16_t, F>((uint16_t)_value); }
+        fixap<uint32_t,F> convert_u32() const { return fixap<uint32_t, F>((uint32_t)_value); }
+        fixap<uint64_t,F> convert_u64() const { return fixap<uint64_t, F>((uint64_t)_value); }
 
-        fixap<int8_t,F>  convert_s8()  const { return fixap<int8_t , F>(_value); }
-        fixap<int16_t,F> convert_s16() const { return fixap<int16_t, F>(_value); }
-        fixap<int32_t,F> convert_s32() const { return fixap<int32_t, F>(_value); }
-        fixap<int64_t,F> convert_s64() const { return fixap<int64_t, F>(_value); }
+        fixap<int8_t,F>  convert_s8()  const { return fixap<int8_t , F>((int8_t)_value); }
+        fixap<int16_t,F> convert_s16() const { return fixap<int16_t, F>((int16_t)_value); }
+        fixap<int32_t,F> convert_s32() const { return fixap<int32_t, F>((int32_t)_value); }
+        fixap<int64_t,F> convert_s64() const { return fixap<int64_t, F>((int64_t)_value); }
    
 
         // inverse_sqrt -- newton raphson method

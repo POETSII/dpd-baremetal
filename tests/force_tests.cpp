@@ -8,28 +8,31 @@
 // compile time generated parameters 
 //----------------------------------
 
+const float scale_f = 32;
+
 // floating point values
 const double A_dp[3][3] = {
-   {25.0/32, 75.0/32, 35.0/32},
-   {75.0/32, 25.0/32, 50.0/32},
-   {35.0/32, 50.0/32, 25.0/32}
+   {25.0, 75.0, 35.0},
+   {75.0, 25.0, 50.0},
+   {35.0, 50.0, 25.0}
 };
 
-constexpr double drag_coef_dp = (4.5/32);
-constexpr double dt_dp = (0.01/32);
-constexpr double sigma_dp = (sqrt(4.5*2)/32);
+constexpr double drag_coef_dp = 4.5;
+constexpr double dt_dp = 0.01;
+constexpr double sigma_dp = sqrt(4.5*2);
 
 // interaction matrix
 constexpr fixap<int16_t,13> A[3][3] = { 
-                              {fixap<int16_t,13>(25.0/32), fixap<int16_t,13>(75.0/32), fixap<int16_t,13>(35.0/32)},
-                              {fixap<int16_t,13>(75.0/32), fixap<int16_t,13>(25.0/32), fixap<int16_t,13>(50.0/32)},
-                              {fixap<int16_t,13>(35.0/32), fixap<int16_t,13>(50.0/32), fixap<int16_t,13>(25.0/32)} 
-                            }; 
+         {fixap<int16_t,13>(25.0/scale_f), fixap<int16_t,13>(75.0/scale_f), fixap<int16_t,13>(35.0/scale_f)},
+         {fixap<int16_t,13>(75.0/scale_f), fixap<int16_t,13>(25.0/scale_f), fixap<int16_t,13>(50.0/scale_f)},
+         {fixap<int16_t,13>(35.0/scale_f), fixap<int16_t,13>(50.0/scale_f), fixap<int16_t,13>(25.0/scale_f)} 
+}; 
+
 // K_BT = 1.0 
 // R_C = 1.0
-constexpr fixap<int16_t, 13> drag_coef(4.5/32);
-constexpr fixap<int16_t, 13> dt(0.01/32);
-constexpr fixap<int16_t, 13> sigma(sqrt(4.5*2)/32);
+constexpr fixap<int16_t, 13> drag_coef(4.5/scale_f);
+constexpr fixap<int16_t, 13> dt(0.01/scale_f);
+constexpr fixap<int16_t, 13> sigma(sqrt(4.5*2)/scale_f);
 
 // assumption r_c is 1.0
 // function used to update the forces between two particles (no bonded stuff yet)
@@ -86,6 +89,7 @@ vec3d_double forces_dp(vec3d_double a_pos, vec3d_double b_pos, vec3d_double a_ve
   // force components
   //      1. conservative force
   force = force + (r_ij / r_ij_dist) * (A_dp[a_type][b_type]*w_r);
+  //      2. drag force
 
   return force;
 }
@@ -110,7 +114,10 @@ int main()
 
   vec3d_double t_force_dp = forces_dp(a_pos_dp, b_pos_dp, a_velo_dp, b_velo_dp, atype, btype); 
 
-  printf("force <dp> = %s  <16,13>  = %s\n", t_force_dp.str().c_str(), t_force1.str().c_str());
+  vec3d<int32_t, 13> wider_force = t_force1.convert_s32(); 
+  printf("%s\n", t_force1.str().c_str()); 
+  vec3d<int32_t, 13> scaledup_force = wider_force * scale_f;
+  printf("force <dp> = %s  <16,13>  = %s\n", t_force_dp.str().c_str(), scaledup_force.str().c_str());
 
   return 0;
 }
