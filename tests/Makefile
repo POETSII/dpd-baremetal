@@ -5,11 +5,11 @@ DPD_CFLAGS= -w -std=c++11
 DPD_INC=../inc
 DPD_SRC=../src
 
-TEST_OBJS= 
+TEST_OBJS= vec3d_double.o 
 
 .PHONY: all
 
-all: fixed_ap_tests $(TEST_OBJS) tests
+all: fixed_ap_tests force_tests $(TEST_OBJS) tests
 
 tests: fixed_ap_tests 
 	./fixed_ap_tests
@@ -20,6 +20,9 @@ tests: fixed_ap_tests
 fixed_ap_tests: fixed_ap_tests.cpp $(DPD_INC)/fixed_ap.h 
 	g++ $(DPD_CFLAGS) -I $(DPD_INC) fixed_ap_tests.cpp -o fixed_ap_tests -lm
 
+force_tests: force_tests.cpp $(DPD_INC)/fixed_ap.h $(TEST_OBJS) 
+	g++ $(DPD_CFLAGS) -I $(DPD_INC) force_tests.cpp $(TEST_OBJS) -o force_tests -lm
+
 clean:
-	rm -f fixed_ap_tests
+	rm -f fixed_ap_tests force_tests
 	rm -f *.o
