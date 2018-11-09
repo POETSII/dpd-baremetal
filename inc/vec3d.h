@@ -63,6 +63,12 @@ class vec3d {
            return t.sqrt(25);
      }
 
+     // dot -- returns the dotproduct of this vector combined with another
+     fixap<C,F> dot(vec3d<C,F> a){ return fixap<C,F>(_x*a.x() + _y*a.y() + _z*a.z()); }
+
+     // distance -- returns the distance between this and another vector a
+     fixap<C,F> dist(vec3d<C,F> a) { return (*this - a).mag(); }
+
      std::string str() {
         std::stringstream ss;
         ss << "<" << (float)_x << "," << (float)_y << "," << (float)_z <<">";

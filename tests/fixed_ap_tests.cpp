@@ -93,12 +93,20 @@ int main() {
   // magnitude
   printf("mag(%s) = %.4f\n", vec_a1.str().c_str(), (float)vec_a1.convert_u16().mag());
 
-	printf("\n-----------------------------\n");
-	if(t == 1) {
-           printf("Overall: fail.\n");
-	   return -1;
-	}
+  // dot product
+  fixap<int16_t, 13> vec_out9 = vec_a1.dot(vec_b1);
+  printf("%s . %s = %.4f\n", vec_a1.str().c_str(), vec_b1.str().c_str(), (float)vec_out9);
+
+  // distance 
+  fixap<int16_t, 13> vec_out10 = vec_a1.dist(vec_b1);
+  printf("distance(%s <-> %s) = %.4f\n", vec_a1.str().c_str(), vec_b1.str().c_str(), (float)vec_out10);
+
+  printf("\n-----------------------------\n");
+  if(t == 1) {
+    printf("Overall: fail.\n");
+    return -1;
+  }
   printf("Overall: pass.\n");
-	return 0;
+  return 0;
 }
 
