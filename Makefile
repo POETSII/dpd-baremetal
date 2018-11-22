@@ -11,8 +11,8 @@ include $(TINSEL_ROOT)/globals.mk
 
 # Local compiler flags
 CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11
-LDFLAGS = -melf32lriscv -G 0 
-
+LDFLAGS = -melf32lriscv -G 0  
+LD_GCC_FLAGS=-L $(RISCV)/riscv64-unknown-elf/lib/ -L $(RISCV)/lib/gcc/riscv64-unknown-elf/7.2.0/libgcc.a -lm 
 DPD_OBJS = $(DPD_BIN)/Vector3D.o
 
 .PHONY: all
@@ -23,7 +23,7 @@ $(DPD_BIN):
 
 $(DPD_BIN)/%.o: $(DPD_SRC)/%.cpp $(DPD_INC)/%.hpp
 	mkdir -p $(DPD_BIN)
-	$(RV_CC) $(CFLAGS) -Wall -c -I $(DPD_INC) $< -o $@	
+	$(RV_CC) $(CFLAGS) -Wall -c -I $(DPD_INC) $(LD_GCC_FLAGS) $(LD_FLAGS) $< -o $@	
 
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
@@ -33,9 +33,9 @@ $(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(RV_OBJCOPY) -O verilog --remove-section=.text \
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
 
-$(DPD_BIN)/dpd.elf: $(DPD_SRC)/dpd.c $(DPD_INC)/dpd.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+$(DPD_BIN)/dpd.elf: $(DPD_SRC)/dpd.cpp $(DPD_INC)/dpd.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
 	$(RV_CC) $(CFLAGS) -Wall -c -I $(DPD_INC) -o $(DPD_BIN)/dpd.o $<
-	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpd.o $(DPD_OBJS)
+	$(RV_LD) $(LDFLAGS) $(LD_GCC_FLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpd.o $(DPD_OBJS)
 
 $(DPD_BIN)/entry.o: $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -o $(DPD_BIN)/entry.o $(DPD_UTILS)/entry.S

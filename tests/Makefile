@@ -9,9 +9,9 @@ TEST_OBJS= vec3d_double.o
 
 .PHONY: all
 
-all: fixed_ap_tests force_tests $(TEST_OBJS) tests
+all: fixed_ap_tests force_tests $(TEST_OBJS) tests dpd_tests
 
-tests: fixed_ap_tests force_tests 
+tests: fixed_ap_tests force_tests dpd_tests
 	./fixed_ap_tests
 	./force_tests
 
@@ -23,6 +23,9 @@ fixed_ap_tests: fixed_ap_tests.cpp $(DPD_INC)/fixed_ap.h $(TEST_OBJS)
 
 force_tests: force_tests.cpp $(DPD_INC)/fixed_ap.h $(TEST_OBJS) 
 	g++ $(DPD_CFLAGS) -I $(DPD_INC) force_tests.cpp $(TEST_OBJS) -o force_tests -lm
+
+dpd_tests: dpd_tests.cpp $(DPD_INC)/dpd.h $(TEST_OBJS) 
+	g++ $(DPD_CFLAGS) -I $(DPD_INC) dpd_tests.cpp $(TEST_OBJS) -o dpd_tests -lm
 
 clean:
 	rm -f fixed_ap_tests force_tests

@@ -1,55 +1,53 @@
 // This header file is shared by the tinsel program and the host PC program
 // It is used to define various DPD particles
 
+#include <stdint.h>
+
 #ifndef _DPD_H_
 #define _DPD_H_
 
-#include "fixap_vec3d.h" // fixed point arithmetic 3d vector library
-
-#define BEADS_PER_UNIT 5 
+#define BEADS_PER_UNIT 2 
 #define UNIT_SPACE 1
-#define PADDING 4 
+#define PADDING 
 
-// position type
-typedef uint16_t pos_t; 
+// particle location
+typedef struct _pos_t {
+    float x;
+    float y;
+    float z;
+} pos_t; // 12 bytes
 
-// bead class 
-typedef uint16_t bead_class_t; 
+// particle velocity
+typedef struct _velo_t {
+    float x;
+    float y;
+    float z;
+} velo_t; // 12 bytes
 
-// bead ID
-typedef uint16_t bead_id_t; 
-
-// unit location
-typedef struct {
-  uint16_t x;
-  uint16_t y;
-  uint16_t z;
-} unit_t;	
+typedef uint16_t bead_class_t; // the type of the bead, we are not expecting too many 
+typedef uint16_t bead_id_t; // the ID for the bead
 
 // defines a bead type
-typedef struct {
-  bead_id_t id; 
-  bead_class_t type; 
-  pos_t x; 
-  pos_t y; 
-  pos_t z;
-} bead_t; 
+typedef struct _bead_t {
+    bead_class_t type;
+    bead_id_t id;
+    pos_t pos;
+    velo_t velo;
+} bead_t; // 28 bytes 
 
+typedef uint16_t unit_pos_t;
+
+// defines the unit location
+typedef struct _unit_t {
+  unit_pos_t x;
+  unit_pos_t y;
+  unit_pos_t z; 
+} unit_t; // 6 bytes
 
 // Format of messages sent to host
-typedef struct {
-  unit_t from; // the unit that this message is from
-  uint8_t count; // the number of beads in this message
+typedef struct _msg_t {
+  unit_t from; // the unit that this message is from 
   bead_t beads[BEADS_PER_UNIT]; // the beads from this unit 
-  uint32_t timestep; // the timestep at this message
-  //uint8_t padding[PADDING];
-} msg_t;
-
-// calculates all the pairwise forces acting between two beads a and b
-// apos - position vector for bead a
-// bpos - position vector for bead b
-// avelo - velocity vector for bead a
-// bvelo - velocity vector for bead b
-vec_t forces(vec_t apos, vec_t bpos, vec_t avelo, vec_t bvelo); 
+} msg_t; 
 
 #endif /* _DPD_H */
