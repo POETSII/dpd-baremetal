@@ -2,13 +2,16 @@
 // It is used to define various DPD particles
 
 #include <stdint.h>
+#include <POLite.h>
 
 #ifndef _DPD_H_
 #define _DPD_H_
 
 #define BEADS_PER_UNIT 2 
-#define UNIT_SPACE 1
-#define PADDING 
+#define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
+#define PADDING 0 
+
+typedef float ptype;
 
 // particle location
 typedef struct _pos_t {
@@ -44,10 +47,49 @@ typedef struct _unit_t {
   unit_pos_t z; 
 } unit_t; // 6 bytes
 
-// Format of messages sent to host
-typedef struct _msg_t {
+// Format of message
+struct DPDMessage {
   unit_t from; // the unit that this message is from 
   bead_t beads[BEADS_PER_UNIT]; // the beads from this unit 
-} msg_t; 
+}; 
+
+// the state of the DPD Device
+struct DPDState{
+
+}; 
+
+// DPD Device code
+struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
+
+	// init handler -- called once by POLite at the start of execution
+	inline void init() {
+		
+	}
+	
+	// idle handler -- called once the system is idle with messages
+	inline void idle() {
+
+	}
+	
+	// send handler -- called when the ready to send flag has been set
+	inline void send(volatile DPDMessage *msg){
+
+	}
+	
+	// recv handler -- called when the device has received a message
+	inline void recv(DPDMessage *msg, None* edge){
+
+	}
+
+	// send to host -- sends a message to the host on termination
+	inline bool sendToHost(volatile DPDMessage* msg) {
+	    unit_t me = {1,2,3};
+	    msg->from.x = me.x;
+	    msg->from.y = me.y;
+	    msg->from.z = me.z;
+            return true;
+        }
+
+};
 
 #endif /* _DPD_H */
