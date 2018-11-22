@@ -19,8 +19,8 @@ class fixap
     public:
 
         // constructor with default const parameter
-        constexpr explicit fixap(float x) : _value(round(x * (1 << F))) { }
-        constexpr explicit fixap(double x) : _value(round(x * (1 << F))) { }
+        fixap(float x) : _value(round(x * (1 << F))) { }
+        fixap(double x) : _value(round(x * (1 << F))) { }
 
         // isZero returns true if this fixap number is zero
         bool isZero() { return (this->_value == 0); }
@@ -45,7 +45,7 @@ class fixap
         }
 
         // sets the fixed point variable from a floating point value (at compile time)
-        constexpr void set(float x){
+        void set(float x){
            _value = round(x * (1 << F));
         }
 

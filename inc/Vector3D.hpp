@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include "fixed_ap.h"
+#include "utils.hpp"
 
 template<class S>
 class Vector3D {

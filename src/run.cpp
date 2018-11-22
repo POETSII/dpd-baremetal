@@ -44,8 +44,7 @@ int main()
   double duration = (double) diff.tv_sec + (double) diff.tv_usec / 1000000.0;
   PMessage<None, DPDMessage> msg;
   hostLink.recvMsg(&msg, sizeof(msg));
-  unit_t from = msg.payload.from;
-  printf("%d,%d,%d\n", from.x, from.y, from.z);
+  printf("%.4f,\n", msg.payload.debug);
   printf("Time = %lf\n", duration);
 
   return 0;

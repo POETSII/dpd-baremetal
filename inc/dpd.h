@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <POLite.h>
 
+#include "Vector3D.hpp"
+
 #ifndef _DPD_H_
 #define _DPD_H_
 
@@ -49,13 +51,15 @@ typedef struct _unit_t {
 
 // Format of message
 struct DPDMessage {
+  float debug;
   unit_t from; // the unit that this message is from 
-  bead_t beads[BEADS_PER_UNIT]; // the beads from this unit 
+  //bead_t beads[BEADS_PER_UNIT]; // the beads from this unit 
 }; 
 
 // the state of the DPD Device
 struct DPDState{
-
+   Vector3D<ptype> pos1;
+   Vector3D<ptype> pos2;
 }; 
 
 // DPD Device code
@@ -63,7 +67,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-		
+             s->pos1 = Vector3D<ptype>(ptype(1.2), ptype(3.4), ptype(4.5));		
+             s->pos2 = Vector3D<ptype>(ptype(2.3), ptype(3.0), ptype(1.0));		
 	}
 	
 	// idle handler -- called once the system is idle with messages
@@ -83,10 +88,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	    unit_t me = {1,2,3};
-	    msg->from.x = me.x;
-	    msg->from.y = me.y;
-	    msg->from.z = me.z;
+	    msg->debug = s->pos1.dist(s->pos2);
             return true;
         }
 
