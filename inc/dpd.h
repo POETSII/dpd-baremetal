@@ -58,6 +58,7 @@ struct DPDMessage {
 
 // the state of the DPD Device
 struct DPDState{
+   unit_t loc; // the location of this cube
    Vector3D<ptype> pos1;
    Vector3D<ptype> pos2;
 }; 
@@ -88,7 +89,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	    msg->debug = s->pos1.dist(s->pos2);
+	    msg->debug = s->pos1.dot(s->pos2); 
+            msg->from.x = s->loc.x;
+            msg->from.y = s->loc.y;
+            msg->from.z = s->loc.z;
             return true;
         }
 
