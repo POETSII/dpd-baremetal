@@ -56,12 +56,14 @@ struct unit_t {
 
 // Format of message
 struct DPDMessage {
+  uint32_t debug;
   unit_t from; // the unit that this message is from 
   bead_t beads[1]; // the beads payload from this unit 
 }; 
 
 // the state of the DPD Device
 struct DPDState{
+   uint32_t debug_cnt;
    unit_t loc; // the location of this cube
    bead_t beads[5]; // at most we have five beads per device
    uint8_t num_beads; // the number of beads in this device
@@ -73,8 +75,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-             //s->pos1 = Vector3D<ptype>(ptype(1.2), ptype(3.4), ptype(4.5));		
-             //s->pos2 = Vector3D<ptype>(ptype(2.3), ptype(3.0), ptype(1.0));		
+		s->debug_cnt = 0;
+		*readyToSend = Pin(0);
 	}
 	
 	// idle handler -- called once the system is idle with messages
@@ -84,28 +86,34 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
-
+             *readyToSend = No; 
 	}
 	
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge){
+		s->debug_cnt++;
 
 	}
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	    if(s->num_beads > 0) {
                 msg->from.x = s->loc.x;
                 msg->from.y = s->loc.y;
                 msg->from.z = s->loc.z;
-                msg->beads[0].type = s->beads[0].type;
-                msg->beads[0].id = s->beads[0].id;
-                msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
-                msg->beads[0].velo.set(s->beads[0].velo.x(), s->beads[0].velo.y(), s->beads[0].velo.z());
-                return true;
-	    } else {
-                return false;
-            }
+		msg->debug = s->debug_cnt;
+		return true;
+	    //if(s->num_beads > 0) {
+            //    msg->from.x = s->loc.x;
+            //    msg->from.y = s->loc.y;
+            //    msg->from.z = s->loc.z;
+            //    msg->beads[0].type = s->beads[0].type;
+            //    msg->beads[0].id = s->beads[0].id;
+            //    msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
+            //    msg->beads[0].velo.set(s->beads[0].velo.x(), s->beads[0].velo.y(), s->beads[0].velo.z());
+            //    return true;
+	    //} else {
+            //    return false;
+            //}
         }
 
 };

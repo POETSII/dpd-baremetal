@@ -19,6 +19,8 @@ int main()
 
   Universe<ptype> uni(problem_size, N);
 
+  printf("Universe setup -- adding beads\n");
+
   // placing beads into the universe 
   bead_t b1;
   b1.id = 0; 
@@ -36,6 +38,7 @@ int main()
   uni.add(&b2);
 
   uni.write(); // write the universe into the POETS memory
+  printf("running...\n");
   uni.run(); // start the simulation
 
   return 0;
