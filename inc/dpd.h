@@ -15,20 +15,6 @@
 
 typedef float ptype;
 
-// particle location
-typedef struct _pos_t {
-    float x;
-    float y;
-    float z;
-} pos_t; // 12 bytes
-
-// particle velocity
-typedef struct _velo_t {
-    float x;
-    float y;
-    float z;
-} velo_t; // 12 bytes
-
 typedef uint16_t bead_class_t; // the type of the bead, we are not expecting too many 
 typedef uint16_t bead_id_t; // the ID for the bead
 
@@ -36,31 +22,50 @@ typedef uint16_t bead_id_t; // the ID for the bead
 typedef struct _bead_t {
     bead_class_t type;
     bead_id_t id;
-    pos_t pos;
-    velo_t velo;
+    Vector3D<ptype> pos;
+    Vector3D<ptype> velo;
 } bead_t; // 28 bytes 
 
 typedef uint16_t unit_pos_t;
 
 // defines the unit location
-typedef struct _unit_t {
+struct unit_t {
   unit_pos_t x;
   unit_pos_t y;
   unit_pos_t z; 
-} unit_t; // 6 bytes
+
+  #ifndef TINSEL // below is only needed for the host code
+
+  // so that we can use the co-ordinate of the spatial unit as a key
+  bool operator<(const unit_t& coord) const {
+    if(x < coord.x) return true;
+    if(x > coord.x) return false;
+    //x == coord.x
+    if(y < coord.y) return true;
+    if(y > coord.y) return false;
+    //x == coord.x && y == coord.y
+    if(z < coord.z) return true;
+    if(z > coord.z) return false;
+    //*this == coord
+    return false;
+  }
+
+  #endif /* TINSEL */
+
+}; // 6 bytes
 
 // Format of message
 struct DPDMessage {
-  float debug;
   unit_t from; // the unit that this message is from 
-  //bead_t beads[BEADS_PER_UNIT]; // the beads from this unit 
+  bead_t beads[1]; // the beads payload from this unit 
 }; 
 
 // the state of the DPD Device
 struct DPDState{
    unit_t loc; // the location of this cube
-   Vector3D<ptype> pos1;
-   Vector3D<ptype> pos2;
+   bead_t beads[5]; // at most we have five beads per device
+   uint8_t num_beads; // the number of beads in this device
+   float unit_size; // the size of this spatial unit in one dimension
 }; 
 
 // DPD Device code
@@ -68,8 +73,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-             s->pos1 = Vector3D<ptype>(ptype(1.2), ptype(3.4), ptype(4.5));		
-             s->pos2 = Vector3D<ptype>(ptype(2.3), ptype(3.0), ptype(1.0));		
+             //s->pos1 = Vector3D<ptype>(ptype(1.2), ptype(3.4), ptype(4.5));		
+             //s->pos2 = Vector3D<ptype>(ptype(2.3), ptype(3.0), ptype(1.0));		
 	}
 	
 	// idle handler -- called once the system is idle with messages
@@ -89,11 +94,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	    msg->debug = s->pos1.dot(s->pos2); 
-            msg->from.x = s->loc.x;
-            msg->from.y = s->loc.y;
-            msg->from.z = s->loc.z;
-            return true;
+	    if(s->num_beads > 0) {
+                msg->from.x = s->loc.x;
+                msg->from.y = s->loc.y;
+                msg->from.z = s->loc.z;
+                msg->beads[0].type = s->beads[0].type;
+                msg->beads[0].id = s->beads[0].id;
+                msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
+                msg->beads[0].velo.set(s->beads[0].velo.x(), s->beads[0].velo.y(), s->beads[0].velo.z());
+                return true;
+	    } else {
+                return false;
+            }
         }
 
 };

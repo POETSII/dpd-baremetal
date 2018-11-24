@@ -3,8 +3,6 @@
 #define __VECTOR_3D_H
 
 #include <math.h>
-#include <sstream>
-#include <string>
 #include "fixed_ap.h"
 #include "utils.hpp"
 
@@ -24,7 +22,7 @@ class Vector3D {
        void x(S in); /**< sets the value of x */
        void y(S in); /**< sets the value of y */
        void z(S in); /**< sets the value of z */
-       void set(S x, S y, S z); /**< sets the vector value */       
+       void set(const S x, const S y, const S z) volatile; /**< sets the vector value */       
 
        //         operations 
        // ----------------------------
@@ -55,9 +53,6 @@ class Vector3D {
        // distance
        S dist(Vector3D<S> a); /**< calculates the euclidean distance */
  
-       // format string
-       std::string str();
-
    private:
        S _x;
        S _y;

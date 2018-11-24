@@ -31,7 +31,6 @@ Vector3D<S>::Vector3D(const Vector3D<S> &in) {
    _z = in._z;
 }
 
-
 // clears the vector
 template<class S>
 void Vector3D<S>::clear() {
@@ -58,7 +57,7 @@ void Vector3D<S>::z(S in) { _z = in; }
 
 // setter
 template<class S>
-void Vector3D<S>::set(S x, S y, S z) {
+void Vector3D<S>::set(const S x, const S y, const S z) volatile {
     _x = x;
     _y = y;
     _z = z;
@@ -185,12 +184,5 @@ S Vector3D<S>::dist(Vector3D<S> a) {
    return c.mag();
 }
 
-// returns a formatted string
-template<class S>
-std::string Vector3D<S>::str(){
-   std::stringstream ss;
-   ss << "<"<<(float)x()<<", "<<(float)y()<<", "<<(float)z()<<">";
-   return ss.str();
-}
 
 #endif /* _VECTOR_3D_IMPL */

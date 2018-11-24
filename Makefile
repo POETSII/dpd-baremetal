@@ -12,7 +12,7 @@ include $(TINSEL_ROOT)/globals.mk
 # Local compiler flags
 CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11 
 LDFLAGS = -melf32lriscv -G 0  
-DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o 
 
 .PHONY: all
 all: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
