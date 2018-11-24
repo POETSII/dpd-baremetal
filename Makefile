@@ -13,6 +13,7 @@ include $(TINSEL_ROOT)/globals.mk
 CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11 
 LDFLAGS = -melf32lriscv -G 0  
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o 
+HOST_OBJS = $(DPD_BIN)/universe.o
 
 .PHONY: all
 all: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
@@ -20,10 +21,22 @@ all: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN) 
 
-$(DPD_BIN)/%.o: $(DPD_SRC)/%.cpp $(DPD_INC)/%.hpp
+# -------------- Host Object files --------------------------
+$(DPD_BIN)/universe.o: $(DPD_SRC)/universe.cpp $(DPD_INC)/universe.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++98 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp 
+
+# -------------- Tinsel Object files --------------------------
+$(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@	
 
+$(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
+	mkdir -p $(DPD_BIN)
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@	
+
+
+# -------------- elf --------------------------
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
 	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/dpd.elf $@
@@ -48,8 +61,10 @@ $(INC)/config.h: $(TINSEL_ROOT)/config.py
 $(HL)/%.o:
 	make -C $(HL)
 
-$(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN)
-	g++ -O2 -std=c++98 -I $(INC) -I $(HL) -I $(DPD_INC) -o $(DPD_BIN)/run $(DPD_SRC)/run.cpp $(HL)/*.o \
+# -------------- host program --------------------------
+$(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++98 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+	g++ -O2 -std=c++98 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
           -ljtag_atlantic -ljtag_client -L $(QUARTUS_ROOTDIR)/linux64/ \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis
 
