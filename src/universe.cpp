@@ -247,6 +247,12 @@ void Universe<S>::add(const bead_t *in) {
       exit(EXIT_FAILURE);
    } else {
      // we can add the bead
+
+     // make the postion of the bead relative
+     b.pos.x(b.pos.x() - (S(float(t.x))*_unit_size)); 
+     b.pos.y(b.pos.y() - (S(float(t.y))*_unit_size)); 
+     b.pos.z(b.pos.z() - (S(float(t.z))*_unit_size)); 
+     
      _g->devices[b_su]->state.beads[_g->devices[b_su]->state.num_beads++] = b; 
    }
 }
@@ -269,7 +275,8 @@ void Universe<S>::run() {
         PMessage<None, DPDMessage> msg;
         for(uint32_t i=0; i< _g->numDevices; i++) {
            _hostLink->recvMsg(&msg, sizeof(msg));
-	   printf("<%d,%d,%d> has received %d\n", msg.payload.from.x, msg.payload.from.y, msg.payload.from.z, msg.payload.debug);
+	   if(msg.payload.debug > 0)
+	       printf("<%d,%d,%d> has dist_recorded %.4f local bead:<%.4f,%.4f,%.4f>\n", msg.payload.from.x, msg.payload.from.y, msg.payload.from.z, msg.payload.debug, msg.payload.beads[0].pos.x(), msg.payload.beads[0].pos.y(), msg.payload.beads[0].pos.z());
 	}
 	break; // exit the main loop
     }

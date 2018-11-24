@@ -174,7 +174,11 @@ Vector3D<S> Vector3D<S>::cross(Vector3D<S> a){
 // mag
 template<class S>
 S Vector3D<S>::mag(){
+   #ifndef TINSEL
+   return sqrt(_x*_x + _y*_y + _z*_z);
+   #else
    return newt_sqrt(_x*_x + _y*_y + _z*_z);
+   #endif
 } 
 
 // dist

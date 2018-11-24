@@ -25,17 +25,18 @@ int main()
   bead_t b1;
   b1.id = 0; 
   b1.type = 0; 
-  b1.pos.set(4.5,3.6,8.2);
+  b1.pos.set(4.0,7.0,5.1);
   b1.velo.set(0.0,0.0,0.0);
   uni.add(&b1);
 
-  // placing beads into the universe 
   bead_t b2;
   b2.id = 0; 
   b2.type = 0; 
-  b2.pos.set(3.6,2.9,1.2);
+  b2.pos.set(4.0,7.0,4.8);
   b2.velo.set(0.0,0.0,0.0);
   uni.add(&b2);
+
+  printf("test distance = %.4f\n", b1.pos.dist(b2.pos));
 
   uni.write(); // write the universe into the POETS memory
   printf("running...\n");
