@@ -21,6 +21,7 @@ class Universe {
 
     // setup
     void add(const bead_t* in); // adds a bead to the universe
+    void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
     // simulation control
     void write(); // writes the simulation env onto the POETS system

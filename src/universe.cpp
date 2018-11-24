@@ -5,6 +5,13 @@
 #ifndef __UNIVERSE_IMPL
 #define __UNIVERSE_IMPL
 
+// make two devices neighbours
+template<class S>
+void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b){
+     _g->addEdge(a,0,b);
+     _g->addEdge(b,0,a);
+}
+
 // constructor
 template<class S>
 Universe<S>::Universe(S size, unsigned D){
@@ -27,6 +34,180 @@ Universe<S>::Universe(S size, unsigned D){
     }
 
     // connect all the devices together appropriately
+    // a toroidal space (cube with periodic boundaries)
+    for(uint16_t x=0; x<_D; x++) {
+       for(uint16_t y=0; y<_D; y++) {
+          for(uint16_t z=0; z<_D; z++) {
+              // this device  
+	      unit_t c_loc = {x,y,z}; 
+	      PDeviceId cId = _locToId[c_loc];
+
+	      // calculate the neighbour positions
+	      // (taking into account the periodic boundary)
+              int x_neg, y_neg, z_neg;
+              int x_pos, y_pos, z_pos;
+
+              // assign the x offsets
+              if(x==0) {
+                x_neg = _D-1;
+                x_pos = x+1;
+              } else if (x == (_D-1)) {
+                x_neg = x-1;
+                x_pos = 0;
+              } else {
+                x_neg = x-1;
+                x_pos = x+1;
+              }
+
+              // assign the y offsets
+              if(y==0) {
+                y_neg = _D-1;
+                y_pos = y+1;
+              } else if (y == (_D-1)) {
+                y_neg = y-1;
+                y_pos = 0;
+              } else {
+                y_neg = y-1;
+                y_pos = y+1;
+              }
+
+              // assign the z offsets
+              if(z==0) {
+                z_neg = _D-1;
+                z_pos = z+1;
+              } else if (z == (_D-1)) {
+                z_neg = z-1;
+                z_pos = 0;
+              } else {
+                z_neg = z-1;
+                z_pos = z+1;
+              }
+
+	      unit_t n_loc;
+	      PDeviceId nId;
+                 // z = -1
+                   // { -1,-1,-1 },  { -1,0,-1 },  { -1, +1,-1 }
+                      n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_neg; n_loc.y = y; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_neg; n_loc.y = y_pos; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                   // { 0,-1, -1 },  { 0, 0,-1 },  { 0, +1, -1 }
+                      n_loc.x = x; n_loc.y = y_neg; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x; n_loc.y = y; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x; n_loc.y = y_pos; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                   // { +1,-1,-1 },  { +1,0,-1 },  { +1, +1,-1 }
+                      n_loc.x = x_pos; n_loc.y = y_neg; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_pos; n_loc.y = y; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_pos; n_loc.y = y_pos; n_loc.z = z_neg;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                 // z = 0
+                   // { -1,-1,0 },  { -1,0,0 },  { -1, +1,0 }
+                      n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_neg; n_loc.y = y; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_neg; n_loc.y = y_pos; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                   // { 0,-1, 0 },  { 0, 0, 0 },  { 0, +1, 0 }
+                      n_loc.x = x; n_loc.y = y_neg; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      // skipping! one is not a neighbour of oneself
+                      //n_loc.x = x; n_loc.y = y; n_loc.z = z;
+
+                      n_loc.x = x; n_loc.y = y_pos; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                   // { +1,-1, 0 },  { +1,0, 0 },  { +1, +1, 0 }
+                      n_loc.x = x_pos; n_loc.y = y_neg; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_pos; n_loc.y = y; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_pos; n_loc.y = y_pos; n_loc.z = z;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+		      
+                 // z = +1
+                   // { -1,-1,+1 },  { -1,0,+1},  { -1, +1,+1 }
+                      n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_neg; n_loc.y = y; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_neg; n_loc.y = y_pos; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                   // { 0,-1, +1 },  { 0, 0, +1 },  { 0, +1, +1 }
+                      n_loc.x = x; n_loc.y = y_neg; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x; n_loc.y = y; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x; n_loc.y = y_pos; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                   // { +1,-1, +1 },  { +1,0, +1 },  { +1, +1, +1 }
+                      n_loc.x = x_pos; n_loc.y = y_neg; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_pos; n_loc.y = y; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+                      n_loc.x = x_pos; n_loc.y = y_pos; n_loc.z = z_pos;
+                      nId = _locToId[n_loc];
+		      addNeighbour(cId, nId);
+
+          }
+        }
+     }
+     // all the edges have been connected
 
     _g->map(); // map the graph into hardware calling the POLite placer
 
