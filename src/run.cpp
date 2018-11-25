@@ -36,7 +36,12 @@ int main()
   b2.velo.set(0.0,0.0,0.0);
   uni.add(&b2);
 
-  printf("test distance = %.4f\n", b1.pos.dist(b2.pos));
+  bead_t b3;
+  b3.id = 0; 
+  b3.type = 0; 
+  b3.pos.set(4.0,7.8,4.3);
+  b3.velo.set(0.0,0.0,0.0);
+  uni.add(&b3);
 
   uni.write(); // write the universe into the POETS memory
   printf("running...\n");

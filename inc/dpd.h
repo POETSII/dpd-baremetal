@@ -15,6 +15,20 @@
 
 typedef float ptype;
 
+// ------------------------- SIMULATION PARAMETERS --------------------------------------
+const ptype r_c(1.0);
+
+// interaction matrix
+const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
+                         {ptype(75.0), ptype(25.0), ptype(50.0)},
+                         {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
+
+const ptype dt = 0.02; // the timestep
+const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
+
+// ---------------------------------------------------------------------------------------
+
+
 typedef uint16_t bead_class_t; // the type of the bead, we are not expecting too many 
 typedef uint16_t bead_id_t; // the ID for the bead
 
@@ -74,13 +88,6 @@ struct DPDState{
    uint8_t sentcnt; // a counter used to track how many beads have been sent
 }; 
 
-const ptype r_c(1.0);
-
-// interaction matrix
-const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
-                         {ptype(75.0), ptype(25.0), ptype(50.0)},
-                         {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
-
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
@@ -109,14 +116,23 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	
 	// idle handler -- called once the system is idle with messages
 	inline void idle() {
-		// Velocity Verlet happens here
-		
-		// clear the forces
+	    // Velocity Verlet and particle migration decisions happen here
+	    for(uint8_t i=0; i<s->num_beads; i++) {
+	       // ------ velocity verlet ------
+               Vector3D<ptype> acceleration = s->force[i] / p_mass;
+	       Vector3D<ptype> delta_v = acceleration * dt;
+	       // update velocity
+	       s->beads[i].velo = s->beads[i].velo + delta_v;
+	       // velocity verlet
+	       s->beads[i].pos = s->beads[i].pos + s->beads[i].velo*dt + acceleration*ptype(0.5)*dt*dt;
 
-		// decisions about partilce migrations
-		
-		// do we export or not? -- need a counter to track export rate
-	
+	       // ----- clear the forces ---------------
+	       s->force[i].set(ptype(0.0), ptype(0.0), ptype(0.0));
+
+               // ----- migration code ------
+	       
+	       // ----- do we export to the host ? ---- 
+	    }
 	}
 	
 	// send handler -- called when the ready to send flag has been set
@@ -137,7 +153,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    } else {
 		s->sentcnt = 0;
                 *readyToSend = No; 
+
 		// perform an inter-bead update
+		for(uint8_t i=0; i<s->num_beads; i++) {
+		    for(uint8_t j=0; j<s->num_beads; j++) {
+                          if(i!=j) {
+			     if(s->beads[i].pos.dist(s->beads[j].pos) <= r_c) {
+                                  s->force[i] = s->force[i] + force_update(&s->beads[i], &s->beads[j]); 
+			     } 
+			  }	  
+	            }
+		}
 	    }
 	}
 	
@@ -184,7 +210,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 msg->from.x = s->loc.x;
                 msg->from.y = s->loc.y;
                 msg->from.z = s->loc.z;
-		msg->debug = s->force[0].mag();
+		msg->debug = s->beads[0].velo.mag();
                 msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
 		return true;
 	    //if(s->num_beads > 0) {
