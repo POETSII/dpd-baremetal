@@ -82,14 +82,18 @@ struct DPDMessage {
 // the state of the DPD Device
 struct DPDState{
    float debug_cnt;
+   float unit_size; // the size of this spatial unit in one dimension
    unit_t loc; // the location of this cube
+   uint8_t bead_idx[5]; // the locations in beads[] where there is a bead present 
+   uint8_t num_beads; // the number of beads in this device
    bead_t beads[5]; // at most we have five beads per device
    Vector3D<ptype> force[5]; // at most 5 beads -- force for each bead
-   uint8_t num_beads; // the number of beads in this device
-   float unit_size; // the size of this spatial unit in one dimension
+   uint8_t migrate[5]; // the particle indices set for migration
+   uint8_t migratecnt; // the number of particles being sent-out
 
    // send tracking
    uint8_t sentcnt; // a counter used to track how many beads have been sent
+   uint8_t sendmode; // keeps track of what mode this device is in sendmode = 0 force_update; sendmode = 1 migration
 }; 
 
 // DPD Device code
@@ -108,7 +112,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         
             return force;
         }
-
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
@@ -200,8 +203,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	       } else {
                       d_loc.z = s->loc.z;
 	       }
-
 	       
+	       if(migrating) {
+		  // we want to migrate bead i
+		  s->migrate[s->migratecnt++] = i;
+	       }
+
 	       // ----- do we export to the host ? ---- 
 	    }
 	}
@@ -238,30 +245,25 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 	}
 	
+	// used to help adjust the relative positions for the periodic boundary
+	inline int period_bound_adj(int dim){
+            if(dim > 1) {
+                  return -1;
+            } else if (dim < -1) {
+                  return 1;
+            } else {
+                  return dim;
+            }
+        }
+
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge){
 	  // Do inter device bead interactions
 
 	  // from the device locaton get the adjustments to the bead positions
-          int x_rel = msg->from.x - s->loc.x;
-          int y_rel = msg->from.y - s->loc.y;
-          int z_rel = msg->from.z - s->loc.z;
-
-          // periodic boundary adjusting
-          if(x_rel > 1)
-                x_rel = -1;
-          else if (x_rel < -1)
-                x_rel = 1;
-
-          if(y_rel > 1)
-                y_rel = -1;
-          else if (y_rel < -1)
-                y_rel = 1;
-
-          if(z_rel > 1)
-                z_rel = -1;
-          else if (z_rel < -1)
-                z_rel = 1;
+          int x_rel = period_bound_adj(msg->from.x - s->loc.x);
+          int y_rel = period_bound_adj(msg->from.y - s->loc.y);
+          int z_rel = period_bound_adj(msg->from.z - s->loc.z);
 
 	  // relative position for this particle to this device
 	  msg->beads[0].pos.x(msg->beads[0].pos.x() + ptype(x_rel)*s->unit_size);
