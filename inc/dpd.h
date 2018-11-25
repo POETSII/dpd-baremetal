@@ -33,6 +33,8 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
+const uint32_t emitperiod = 100;
+
 // ---------------------------------------------------------------------------------------
 
 
@@ -318,7 +320,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                           if(ci != cj) {
 	                      if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
                                 s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]); 
-	            	  } 
+	            	      } 
 	                  }
                           j = clear_slot(j,cj);
 	              }
@@ -425,13 +427,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	//	uint8_t ci = get_next_slot(s->bslot);
-        //        msg->from.x = s->loc.x;
-        //        msg->from.y = s->loc.y;
-        //        msg->from.z = s->loc.z;
-	//	msg->debug = get_num_beads(s->bslot);//s->bead_slot[0].velo.mag();
-        //        msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
-	//	return true;
 	    return false;
         }
 
