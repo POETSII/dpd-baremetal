@@ -332,6 +332,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	     s->migrateslot = clear_slot(s->migrateslot, ci);
 	     // clear the bead slot -- it no longer belongs to us
 	     s->bslot = clear_slot(s->bslot, ci);
+	     s->sentslot = s->bslot;
 	     if(s->migrateslot != 0) {
                 *readyToSend = Pin(0);
 	     } else {
@@ -381,6 +382,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	      // looks like we are getting a new addition to our family
 	      uint8_t ci = get_next_free_slot(s->bslot); // I hope we have space...
               s->bslot = set_slot(s->bslot, ci);
+	      s->sentslot = s->bslot;
 
 	      // welcome the new little bead
 	      s->bead_slot[ci].type = msg->beads[0].type;
@@ -395,24 +397,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
+		uint8_t ci = get_next_slot(s->bslot);
                 msg->from.x = s->loc.x;
                 msg->from.y = s->loc.y;
                 msg->from.z = s->loc.z;
 		msg->debug = get_num_beads(s->bslot);//s->bead_slot[0].velo.mag();
-                msg->beads[0].pos.set(s->bead_slot[0].pos.x(), s->bead_slot[0].pos.y(), s->bead_slot[0].pos.z());
+                msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
 		return true;
-	    //if(s->num_beads > 0) {
-            //    msg->from.x = s->loc.x;
-            //    msg->from.y = s->loc.y;
-            //    msg->from.z = s->loc.z;
-            //    msg->beads[0].type = s->bead_slot[0].type;
-            //    msg->beads[0].id = s->bead_slot[0].id;
-            //    msg->beads[0].pos.set(s->bead_slot[0].pos.x(), s->bead_slot[0].pos.y(), s->bead_slot[0].pos.z());
-            //    msg->beads[0].velo.set(s->bead_slot[0].velo.x(), s->bead_slot[0].velo.y(), s->bead_slot[0].velo.z());
-            //    return true;
-	    //} else {
-            //    return false;
-            //}
         }
 
 };
