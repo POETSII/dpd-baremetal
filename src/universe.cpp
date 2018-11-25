@@ -338,7 +338,7 @@ void Universe<S>::run() {
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
-        for(uint32_t i=0; i< _g->numDevices; i++) {
+        for(uint32_t i=0; i<3; i++) {
            _hostLink->recvMsg(&msg, sizeof(msg));
 	   if(msg.payload.debug > 0.1)
 	       printf("<%d,%d,%d> has dist_recorded %.4f local bead:<%.4f,%.4f,%.4f>\n", msg.payload.from.x, msg.payload.from.y, msg.payload.from.z, msg.payload.debug, msg.payload.beads[0].pos.x(), msg.payload.beads[0].pos.y(), msg.payload.beads[0].pos.z());
