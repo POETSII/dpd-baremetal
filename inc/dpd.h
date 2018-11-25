@@ -69,43 +69,83 @@ struct DPDState{
    Vector3D<ptype> force[5]; // at most 5 beads -- force for each bead
    uint8_t num_beads; // the number of beads in this device
    float unit_size; // the size of this spatial unit in one dimension
+
+   // send tracking
+   uint8_t sentcnt; // a counter used to track how many beads have been sent
 }; 
 
 const ptype r_c(1.0);
 
+// interaction matrix
+const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
+                         {ptype(75.0), ptype(25.0), ptype(50.0)},
+                         {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
+
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
+        // calculate a new force acting between two particles
+        Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+            ptype a_ij = A[a->id][b->id]; 
+            Vector3D<ptype> r_i = a->pos;
+            Vector3D<ptype> r_j = b->pos;
+            ptype r_ij_dist = r_i.dist(r_j);
+            Vector3D<ptype> r_ij = r_i - r_j;
+        
+            // Equation 8.5 in the dl_meso manual
+            Vector3D<ptype> force = (r_ij/r_ij_dist) * (a_ij * (ptype(1.0) - (r_ij_dist/r_c)));
+        
+            return force;
+        }
+
+
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-		s->debug_cnt = 0.0;
 		if(s->num_beads > 0)
 		    *readyToSend = Pin(0);
+	        else
+		    *readyToSend = No;
 	}
 	
 	// idle handler -- called once the system is idle with messages
 	inline void idle() {
+		// Velocity Verlet happens here
+		
+		// clear the forces
 
+		// decisions about partilce migrations
+		
+		// do we export or not? -- need a counter to track export rate
+	
 	}
 	
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
-	    // Do intra device bead interations
+	    // send all of our beads to neighbours
 	    msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
             msg->from.z = s->loc.z;
-            msg->beads[0].type = s->beads[0].type;
-            msg->beads[0].id = s->beads[0].id;
-            msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
-            msg->beads[0].velo.set(s->beads[0].velo.x(), s->beads[0].velo.y(), s->beads[0].velo.z());
-            *readyToSend = No; 
+            msg->beads[0].type = s->beads[s->sentcnt].type;
+            msg->beads[0].id = s->beads[s->sentcnt].id;
+            msg->beads[0].pos.set(s->beads[s->sentcnt].pos.x(), s->beads[s->sentcnt].pos.y(), s->beads[s->sentcnt].pos.z());
+            msg->beads[0].velo.set(s->beads[s->sentcnt].velo.x(), s->beads[s->sentcnt].velo.y(), s->beads[s->sentcnt].velo.z());
+
+            // move onto the next bead to send unless we are done 
+	    s->sentcnt++;
+	    if(s->sentcnt < s->num_beads) { 
+	        *readyToSend = Pin(0);
+	    } else {
+		s->sentcnt = 0;
+                *readyToSend = No; 
+		// perform an inter-bead update
+	    }
 	}
 	
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge){
 	  // Do inter device bead interactions
 
-	  // from the message get the adjustments to the position
+	  // from the device locaton get the adjustments to the bead positions
           int x_rel = msg->from.x - s->loc.x;
           int y_rel = msg->from.y - s->loc.y;
           int z_rel = msg->from.z - s->loc.z;
@@ -127,15 +167,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 z_rel = 1;
 
 	  // relative position for this particle to this device
-	  Vector3D<ptype> npos;
-	  npos.x(msg->beads[0].pos.x() + ptype(x_rel)*s->unit_size);
-	  npos.y(msg->beads[0].pos.y() + ptype(y_rel)*s->unit_size);
-	  npos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
+	  msg->beads[0].pos.x(msg->beads[0].pos.x() + ptype(x_rel)*s->unit_size);
+	  msg->beads[0].pos.y(msg->beads[0].pos.y() + ptype(y_rel)*s->unit_size);
+	  msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
 
           for(uint8_t i=0; i < s->num_beads; i++){
-              if(s->beads[i].pos.dist(npos) <= r_c){
+              if(s->beads[i].pos.dist(msg->beads[0].pos) <= r_c){
 	         // beads are in range
-                 s->debug_cnt = s->beads[i].pos.dist(npos); 
+                 s->force[i] = s->force[i] + force_update(&s->beads[i], &msg->beads[0]); 
 	      }
           }	      
 	}
@@ -145,7 +184,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 msg->from.x = s->loc.x;
                 msg->from.y = s->loc.y;
                 msg->from.z = s->loc.z;
-		msg->debug = s->debug_cnt;
+		msg->debug = s->force[0].mag();
                 msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
 		return true;
 	    //if(s->num_beads > 0) {
