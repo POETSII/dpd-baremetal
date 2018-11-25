@@ -13,6 +13,9 @@
 #define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
 #define PADDING 0 
 
+#define UPDATE 0
+#define MIGRATION 1 
+
 typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
@@ -89,7 +92,9 @@ struct DPDState{
    uint8_t num_beads; // the number of beads in this device
    bead_t bead_slot[5]; // at most we have five beads per device
    Vector3D<ptype> force_slot[5]; // at most 5 beads -- force for each bead
-   uint8_t migrate; // a bitmask of which bead slot is being migrated in the next phase 
+   uint8_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase 
+   unit_t migrate_loc[5]; // slots containing the destinations of where we want to send a bead to
+   uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
 
    // send tracking
    uint8_t sentcnt; // a counter used to track how many beads have been sent
@@ -160,6 +165,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
 		s->sentslot = s->bslot;
+		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
 	        else
@@ -168,9 +174,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	
 	// idle handler -- called once the system is idle with messages
 	inline void idle() {
+          if(s->mode == MIGRATION) {
+		  // do we want to export?
+		  
+		  // move back into the update mode
+		  //*readyToSend = Pin(0);
+		  s->mode = UPDATE;
 
+	  } else { // UPDATE mode 
             // iterate over all beads in this device and perform velocity verlet
 	    uint8_t i = s->bslot;
+	    bool modeswitch = false;
 	    while(i){
                int ci = get_next_slot(i);
 
@@ -254,17 +268,21 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	       }
 	       
 	       if(migrating) {
-		  // we want to migrate bead i
-		  //s->migrate[s->migratecnt++] = i;
+                 s->migrateslot = set_slot(s->migrateslot, ci);
+		 s->migrate_loc[ci] = d_loc; // set the destination
+		 *readyToSend = Pin(0);
 	       }
 
 	       i = clear_slot(i, ci);
 	    }
-
+	    // we have finished updating -- now we want to migrate
+	    s->mode = MIGRATION;
+          } // End of UPDATE mode block
 	}
 	
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
+	  if(s->mode == UPDATE) {
 	    uint8_t ci = get_next_slot(s->sentslot);
 	    // send all of our beads to neighbours
 	    msg->from.x = s->loc.x;
@@ -291,7 +309,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		      int cj = get_next_slot(j);
                       if(ci != cj) {
 	                  if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
-                            s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);      
+                            s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]); 
 			  } 
 		      }
                       j = clear_slot(j,cj);
@@ -299,6 +317,27 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		  i = clear_slot(i, ci);
 		}
 	    }
+	  } else { // we are in the MIGRATION mode we want to send beads to our neighbours
+	     // overload from with the dst filtering will happen on the recv side
+	     uint8_t ci = get_next_slot(s->migrateslot);
+             msg->from.x = s->migrate_loc[ci].x; 
+             msg->from.y = s->migrate_loc[ci].y; 
+             msg->from.z = s->migrate_loc[ci].z; 
+	     msg->beads[0].type = s->bead_slot[ci].type;
+	     msg->beads[0].id = s->bead_slot[ci].id;
+	     msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+	     msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+
+	     // clear the migration slot bit
+	     s->migrateslot = clear_slot(s->migrateslot, ci);
+	     // clear the bead slot -- it no longer belongs to us
+	     s->bslot = clear_slot(s->bslot, ci);
+	     if(s->migrateslot != 0) {
+                *readyToSend = Pin(0);
+	     } else {
+                *readyToSend = No;
+	     }
+	  }
 	}
 	
 	// used to help adjust the relative positions for the periodic boundary
@@ -314,27 +353,44 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge){
-	  // Do inter device bead interactions
 
-	  // from the device locaton get the adjustments to the bead positions
-          int x_rel = period_bound_adj(msg->from.x - s->loc.x);
-          int y_rel = period_bound_adj(msg->from.y - s->loc.y);
-          int z_rel = period_bound_adj(msg->from.z - s->loc.z);
+         if(s->mode == UPDATE) {
+	     // from the device locaton get the adjustments to the bead positions
+             int x_rel = period_bound_adj(msg->from.x - s->loc.x);
+             int y_rel = period_bound_adj(msg->from.y - s->loc.y);
+             int z_rel = period_bound_adj(msg->from.z - s->loc.z);
 
-	  // relative position for this particle to this device
-	  msg->beads[0].pos.x(msg->beads[0].pos.x() + ptype(x_rel)*s->unit_size);
-	  msg->beads[0].pos.y(msg->beads[0].pos.y() + ptype(y_rel)*s->unit_size);
-	  msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
+	     // relative position for this particle to this device
+	     msg->beads[0].pos.x(msg->beads[0].pos.x() + ptype(x_rel)*s->unit_size);
+	     msg->beads[0].pos.y(msg->beads[0].pos.y() + ptype(y_rel)*s->unit_size);
+	     msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
 
-          // loop through the occupied bead slots -- update force
-	  uint8_t i = s->bslot;
-	  while(i){
-                 int ci = get_next_slot(i);
-                 if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
-                      s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]); 
-	         }
-		 i = clear_slot(i, ci);
-	  }
+             // loop through the occupied bead slots -- update force
+	     uint8_t i = s->bslot;
+	     while(i){
+                    int ci = get_next_slot(i);
+                    if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
+                         s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]); 
+	            }
+	            i = clear_slot(i, ci);
+	     }
+	 } else { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
+	    // when we receive a message it _may_ contain a bead that we need to add to our state
+	    // it depends on whether the from address matches our own
+	    if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
+	      // looks like we are getting a new addition to our family
+	      uint8_t ci = get_next_free_slot(s->bslot); // I hope we have space...
+              s->bslot = set_slot(s->bslot, ci);
+
+	      // welcome the new little bead
+	      s->bead_slot[ci].type = msg->beads[0].type;
+	      s->bead_slot[ci].id = msg->beads[0].id;
+	      s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+	      s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+
+	    }
+
+	 }
 	}
 
 	// send to host -- sends a message to the host on termination
