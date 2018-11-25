@@ -16,6 +16,10 @@
 typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
+
+const float problem_size = 10.0; // total size of the sim universe in one dimension
+const unsigned N = 10; // the size of the sim universe in each dimension
+
 const ptype r_c(1.0);
 
 // interaction matrix
@@ -123,13 +127,80 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	       Vector3D<ptype> delta_v = acceleration * dt;
 	       // update velocity
 	       s->beads[i].velo = s->beads[i].velo + delta_v;
-	       // velocity verlet
+	       // update position 
 	       s->beads[i].pos = s->beads[i].pos + s->beads[i].velo*dt + acceleration*ptype(0.5)*dt*dt;
 
 	       // ----- clear the forces ---------------
 	       s->force[i].set(ptype(0.0), ptype(0.0), ptype(0.0));
 
                // ----- migration code ------
+	       bool migrating = false; // flag that says whether this particle needs to migrate
+	       unit_t d_loc; // the potential destination for this bead
+
+	       //    migration in the x dim
+	       if(s->beads[i].pos.x() >= s->unit_size){
+		       migrating = true;
+		       if(s->loc.x == (N-1)){
+                           d_loc.x = 0;
+		       } else {
+			   d_loc.x = s->loc.x + 1;
+		       }
+		       s->beads[i].pos.x(s->beads[i].pos.x() - s->unit_size); // make it relative to the dest
+	       } else if (s->beads[i].pos.x() < ptype(0.0)) {
+                       migrating = true;
+		       if(s->loc.x == 0) {
+			  d_loc.x = N - 1;
+		       } else {
+			  d_loc.x = s->loc.x - 1;
+		       }
+		       s->beads[i].pos.x(s->beads[i].pos.x() + s->unit_size); // make it relative to the dest
+	       } else {
+                      d_loc.x = s->loc.x;
+	       }
+
+	       //    migration in the y dim
+	       if(s->beads[i].pos.y() >= s->unit_size){
+		       migrating = true;
+		       if(s->loc.y == (N-1)){
+                           d_loc.y = 0;
+		       } else {
+			   d_loc.y = s->loc.y + 1;
+		       }
+		       s->beads[i].pos.y(s->beads[i].pos.y() - s->unit_size); // make it relative to the dest
+	       } else if (s->beads[i].pos.y() < ptype(0.0)) {
+                       migrating = true;
+		       if(s->loc.y == 0) {
+			  d_loc.y = N - 1;
+		       } else {
+			  d_loc.y = s->loc.y - 1;
+		       }
+		       s->beads[i].pos.y(s->beads[i].pos.y() + s->unit_size); // make it relative to the dest
+	       } else {
+                      d_loc.y = s->loc.y;
+	       }
+
+
+	       //    migration in the z dim
+	       if(s->beads[i].pos.z() >= s->unit_size){
+		       migrating = true;
+		       if(s->loc.z == (N-1)){
+                           d_loc.z = 0;
+		       } else {
+			   d_loc.z = s->loc.z + 1;
+		       }
+		       s->beads[i].pos.z(s->beads[i].pos.z() - s->unit_size); // make it relative to the dest
+	       } else if (s->beads[i].pos.z() < ptype(0.0)) {
+                       migrating = true;
+		       if(s->loc.z == 0) {
+			  d_loc.z = N - 1;
+		       } else {
+			  d_loc.z = s->loc.z - 1;
+		       }
+		       s->beads[i].pos.z(s->beads[i].pos.z() + s->unit_size); // make it relative to the dest
+	       } else {
+                      d_loc.z = s->loc.z;
+	       }
+
 	       
 	       // ----- do we export to the host ? ---- 
 	    }
@@ -154,7 +225,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->sentcnt = 0;
                 *readyToSend = No; 
 
-		// perform an inter-bead update
+		// perform inter-bead force updates
 		for(uint8_t i=0; i<s->num_beads; i++) {
 		    for(uint8_t j=0; j<s->num_beads; j++) {
                           if(i!=j) {

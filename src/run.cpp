@@ -9,9 +9,6 @@
 #include <map>
 #include <math.h>
 
-const float problem_size = 10.0; // total size of the sim universe in one dimension
-const unsigned N = 10; // the size of the sim universe in each dimension
-
 int main()
 {
 
