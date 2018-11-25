@@ -27,6 +27,17 @@ class Universe {
     void write(); // writes the simulation env onto the POETS system
     void run(); // runs the simulation 
 
+    // bead slot management
+    uint8_t clear_slot(uint8_t slotlist, uint8_t pos);
+    uint8_t set_slot(uint8_t slotlist, uint8_t pos);
+    bool is_slot_set(uint8_t slotlist, uint8_t pos);
+    
+    uint8_t get_next_slot(uint8_t slotlist);
+    uint8_t get_next_free_slot(uint8_t slotlist);
+    
+    void print_slot(uint8_t slotlist);
+    uint8_t get_num_beads(uint8_t slotlist);
+
     private:
         S _size;
         unsigned _D;

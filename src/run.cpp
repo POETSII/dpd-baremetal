@@ -38,7 +38,7 @@ int main()
   b3.type = 0; 
   b3.pos.set(4.0,7.8,4.3);
   b3.velo.set(0.0,0.0,0.0);
-  uni.add(&b3);
+  //uni.add(&b3);
 
   uni.write(); // write the universe into the POETS memory
   printf("running...\n");

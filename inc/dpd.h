@@ -84,12 +84,11 @@ struct DPDState{
    float debug_cnt;
    float unit_size; // the size of this spatial unit in one dimension
    unit_t loc; // the location of this cube
-   uint8_t bead_idx[5]; // the locations in beads[] where there is a bead present 
+   uint8_t bslot; // a bitmap of which bead slot is occupied
    uint8_t num_beads; // the number of beads in this device
-   bead_t beads[5]; // at most we have five beads per device
-   Vector3D<ptype> force[5]; // at most 5 beads -- force for each bead
-   uint8_t migrate[5]; // the particle indices set for migration
-   uint8_t migratecnt; // the number of particles being sent-out
+   bead_t bead_slot[5]; // at most we have five beads per device
+   Vector3D<ptype> force_slot[5]; // at most 5 beads -- force for each bead
+   uint8_t migrate; // a bitmask of which bead slot is being migrated in the next phase 
 
    // send tracking
    uint8_t sentcnt; // a counter used to track how many beads have been sent
@@ -98,6 +97,50 @@ struct DPDState{
 
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
+
+	// ----------------- bead slots ---------------------------
+	// helper functions for managing bead slots
+        inline uint8_t clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
+        inline uint8_t set_slot(uint8_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
+        inline bool is_slot_set(uint8_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
+        
+        inline uint8_t get_next_slot(uint8_t slotlist){
+            uint8_t mask = 0x1;
+            for(int i=0; i<8; i++) {
+                if(slotlist & mask){
+                        return i;
+                }
+                mask = mask << 1; // shift to the next pos
+            }
+            return 0xF; // we are empty
+        }
+        
+        inline uint8_t get_next_free_slot(uint8_t slotlist){
+            uint8_t mask = 0x1;
+            for(int i=0; i<8; i++){
+                    if(!(slotlist & mask)) {
+                           return i;
+                    }
+                    mask = mask << 1;
+            }
+            return 0xF; // error there are no free slots!
+        }
+
+	// get the number of beads occupying a slot
+        inline uint8_t get_num_beads(uint8_t slotlist){
+            uint8_t cnt = 0;
+            uint8_t mask = 0x1;
+            for(int i=0; i<8; i++){
+                    if(slotlist & mask) {
+                          cnt++;
+                    }
+                    mask = mask << 1;
+            }
+            return cnt; // error there are no free slots!
+        }
+	// --------------------------------------------------------
+
+
 
         // calculate a new force acting between two particles
         Vector3D<ptype> force_update(bead_t *a, bead_t *b){
@@ -115,7 +158,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-		if(s->num_beads > 0)
+		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
 	        else
 		    *readyToSend = No;
@@ -126,87 +169,87 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // Velocity Verlet and particle migration decisions happen here
 	    for(uint8_t i=0; i<s->num_beads; i++) {
 	       // ------ velocity verlet ------
-               Vector3D<ptype> acceleration = s->force[i] / p_mass;
+               Vector3D<ptype> acceleration = s->force_slot[i] / p_mass;
 	       Vector3D<ptype> delta_v = acceleration * dt;
 	       // update velocity
-	       s->beads[i].velo = s->beads[i].velo + delta_v;
+	       s->bead_slot[i].velo = s->bead_slot[i].velo + delta_v;
 	       // update position 
-	       s->beads[i].pos = s->beads[i].pos + s->beads[i].velo*dt + acceleration*ptype(0.5)*dt*dt;
+	       s->bead_slot[i].pos = s->bead_slot[i].pos + s->bead_slot[i].velo*dt + acceleration*ptype(0.5)*dt*dt;
 
 	       // ----- clear the forces ---------------
-	       s->force[i].set(ptype(0.0), ptype(0.0), ptype(0.0));
+	       s->force_slot[i].set(ptype(0.0), ptype(0.0), ptype(0.0));
 
                // ----- migration code ------
 	       bool migrating = false; // flag that says whether this particle needs to migrate
 	       unit_t d_loc; // the potential destination for this bead
 
 	       //    migration in the x dim
-	       if(s->beads[i].pos.x() >= s->unit_size){
+	       if(s->bead_slot[i].pos.x() >= s->unit_size){
 		       migrating = true;
 		       if(s->loc.x == (N-1)){
                            d_loc.x = 0;
 		       } else {
 			   d_loc.x = s->loc.x + 1;
 		       }
-		       s->beads[i].pos.x(s->beads[i].pos.x() - s->unit_size); // make it relative to the dest
-	       } else if (s->beads[i].pos.x() < ptype(0.0)) {
+		       s->bead_slot[i].pos.x(s->bead_slot[i].pos.x() - s->unit_size); // make it relative to the dest
+	       } else if (s->bead_slot[i].pos.x() < ptype(0.0)) {
                        migrating = true;
 		       if(s->loc.x == 0) {
 			  d_loc.x = N - 1;
 		       } else {
 			  d_loc.x = s->loc.x - 1;
 		       }
-		       s->beads[i].pos.x(s->beads[i].pos.x() + s->unit_size); // make it relative to the dest
+		       s->bead_slot[i].pos.x(s->bead_slot[i].pos.x() + s->unit_size); // make it relative to the dest
 	       } else {
                       d_loc.x = s->loc.x;
 	       }
 
 	       //    migration in the y dim
-	       if(s->beads[i].pos.y() >= s->unit_size){
+	       if(s->bead_slot[i].pos.y() >= s->unit_size){
 		       migrating = true;
 		       if(s->loc.y == (N-1)){
                            d_loc.y = 0;
 		       } else {
 			   d_loc.y = s->loc.y + 1;
 		       }
-		       s->beads[i].pos.y(s->beads[i].pos.y() - s->unit_size); // make it relative to the dest
-	       } else if (s->beads[i].pos.y() < ptype(0.0)) {
+		       s->bead_slot[i].pos.y(s->bead_slot[i].pos.y() - s->unit_size); // make it relative to the dest
+	       } else if (s->bead_slot[i].pos.y() < ptype(0.0)) {
                        migrating = true;
 		       if(s->loc.y == 0) {
 			  d_loc.y = N - 1;
 		       } else {
 			  d_loc.y = s->loc.y - 1;
 		       }
-		       s->beads[i].pos.y(s->beads[i].pos.y() + s->unit_size); // make it relative to the dest
+		       s->bead_slot[i].pos.y(s->bead_slot[i].pos.y() + s->unit_size); // make it relative to the dest
 	       } else {
                       d_loc.y = s->loc.y;
 	       }
 
 
 	       //    migration in the z dim
-	       if(s->beads[i].pos.z() >= s->unit_size){
+	       if(s->bead_slot[i].pos.z() >= s->unit_size){
 		       migrating = true;
 		       if(s->loc.z == (N-1)){
                            d_loc.z = 0;
 		       } else {
 			   d_loc.z = s->loc.z + 1;
 		       }
-		       s->beads[i].pos.z(s->beads[i].pos.z() - s->unit_size); // make it relative to the dest
-	       } else if (s->beads[i].pos.z() < ptype(0.0)) {
+		       s->bead_slot[i].pos.z(s->bead_slot[i].pos.z() - s->unit_size); // make it relative to the dest
+	       } else if (s->bead_slot[i].pos.z() < ptype(0.0)) {
                        migrating = true;
 		       if(s->loc.z == 0) {
 			  d_loc.z = N - 1;
 		       } else {
 			  d_loc.z = s->loc.z - 1;
 		       }
-		       s->beads[i].pos.z(s->beads[i].pos.z() + s->unit_size); // make it relative to the dest
+		       s->bead_slot[i].pos.z(s->bead_slot[i].pos.z() + s->unit_size); // make it relative to the dest
 	       } else {
                       d_loc.z = s->loc.z;
 	       }
 	       
 	       if(migrating) {
 		  // we want to migrate bead i
-		  s->migrate[s->migratecnt++] = i;
+		  //s->migrate[s->migratecnt++] = i;
 	       }
 
 	       // ----- do we export to the host ? ---- 
@@ -219,10 +262,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
             msg->from.z = s->loc.z;
-            msg->beads[0].type = s->beads[s->sentcnt].type;
-            msg->beads[0].id = s->beads[s->sentcnt].id;
-            msg->beads[0].pos.set(s->beads[s->sentcnt].pos.x(), s->beads[s->sentcnt].pos.y(), s->beads[s->sentcnt].pos.z());
-            msg->beads[0].velo.set(s->beads[s->sentcnt].velo.x(), s->beads[s->sentcnt].velo.y(), s->beads[s->sentcnt].velo.z());
+            msg->beads[0].type = s->bead_slot[s->sentcnt].type;
+            msg->beads[0].id = s->bead_slot[s->sentcnt].id;
+            msg->beads[0].pos.set(s->bead_slot[s->sentcnt].pos.x(), s->bead_slot[s->sentcnt].pos.y(), s->bead_slot[s->sentcnt].pos.z());
+            msg->beads[0].velo.set(s->bead_slot[s->sentcnt].velo.x(), s->bead_slot[s->sentcnt].velo.y(), s->bead_slot[s->sentcnt].velo.z());
 
             // move onto the next bead to send unless we are done 
 	    s->sentcnt++;
@@ -236,8 +279,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		for(uint8_t i=0; i<s->num_beads; i++) {
 		    for(uint8_t j=0; j<s->num_beads; j++) {
                           if(i!=j) {
-			     if(s->beads[i].pos.dist(s->beads[j].pos) <= r_c) {
-                                  s->force[i] = s->force[i] + force_update(&s->beads[i], &s->beads[j]); 
+			     if(s->bead_slot[i].pos.dist(s->bead_slot[j].pos) <= r_c) {
+                                  s->force_slot[i] = s->force_slot[i] + force_update(&s->bead_slot[i], &s->bead_slot[j]); 
 			     } 
 			  }	  
 	            }
@@ -271,9 +314,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	  msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
 
           for(uint8_t i=0; i < s->num_beads; i++){
-              if(s->beads[i].pos.dist(msg->beads[0].pos) <= r_c){
+              if(s->bead_slot[i].pos.dist(msg->beads[0].pos) <= r_c){
 	         // beads are in range
-                 s->force[i] = s->force[i] + force_update(&s->beads[i], &msg->beads[0]); 
+                 s->force_slot[i] = s->force_slot[i] + force_update(&s->bead_slot[i], &msg->beads[0]); 
 	      }
           }	      
 	}
@@ -283,17 +326,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 msg->from.x = s->loc.x;
                 msg->from.y = s->loc.y;
                 msg->from.z = s->loc.z;
-		msg->debug = s->beads[0].velo.mag();
-                msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
+		msg->debug = get_num_beads(s->bslot);//s->bead_slot[0].velo.mag();
+                msg->beads[0].pos.set(s->bead_slot[0].pos.x(), s->bead_slot[0].pos.y(), s->bead_slot[0].pos.z());
 		return true;
 	    //if(s->num_beads > 0) {
             //    msg->from.x = s->loc.x;
             //    msg->from.y = s->loc.y;
             //    msg->from.z = s->loc.z;
-            //    msg->beads[0].type = s->beads[0].type;
-            //    msg->beads[0].id = s->beads[0].id;
-            //    msg->beads[0].pos.set(s->beads[0].pos.x(), s->beads[0].pos.y(), s->beads[0].pos.z());
-            //    msg->beads[0].velo.set(s->beads[0].velo.x(), s->beads[0].velo.y(), s->beads[0].velo.z());
+            //    msg->beads[0].type = s->bead_slot[0].type;
+            //    msg->beads[0].id = s->bead_slot[0].id;
+            //    msg->beads[0].pos.set(s->bead_slot[0].pos.x(), s->bead_slot[0].pos.y(), s->bead_slot[0].pos.z());
+            //    msg->beads[0].velo.set(s->bead_slot[0].velo.x(), s->bead_slot[0].velo.y(), s->bead_slot[0].velo.z());
             //    return true;
 	    //} else {
             //    return false;

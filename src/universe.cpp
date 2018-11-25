@@ -5,6 +5,68 @@
 #ifndef __UNIVERSE_IMPL
 #define __UNIVERSE_IMPL
 
+// helper functions for managing bead slots
+template<class S>
+uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
+template<class S>
+uint8_t Universe<S>::set_slot(uint8_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
+template<class S>
+bool Universe<S>::is_slot_set(uint8_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
+
+template<class S>
+uint8_t Universe<S>::get_next_slot(uint8_t slotlist){
+    uint8_t mask = 0x1;
+    for(int i=0; i<8; i++) {
+        if(slotlist & mask){
+                return i;
+        }   
+        mask = mask << 1; // shift to the next pos
+    }   
+    return 0xF; // we are empty
+}
+
+template<class S>
+uint8_t Universe<S>::get_next_free_slot(uint8_t slotlist){
+    uint8_t mask = 0x1;
+    for(int i=0; i<8; i++){
+            if(!(slotlist & mask)) {
+                   return i;
+            }   
+            mask = mask << 1;
+    }   
+    return 0xF; // error there are no free slots!
+}
+
+template<class S>
+void Universe<S>::print_slot(uint8_t slotlist) {
+        printf("slotlist = ");
+        uint8_t mask = 0x1;
+        for(int i=0; i<8; i++){
+           if(slotlist & mask){
+             printf("1");
+           } else {
+             printf("0");
+           }   
+           mask = mask << 1;
+        }   
+        printf("\n");
+}
+
+// get the number of beads occupying a slot
+template<class S>
+uint8_t Universe<S>::get_num_beads(uint8_t slotlist){
+    uint8_t cnt = 0;
+    uint8_t mask = 0x1;
+    for(int i=0; i<8; i++){
+            if(slotlist & mask) {
+                  cnt++; 
+            }   
+            mask = mask << 1;
+    }   
+    return cnt; // error there are no free slots!
+}
+
+
 // make two devices neighbours
 template<class S>
 void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b){
@@ -241,8 +303,8 @@ void Universe<S>::add(const bead_t *in) {
    PDeviceId b_su = _locToId[t];
 
    // check to make sure there is still enough room in the device
-   if(_g->devices[b_su]->state.num_beads > max_beads_per_dev) {
-      printf("Error: there is not enough space in device:%d for bead:%d\n", b_su, in->id);
+   if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
+      printf("Error: there is not enough space in device:%d for bead:%d  already %u beads in the slot\n", b_su, in->id, get_num_beads(_g->devices[b_su]->state.bslot));
       fflush(stdout);
       exit(EXIT_FAILURE);
    } else {
@@ -253,7 +315,10 @@ void Universe<S>::add(const bead_t *in) {
      b.pos.y(b.pos.y() - (S(float(t.y))*_unit_size)); 
      b.pos.z(b.pos.z() - (S(float(t.z))*_unit_size)); 
      
-     _g->devices[b_su]->state.beads[_g->devices[b_su]->state.num_beads++] = b; 
+     // get the next free slot in this device
+     uint8_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
+     _g->devices[b_su]->state.bead_slot[slot] = b; 
+     _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
    }
 }
 
