@@ -15,10 +15,22 @@ LDFLAGS = -melf32lriscv -G 0
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o 
 HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o 
 
+SOCAT_SCRIPT = ./scripts/socat_script
+
 .PHONY: all
 all: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
 
 bridge: $(DPD_BIN)/dpd-bridge
+
+# ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
+LOCAL_SOCKET=./_external.sock
+REMOTE_FULL=sf306@byron.cl.cam.ac.uk
+REMOTE_SOCKET=/home/sf306/dpd-baremetal/bin/_external.sock
+# ~~~~~~~~~~~~~~~ Client side run ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+client_run: bridge
+	$(SOCAT_SCRIPT) $(LOCAL_SOCKET) $(REMOTE_FULL) $(REMOTE_SOCKET)
+	./bin/dpd-bridge
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN) 
@@ -89,4 +101,4 @@ tests:
 
 .PHONY: clean
 clean:
-	rm -rf $(DPD_BIN) 
+	rm -rf $(DPD_BIN) *.sock 
