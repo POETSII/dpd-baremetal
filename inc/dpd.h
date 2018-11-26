@@ -34,7 +34,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 0;
+const uint32_t emitperiod = 10;
 
 // ---------------------------------------------------------------------------------------
 
@@ -290,10 +290,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->bslot) {
 	            s->sentslot = s->bslot;
                     *readyToSend = HostPin;
-	            s->emitcnt++;
 	        }
 	        s->emitcnt = 0;
 	      } else {
+	        s->emitcnt++;
 	        s->mode = UPDATE;
 	        if(get_num_beads(s->bslot) > 0){
 	            s->sentslot = s->bslot;
