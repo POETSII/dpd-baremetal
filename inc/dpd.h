@@ -79,14 +79,14 @@ struct unit_t {
 
 // Format of message
 struct DPDMessage {
-  float debug;
+  uint32_t debug;
   unit_t from; // the unit that this message is from 
   bead_t beads[1]; // the beads payload from this unit 
 }; 
 
 // the state of the DPD Device
 struct DPDState{
-   float debug_cnt;
+   uint32_t debug_cnt;
    float unit_size; // the size of this spatial unit in one dimension
    unit_t loc; // the location of this cube
    uint8_t bslot; // a bitmap of which bead slot is occupied
@@ -167,6 +167,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
+		s->debug_cnt = 0;
 		s->sentslot = s->bslot;
 		s->emitcnt = 0;
 		s->mode = UPDATE;
@@ -178,21 +179,22 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	
 	// idle handler -- called once the system is idle with messages
 	inline void idle() {
-          if(s->mode == MIGRATION) {
-		  // do we want to export?
-		  if(s->emitcnt == 0) {
-		    if(s->bslot) {
-                        *readyToSend = HostPin;
-		    }
-		    s->emitcnt = 1;
-		  } else {
-		      // move back into the update mode
-		      //*readyToSend = Pin(0);
-		      //s->mode = UPDATE;
-		  }
+          //if(s->mode == MIGRATION) {
+	  //        // do we want to export?
+	  //        if(s->emitcnt == 0) {
+	  //          if(s->bslot) {
+          //              *readyToSend = HostPin;
+	  //          }
+	  //          s->emitcnt = 1;
+	  //        } else {
+	  //            // move back into the update mode
+	  //            //*readyToSend = Pin(0);
+	  //            //s->mode = UPDATE;
+	  //        }
 
-	  } else { // UPDATE mode 
-            // iterate over all beads in this device and perform velocity verlet
+	  //} else { // UPDATE mode 
+          // iterate over all beads in this device and perform velocity verlet
+	  if( s->mode == UPDATE ) {
 	    uint8_t i = s->bslot;
 	    while(i){
                int ci = get_next_slot(i);
@@ -283,10 +285,28 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	       }
 
 	       i = clear_slot(i, ci);
-	    }
-	    // we have finished updating -- now we want to migrate
+	    } 
 	    s->mode = MIGRATION;
+	    // we have finished updating -- now we want to migrate
           } // End of UPDATE mode block
+	  
+	  // If no particles need to be migrated then we check if we need to export otherwise we move
+	  // to the next update
+	  //if(s->migrateslot == 0) {
+          //    s->mode = UPDATE;
+	  //    // do we want to export to the host?
+	  //    if(s->emitcnt == 0) {
+	  //      if(s->bslot) {
+          //          *readyToSend = HostPin;
+	  //      }
+	  //      s->emitcnt = 1;
+	  //    } else {
+	  //         // move back into the update mode
+	  //          *readyToSend = Pin(0);
+	  //          s->mode = UPDATE;
+	  //    }
+
+	  // }
 	}
 	
 	// send handler -- called when the ready to send flag has been set
@@ -356,7 +376,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
              msg->from.x = s->loc.x;
              msg->from.y = s->loc.y;
              msg->from.z = s->loc.z;
-	     msg->debug = get_num_beads(s->bslot);
+	     msg->debug = s->debug_cnt; //get_num_beads(s->bslot);
              msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
              msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
 
@@ -384,7 +404,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge){
-
          if(s->mode == UPDATE) {
 	     // from the device locaton get the adjustments to the bead positions
              int x_rel = period_bound_adj(msg->from.x - s->loc.x);
@@ -427,7 +446,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	    return false;
+	     uint8_t ci = get_next_slot(s->sentslot);
+
+             msg->from.x = s->loc.x;
+             msg->from.y = s->loc.y;
+             msg->from.z = s->loc.z;
+	     msg->debug = get_num_beads(s->bslot);
+             msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+
+	     return true;
+	     //return false;
         }
 
 };
