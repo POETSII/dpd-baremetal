@@ -170,7 +170,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline void init() {
 		s->debug_cnt = 0;
 		s->sentslot = s->bslot;
-		s->emitcnt = 0;
+		s->emitcnt = emitperiod;
 		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
@@ -181,37 +181,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// idle handler -- called once the system is idle with messages
 	inline void idle() {
 
-          // we have just finished emitting the state to the host
-	  if(s->mode == EMIT) {
-              // move into the update mode
-	      s->mode = UPDATE;
-	      if(get_num_beads(s->bslot) > 0){
-                  *readyToSend = Pin(0);
-	      }
-	      s->emitcnt++;
-	  }
-
-	  // we have just finished a particle migration step 
-          if(s->mode == MIGRATION) {
-	          // do we want to export?
-	          if(s->emitcnt >= emitperiod) {
-		    s->mode = EMIT;
-	            if(s->bslot) {
-                        *readyToSend = HostPin;
-	            }
-	            s->emitcnt = 0;
-	          } else {
-		    s->mode = UPDATE;
-	            if(get_num_beads(s->bslot) > 0){
-                        *readyToSend = Pin(0);
-	            }
-		    
-	          }
-              return;
-	  }  
+	  // default case
+          //*readyToSend = No;
 
           // we have just finished an update step 
 	  if( s->mode == UPDATE ) {
+	    s->mode = MIGRATION;
 	    uint8_t i = s->bslot;
 	    while(i){
                int ci = get_next_slot(i);
@@ -273,7 +248,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                       d_loc.y = s->loc.y;
 	       }
 
-
 	       //    migration in the z dim
 	       if(s->bead_slot[ci].pos.z() >= s->unit_size){
 		       migrating = true;
@@ -304,10 +278,42 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	       i = clear_slot(i, ci);
 	    } 
 	    // we have finished updating -- now we want to migrate
-	    s->mode = MIGRATION;
 	    return;
           } // End of UPDATE mode block
 	  
+
+	  // we have just finished a particle migration step 
+          if(s->mode == MIGRATION) {
+	      // do we want to export?
+	      if(s->emitcnt >= emitperiod) {
+	        s->mode = EMIT;
+	        if(s->bslot) {
+	            s->sentslot = s->bslot;
+                    *readyToSend = HostPin;
+	            s->emitcnt++;
+	        }
+	        s->emitcnt = 0;
+	      } else {
+	        s->mode = UPDATE;
+	        if(get_num_beads(s->bslot) > 0){
+	            s->sentslot = s->bslot;
+                    *readyToSend = Pin(0);
+	        }
+	      }
+              return;
+	  }  
+
+          // we have just finished emitting the state to the host
+	  if(s->mode == EMIT) {
+              // move into the update mode
+	      s->mode = UPDATE;
+	      s->sentslot = s->bslot;
+	      if(get_num_beads(s->bslot) > 0){
+                  *readyToSend = Pin(0);
+	      }
+	      return;
+	  }
+
 	}
 	
 	// send handler -- called when the ready to send flag has been set
@@ -459,10 +465,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
              //msg->from.x = s->loc.x;
              //msg->from.y = s->loc.y;
              //msg->from.z = s->loc.z;
-	     //msg->debug = get_num_beads(s->bslot);
+	     //msg->debug = s->emitcnt;//get_num_beads(s->bslot);
              //msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
              //msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-	     //msg->beads[0].id = s->bead_slot[ci].id;
+	     //msg->beads[0].id = 9;//s->bead_slot[ci].id;
 	     //msg->beads[0].type = s->bead_slot[ci].type;
 
 	     //return true;
