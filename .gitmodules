@@ -2,3 +2,6 @@
 	path = submodules/tinsel
 	url = git@github.com:POETSII/tinsel.git
 	branch = idle-vote
+[submodule "submodules/dpd-vis"]
+	path = submodules/dpd-vis
+	url = git@github.com:POETSII/dpd-vis.git
