@@ -38,8 +38,8 @@ const uint32_t emitperiod = 100;
 // ---------------------------------------------------------------------------------------
 
 
-typedef uint16_t bead_class_t; // the type of the bead, we are not expecting too many 
-typedef uint16_t bead_id_t; // the ID for the bead
+typedef uint32_t bead_class_t; // the type of the bead, we are not expecting too many 
+typedef uint32_t bead_id_t; // the ID for the bead
 
 // defines a bead type
 typedef struct _bead_t {
@@ -47,7 +47,7 @@ typedef struct _bead_t {
     bead_id_t id;
     Vector3D<ptype> pos;
     Vector3D<ptype> velo;
-} bead_t; // 28 bytes 
+} bead_t; // 32 bytes 
 
 typedef uint16_t unit_pos_t;
 
@@ -179,21 +179,24 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	
 	// idle handler -- called once the system is idle with messages
 	inline void idle() {
-          //if(s->mode == MIGRATION) {
-	  //        // do we want to export?
-	  //        if(s->emitcnt == 0) {
-	  //          if(s->bslot) {
-          //              *readyToSend = HostPin;
-	  //          }
-	  //          s->emitcnt = 1;
-	  //        } else {
-	  //            // move back into the update mode
-	  //            //*readyToSend = Pin(0);
-	  //            //s->mode = UPDATE;
-	  //        }
 
-	  //} else { // UPDATE mode 
-          // iterate over all beads in this device and perform velocity verlet
+	  // we have just finished a particle migration step -- or a host-emit step
+          if(s->mode == MIGRATION) {
+	          // do we want to export?
+	          if(s->emitcnt == 0) {
+	            if(s->bslot) {
+                        *readyToSend = HostPin;
+	            }
+	            s->emitcnt = 1;
+	          } else {
+	              // move back into the update mode
+	              //*readyToSend = Pin(0);
+	              //s->mode = UPDATE;
+	          }
+              return;
+	  }  
+
+          // we have just finished an update step 
 	  if( s->mode == UPDATE ) {
 	    uint8_t i = s->bslot;
 	    while(i){
@@ -286,27 +289,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	       i = clear_slot(i, ci);
 	    } 
-	    s->mode = MIGRATION;
 	    // we have finished updating -- now we want to migrate
+	    s->mode = MIGRATION;
+	    return;
           } // End of UPDATE mode block
 	  
-	  // If no particles need to be migrated then we check if we need to export otherwise we move
-	  // to the next update
-	  //if(s->migrateslot == 0) {
-          //    s->mode = UPDATE;
-	  //    // do we want to export to the host?
-	  //    if(s->emitcnt == 0) {
-	  //      if(s->bslot) {
-          //          *readyToSend = HostPin;
-	  //      }
-	  //      s->emitcnt = 1;
-	  //    } else {
-	  //         // move back into the update mode
-	  //          *readyToSend = Pin(0);
-	  //          s->mode = UPDATE;
-	  //    }
-
-	  // }
 	}
 	
 	// send handler -- called when the ready to send flag has been set
@@ -376,9 +363,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
              msg->from.x = s->loc.x;
              msg->from.y = s->loc.y;
              msg->from.z = s->loc.z;
-	     msg->debug = s->debug_cnt; //get_num_beads(s->bslot);
+	     msg->debug = get_num_beads(s->bslot);
              msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
              msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+	     msg->beads[0].id = s->bead_slot[ci].id;
+	     msg->beads[0].type = s->bead_slot[ci].type;
 
 	     s->sentslot = clear_slot(s->sentslot, ci);
 	     if(s->sentslot != 0) {
@@ -446,17 +435,19 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	     uint8_t ci = get_next_slot(s->sentslot);
+	     //uint8_t ci = get_next_slot(s->sentslot);
 
-             msg->from.x = s->loc.x;
-             msg->from.y = s->loc.y;
-             msg->from.z = s->loc.z;
-	     msg->debug = get_num_beads(s->bslot);
-             msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
-             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+             //msg->from.x = s->loc.x;
+             //msg->from.y = s->loc.y;
+             //msg->from.z = s->loc.z;
+	     //msg->debug = get_num_beads(s->bslot);
+             //msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+             //msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+	     //msg->beads[0].id = s->bead_slot[ci].id;
+	     //msg->beads[0].type = s->bead_slot[ci].type;
 
-	     return true;
-	     //return false;
+	     //return true;
+	     return false;
         }
 
 };

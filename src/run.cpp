@@ -20,17 +20,17 @@ int main()
 
   // placing beads into the universe 
   bead_t b1;
-  b1.id = 1; 
+  b1.id = 2; 
   b1.type = 0; 
   //b1.pos.set(1.0,1.0,2.1);
-  b1.pos.set(1.0,1.0,1.95);
+  b1.pos.set(4.0,5.0,1.95);
   b1.velo.set(0.0,0.0,0.0);
   uni.add(&b1);
 
   bead_t b2;
-  b2.id = 2; 
+  b2.id = 1; 
   b2.type = 0; 
-  b2.pos.set(1.0,1.0,1.99);
+  b2.pos.set(4.0,5.0,1.99);
   b2.velo.set(0.0,0.0,0.0);
   uni.add(&b2);
 
