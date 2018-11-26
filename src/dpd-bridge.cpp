@@ -4,13 +4,15 @@
 #include "Vector3D.hpp"
 #include <stdio.h>
 #include <stdint.h>
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
 
 int main(){
     ExternalClient dpd_pipe("_external.sock");
 
     uint32_t timestep=0;
     std::ofstream out;
-    out.open("state.json");
+    out.open("_state.json");
     pts_to_extern_t msg;
 
     // do this for the first one while to figure out the starting timestep
@@ -30,10 +32,12 @@ int main(){
              out << "  \n";
              out << "]}\n"; 
              out.close();
+             // copy the file into state.json
+             fs::copy("_state.json", "state.json", fs::copy_options::overwrite_existing);
              printf("u\n"); fflush(stdout);
              
              // setup the next state document  
-             out.open("state.json");
+             out.open("_state.json");
              out << "{ \n";
              out << "  \"beads\":[\n";
          }
