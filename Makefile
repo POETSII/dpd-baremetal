@@ -18,6 +18,8 @@ HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/Externa
 .PHONY: all
 all: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
 
+bridge: $(DPD_BIN)/dpd-bridge
+
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN) 
 
@@ -75,6 +77,11 @@ $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system 
+
+# ------------ the external client ----------------
+$(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
+		-lboost_program_options -lboost_filesystem -lboost_system -lpthread
 
 .PHONY: tests
 tests:
