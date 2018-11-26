@@ -13,7 +13,7 @@ include $(TINSEL_ROOT)/globals.mk
 CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11 
 LDFLAGS = -melf32lriscv -G 0  
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o 
-HOST_OBJS = $(DPD_BIN)/universe.o
+HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o 
 
 .PHONY: all
 all: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
@@ -22,9 +22,17 @@ $(DPD_BIN):
 	mkdir -p $(DPD_BIN) 
 
 # -------------- Host Object files --------------------------
+$(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp 
+
+$(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp 
+
 $(DPD_BIN)/universe.o: $(DPD_SRC)/universe.cpp $(DPD_INC)/universe.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++98 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp 
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp 
 
 # -------------- Tinsel Object files --------------------------
 $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
@@ -63,10 +71,10 @@ $(HL)/%.o:
 
 # -------------- host program --------------------------
 $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++98 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
-	g++ -O2 -std=c++98 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
-          -ljtag_atlantic -ljtag_client -L $(QUARTUS_ROOTDIR)/linux64/ \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
+          -ljtag_atlantic -ljtag_client -L quartus_libs/ \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system 
 
 .PHONY: tests
 tests:

@@ -22,8 +22,7 @@ int main()
   bead_t b1;
   b1.id = 2; 
   b1.type = 0; 
-  b1.pos.set(1.0,1.0,2.1);
-  //b1.pos.set(0.0,0.0,1.95);
+  b1.pos.set(0.0,0.0,1.95);
   b1.velo.set(0.0,0.0,0.0);
   uni.add(&b1);
 

@@ -34,7 +34,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 10;
+const uint32_t emitperiod = 100;
 
 // ---------------------------------------------------------------------------------------
 
@@ -80,14 +80,13 @@ struct unit_t {
 
 // Format of message
 struct DPDMessage {
-  uint32_t debug;
+  uint32_t timestep; // the timestep this message is from
   unit_t from; // the unit that this message is from 
   bead_t beads[1]; // the beads payload from this unit 
 }; 
 
 // the state of the DPD Device
 struct DPDState{
-   uint32_t debug_cnt;
    float unit_size; // the size of this spatial unit in one dimension
    unit_t loc; // the location of this cube
    uint8_t bslot; // a bitmap of which bead slot is occupied
@@ -99,6 +98,7 @@ struct DPDState{
    unit_t migrate_loc[5]; // slots containing the destinations of where we want to send a bead to
    uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+   uint32_t timestep; // the current timestep that we are on
 
    // send tracking
    uint8_t sentcnt; // a counter used to track how many beads have been sent
@@ -168,7 +168,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-		s->debug_cnt = 0;
+		s->timestep = 0;
 		s->sentslot = s->bslot;
 		s->emitcnt = emitperiod;
 		s->mode = UPDATE;
@@ -187,6 +187,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
           // we have just finished an update step 
 	  if( s->mode == UPDATE ) {
 	    s->mode = MIGRATION;
+	    s->timestep++;
 	    uint8_t i = s->bslot;
 	    while(i){
                int ci = get_next_slot(i);
@@ -385,10 +386,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	     // we are sending a host message
 	     uint8_t ci = get_next_slot(s->sentslot);
 
+	     msg->timestep = s->timestep;
              msg->from.x = s->loc.x;
              msg->from.y = s->loc.y;
              msg->from.z = s->loc.z;
-	     msg->debug = get_num_beads(s->bslot);
              msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
              msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
 	     msg->beads[0].id = s->bead_slot[ci].id;
@@ -460,18 +461,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send to host -- sends a message to the host on termination
 	inline bool sendToHost(volatile DPDMessage* msg) {
-	     //uint8_t ci = get_next_slot(s->sentslot);
-
-             //msg->from.x = s->loc.x;
-             //msg->from.y = s->loc.y;
-             //msg->from.z = s->loc.z;
-	     //msg->debug = s->emitcnt;//get_num_beads(s->bslot);
-             //msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
-             //msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-	     //msg->beads[0].id = 9;//s->bead_slot[ci].id;
-	     //msg->beads[0].type = s->bead_slot[ci].type;
-
-	     //return true;
 	     return false;
         }
 
