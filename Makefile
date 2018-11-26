@@ -101,4 +101,4 @@ tests:
 
 .PHONY: clean
 clean:
-	rm -rf $(DPD_BIN) *.sock 
+	rm -rf $(DPD_BIN) *.sock state.json
