@@ -36,6 +36,4 @@ class ExternalClient {
     std::string socket_; // name for the socket to connect to pts-serve
 }; 
 
-#include "../src/ExternalClient.cpp"
-
 #endif /* _EXTERNAL_CLIENT_HH */

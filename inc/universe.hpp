@@ -1,14 +1,15 @@
 // A class that contains the simulation universe
 // used to manage the host side dpd-application
 
+#ifndef _SIM_UNIVERSE_H
+#define _SIM_UNIVERSE_H
+
 #include "dpd.h"
 #include "POLite.h"
 #include "HostLink.h"
 #include <sys/time.h>
 #include <map>
-
-#ifndef _SIM_UNIVERSE_H
-#define _SIM_UNIVERSE_H
+#include "ExternalServer.hpp"
 
 const uint8_t max_beads_per_dev = 5;
 
@@ -50,6 +51,9 @@ class Universe {
         // maintain a map of ID's to locations in the space
         std::map<PDeviceId, unit_t> _idToLoc;
         std::map<unit_t, PDeviceId> _locToId;
+
+	// for the external connection
+        ExternalServer *_extern;	
 
 	// measuring performance
 	struct timeval _start, _finish, _diff;

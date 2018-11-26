@@ -82,6 +82,7 @@ Universe<S>::Universe(S size, unsigned D){
     _unit_size = _size / S(D);
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>();
     _hostLink = new HostLink();
+    _extern = new ExternalServer("_external.sock");
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {

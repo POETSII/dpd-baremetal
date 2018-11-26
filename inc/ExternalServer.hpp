@@ -47,6 +47,4 @@ class ExternalServer {
     bool connection_established_;
 }; 
 
-#include "../src/ExternalServer.cpp"
-
 #endif /* _EXTERNAL_SERVER_HH */

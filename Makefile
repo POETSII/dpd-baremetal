@@ -43,7 +43,6 @@ $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@	
 
-
 # -------------- elf --------------------------
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
@@ -73,7 +72,8 @@ $(HL)/%.o:
 $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
-          -ljtag_atlantic -ljtag_client -L quartus_libs/ \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system 
 
 .PHONY: tests
