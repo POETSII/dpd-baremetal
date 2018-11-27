@@ -341,7 +341,7 @@ void Universe<S>::run() {
     while(1) {
         PMessage<None, DPDMessage> msg;
         //for(uint32_t i=0; i<_g->numDevices; i++) {
-        for(uint32_t i=0; i<100; i++) {
+        //for(uint32_t i=0; i<100; i++) {
            _hostLink->recvMsg(&msg, sizeof(msg));
 	   pts_to_extern_t eMsg;
 	   eMsg.timestep = msg.payload.timestep;
@@ -349,8 +349,8 @@ void Universe<S>::run() {
 	   eMsg.bead = msg.payload.beads[0];
 	   _extern->send(&eMsg);
 	   //printf("<%d,%d,%d> timestep=%u bead ID:%u pos:<%.4f,%.4f,%.4f>\n", msg.payload.from.x, msg.payload.from.y, msg.payload.from.z, msg.payload.timestep, msg.payload.beads[0].id, msg.payload.beads[0].pos.x(), msg.payload.beads[0].pos.y(), msg.payload.beads[0].pos.z());
-	}
-	break; // exit the main loop
+	//}
+	//break; // exit the main loop
     }
     // get end time
     gettimeofday(&_finish, NULL);
