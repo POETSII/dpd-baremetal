@@ -29,7 +29,8 @@ REMOTE_SOCKET=/home/sf306/dpd-baremetal/bin/_external.sock
 # ~~~~~~~~~~~~~~~ Client side run ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 client_run: bridge
 	$(SOCAT_SCRIPT) $(LOCAL_SOCKET) $(REMOTE_FULL) $(REMOTE_SOCKET)
-	./bin/dpd-bridge
+	touch state.json
+	./bin/dpd-bridge | nodejs submodules/dpd-vis/visualiser.js
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 $(DPD_BIN):
@@ -92,8 +93,8 @@ $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_
 
 # ------------ the external client ----------------
 $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
-		-lboost_program_options -lboost_filesystem -lboost_system -lpthread
+	g++ -O2 -std=c++17 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
+		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
 
 .PHONY: tests
 tests:
@@ -102,3 +103,7 @@ tests:
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json
+	rm -rf _frames
+	rm -rf _meta.json
+	rm -rf _state.json
+	rm -rf node_modules

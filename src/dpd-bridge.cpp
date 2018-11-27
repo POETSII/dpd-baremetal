@@ -4,13 +4,16 @@
 #include "Vector3D.hpp"
 #include <stdio.h>
 #include <stdint.h>
+#include <experimental/filesystem>
+#include "dpd.h"
+namespace fs = std::experimental::filesystem;
 
 int main(){
     ExternalClient dpd_pipe("_external.sock");
 
     uint32_t timestep=0;
     std::ofstream out;
-    out.open("state.json");
+    out.open("_state.json");
     pts_to_extern_t msg;
 
     // do this for the first one while to figure out the starting timestep
@@ -18,26 +21,39 @@ int main(){
     out << "  \"beads\":[\n";
     while(!dpd_pipe.tryRecv(&msg)) { }
     timestep = msg.timestep;
-    out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x()<<", \"y\":"<<msg.bead.pos.y()<<", \"z\":"<<msg.bead.pos.z()<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<msg.bead.type<<"}";
+
+    float x_off = msg.from.x * (problem_size/(float)N);
+    float y_off = msg.from.y * (problem_size/(float)N);
+    float z_off = msg.from.z * (problem_size/(float)N);
+
+    out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x() + x_off<<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<msg.bead.type<<"}";
     out << ",\n";
      
 
     while(1) {
 	    if(dpd_pipe.tryRecv(&msg)){
          if(timestep != msg.timestep) {
+             timestep = msg.timestep;
              // close up the JSON file and print the u command to stdout (dpd-vis weirdness)
              out.seekp(-2,std::ios::end);
              out << "  \n";
              out << "]}\n"; 
              out.close();
+             // copy the file into state.json
+             fs::copy("_state.json", "state.json", fs::copy_options::overwrite_existing);
              printf("u\n"); fflush(stdout);
              
              // setup the next state document  
-             out.open("state.json");
+             out.open("_state.json");
              out << "{ \n";
              out << "  \"beads\":[\n";
          }
-         out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x()<<", \"y\":"<<msg.bead.pos.y()<<", \"z\":"<<msg.bead.pos.z()<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<msg.bead.type<<"}";
+
+         x_off = msg.from.x * (problem_size/(float)N);
+         y_off = msg.from.y * (problem_size/(float)N);
+         z_off = msg.from.z * (problem_size/(float)N);
+
+         out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x() + x_off<<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<msg.bead.type<<"}";
          out << ",\n";
 	    }
 
