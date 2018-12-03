@@ -22,11 +22,15 @@ class Universe {
 
     // setup
     void add(const bead_t* in); // adds a bead to the universe
+    bool space(const bead_t* in); // checks to see if this bead can be added to the universe
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
     // simulation control
     void write(); // writes the simulation env onto the POETS system
     void run(); // runs the simulation 
+
+    // prints all the particles added to the universe so far
+    void print();
 
     // bead slot management
     uint8_t clear_slot(uint8_t slotlist, uint8_t pos);

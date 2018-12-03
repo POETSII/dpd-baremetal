@@ -31,10 +31,10 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
                          {ptype(75.0), ptype(25.0), ptype(50.0)},
                          {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
 
-const ptype dt = 0.0001; // the timestep
+const ptype dt = 0.0002; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 1000;
+const uint32_t emitperiod = 50;
 
 // ---------------------------------------------------------------------------------------
 
@@ -44,8 +44,8 @@ typedef uint32_t bead_id_t; // the ID for the bead
 
 // defines a bead type
 typedef struct _bead_t {
-    bead_class_t type;
     bead_id_t id;
+    bead_class_t type;
     Vector3D<ptype> pos;
     Vector3D<ptype> velo;
 } bead_t; // 32 bytes 
@@ -154,7 +154,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         // calculate a new force acting between two particles
         Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-            ptype a_ij = A[a->id][b->id]; 
+            ptype a_ij = A[a->type][b->type]; 
             Vector3D<ptype> r_i = a->pos;
             Vector3D<ptype> r_j = b->pos;
             ptype r_ij_dist = r_i.dist(r_j);

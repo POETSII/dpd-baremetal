@@ -292,6 +292,27 @@ Universe<S>::~Universe(){
    delete _g;
 }
 
+// checks to see if a bead can be added to the universe
+template<class S>
+bool Universe<S>::space(const bead_t *in) {
+   bead_t b = *in;
+   unit_pos_t x = floor(b.pos.x()/_unit_size);
+   unit_pos_t y = floor(b.pos.y()/_unit_size);
+   unit_pos_t z = floor(b.pos.z()/_unit_size);
+   unit_t t = {x,y,z};
+
+   // lookup the device
+   PDeviceId b_su = _locToId[t];
+
+   // check to make sure there is still enough room in the device
+   if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
+	   return false;
+   } else {
+	   return true;
+   }
+
+}
+
 // add a bead to the simulation universe
 template<class S>
 void Universe<S>::add(const bead_t *in) {
