@@ -39,7 +39,7 @@ int main()
   printf("Universe setup -- adding beads\n");
 
   uint32_t b_uid = 0;
-  for(int i=0; i<800; i++) {
+  for(int i=0; i<12000; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
@@ -54,7 +54,7 @@ int main()
       }
   }
 
-  for(int i=0; i<550; i++) {
+  for(int i=0; i<6000; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;

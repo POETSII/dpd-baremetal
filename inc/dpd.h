@@ -23,8 +23,8 @@ typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
-const float problem_size = 10.0; // total size of the sim universe in one dimension
-const unsigned N = 10; // the size of the sim universe in each dimension
+const float problem_size = 18.0; // total size of the sim universe in one dimension
+const unsigned N = 18; // the size of the sim universe in each dimension
 
 const ptype r_c(1.0);
 
@@ -36,7 +36,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 50;
+const uint32_t emitperiod = 5;
 
 // ---------------------------------------------------------------------------------------
 
@@ -94,10 +94,10 @@ struct DPDState{
    uint8_t bslot; // a bitmap of which bead slot is occupied
    uint8_t sentslot; // a bitmap of which bead slot has not been sent from yet 
    uint8_t num_beads; // the number of beads in this device
-   bead_t bead_slot[5]; // at most we have five beads per device
-   Vector3D<ptype> force_slot[5]; // at most 5 beads -- force for each bead
+   bead_t bead_slot[8]; // at most we have five beads per device
+   Vector3D<ptype> force_slot[8]; // at most 5 beads -- force for each bead
    uint8_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase 
-   unit_t migrate_loc[5]; // slots containing the destinations of where we want to send a bead to
+   unit_t migrate_loc[8]; // slots containing the destinations of where we want to send a bead to
    uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
    uint32_t timestep; // the current timestep that we are on
