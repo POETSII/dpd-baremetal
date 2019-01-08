@@ -39,13 +39,13 @@ int main()
   printf("Universe setup -- adding beads\n");
 
   uint32_t b_uid = 0;
-  for(int i=0; i<110; i++) {
+  for(int i=0; i<800; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
           b1->id = b_uid++; 
           b1->type = 0; 
-          b1->pos.set((rand() / (float)RAND_MAX * 10), (rand() / (float)RAND_MAX * 10), 0.0);
+          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
           b1->velo.set(0.0,0.0,0.0);
           if(uni.space(b1)) {
               uni.add(b1);
@@ -54,13 +54,13 @@ int main()
       }
   }
 
-  for(int i=0; i<40; i++) {
+  for(int i=0; i<250; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
           b1->id = b_uid++; 
           b1->type = 1; 
-          b1->pos.set((rand() / (float)RAND_MAX * 10), (rand() / (float)RAND_MAX * 10), 0.0);
+          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
           b1->velo.set(0.0,0.0,0.0);
           if(uni.space(b1)) {
               uni.add(b1);
