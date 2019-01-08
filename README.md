@@ -3,7 +3,7 @@ A tinsel-based version of the DPD application
 
 It consists of two main parts:
 * __[the application]__ this run's the simulation on the POETS box
-* __[the client]__ this is a web-based GUI that displays the simulation in real-time
+* __[the client]__ this is a web-based GUI that displays the simulation in real-time and allows simulation playback
 
 To connect the client and the application a user must have ssh key-based authetification access to the POETS box where the application is running and must edit the following lines of `dpd-baremetal/Makefile`:
 
@@ -45,3 +45,7 @@ make client_run
 ```
 
 Once the application is running the web-interface can be launched from the client machine by opening `http://localhost:3000`. From here the user can watch a live output of the simulation and play the simulation back from the start at a faster framerate. 
+
+## implmentation details
+
+Currently this application is mainly built around POLite -- although the ultimate goal is to modify POLite to create a more application specific code base. The current implementation also makes use of the latest Tinsel idle-detection features to make globally synchronus transition changes between the update, migration, and emit phases of the computation. The plan is ultimately to play with the synchronisation and see how it effect performance.
