@@ -39,7 +39,7 @@ int main()
   printf("Universe setup -- adding beads\n");
 
   uint32_t b_uid = 0;
-  for(int i=0; i<90; i++) {
+  for(int i=0; i<110; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
@@ -69,63 +69,10 @@ int main()
       }
   }
   
-  //bead_t b1;
-  //b1.id = 0; 
-  //b1.type = 0; 
-  //b1.pos.set(8.5,0.0,0.0);
-  //b1.velo.set(0.0,0.0,0.0);
-  //uni.add(&b1);
-
-  //bead_t b2;
-  //b2.id = 1; 
-  //b2.type = 0; 
-  //b2.pos.set(1.5,0.0,0.0);
-  //b2.velo.set(0.0,0.0,0.0);
-  //uni.add(&b2);
-
-  //bead_t b3;
-  //b3.id = 2; 
-  //b3.type = 1; 
-  //b3.pos.set(1.8,0.3,0.0);
-  //b3.velo.set(0.0,0.0,0.0);
-  //uni.add(&b3);
-
-  //bead_t b4;
-  //b4.id = 3; 
-  //b4.type = 1; 
-  //b4.pos.set(7.1,0.2,0.0);
-  //b4.velo.set(0.0,0.0,0.0);
-  //uni.add(&b4);
-
-  //bead_t b1;
-  //b1.id = 0; 
-  //b1.type = 0; 
-  //b1.pos.set((rand() / (float)RAND_MAX * 4), (rand() / (float)RAND_MAX * 4), 0.0);
-  //b1.velo.set(0.0,0.0,0.0);
-  //uni.add(&b1);
-
-  //bead_t b2;
-  //b2.id = 1; 
-  //b2.type = 0; 
-  //b2.pos.set((rand() / (float)RAND_MAX * 4), (rand() / (float)RAND_MAX * 4), 0.0);
-  //b2.velo.set(0.0,0.0,0.0);
-  //uni.add(&b2);
-
-  //bead_t b3;
-  //b3.id = 2; 
-  //b3.type = 1; 
-  //b3.pos.set((rand() / (float)RAND_MAX * 4), (rand() / (float)RAND_MAX * 4), 0.0);
-  //b3.velo.set(0.0,0.0,0.0);
-  //uni.add(&b3);
-
-  //bead_t b4;
-  //b4.id = 3; 
-  //b4.type = 1; 
-  //b4.pos.set((rand() / (float)RAND_MAX * 4), (rand() / (float)RAND_MAX * 4), 0.0);
-  //b4.velo.set(0.0,0.0,0.0);
-  //uni.add(&b4);
-
   uni.write(); // write the universe into the POETS memory
+
+  uni.print_occupancy();
+
   printf("running...\n");
   uni.run(); // start the simulation
 

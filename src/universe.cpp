@@ -13,6 +13,20 @@ uint8_t Universe<S>::set_slot(uint8_t slotlist, uint8_t pos){ return slotlist | 
 template<class S>
 bool Universe<S>::is_slot_set(uint8_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
+// print out the occupancy of each device
+template<class S>
+void Universe<S>::print_occupancy(){
+
+	// loop through all devices in the universe and print their number of particles assigned
+	printf("DeviceId\t\tbeads\n--------------\n");
+	for(auto const& x : _idToLoc) {
+            PDeviceId t = x.first;
+	    uint8_t beads = get_num_beads(_g->devices[t]->state.bslot);
+	    if(beads > 0)
+                printf("%x\t\t\t%d\n", t, (uint32_t)beads); 
+	}	
+}
+
 template<class S>
 uint8_t Universe<S>::get_next_slot(uint8_t slotlist){
     uint8_t mask = 0x1;
@@ -305,7 +319,7 @@ bool Universe<S>::space(const bead_t *in) {
    PDeviceId b_su = _locToId[t];
 
    // check to make sure there is still enough room in the device
-   if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
+   if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev-1)) {
 	   return false;
    } else {
 	   return true;

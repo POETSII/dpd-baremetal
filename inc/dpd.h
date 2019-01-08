@@ -9,7 +9,6 @@
 #ifndef _DPD_H_
 #define _DPD_H_
 
-#define BEADS_PER_UNIT 2 
 #define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
 #define PADDING 0 
 
@@ -31,7 +30,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
                          {ptype(75.0), ptype(25.0), ptype(50.0)},
                          {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
 
-const ptype dt = 0.0002; // the timestep
+const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
 const uint32_t emitperiod = 50;
