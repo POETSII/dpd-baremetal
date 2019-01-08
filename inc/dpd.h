@@ -158,9 +158,21 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             Vector3D<ptype> r_j = b->pos;
             ptype r_ij_dist = r_i.dist(r_j);
             Vector3D<ptype> r_ij = r_i - r_j;
+	    Vector3D<ptype> v_i = a->velo;
+	    Vector3D<ptype> v_j = b->velo;
+	    Vector3D<ptype> v_ij = v_i - v_j;
+	    const ptype drag_coef(4.5); // the drag coefficient
+
+            // switching function
+            ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
+
+	    Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
         
-            // Equation 8.5 in the dl_meso manual
-            Vector3D<ptype> force = (r_ij/r_ij_dist) * (a_ij * (ptype(1.0) - (r_ij_dist/r_c)));
+            //Conservative force: Equation 8.5 in the dl_meso manual
+            force = (r_ij/r_ij_dist) * (a_ij * (ptype(1.0) - (r_ij_dist/r_c)));
+
+	    // Drag force
+            force = force + (r_ij / (r_ij_dist * r_ij_dist)) * w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef);
         
             return force;
         }

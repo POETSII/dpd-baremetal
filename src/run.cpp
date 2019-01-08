@@ -54,7 +54,7 @@ int main()
       }
   }
 
-  for(int i=0; i<250; i++) {
+  for(int i=0; i<550; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
