@@ -25,7 +25,7 @@ Where:
 
 To build on the client-side:
 ```bash
- make client
+ make bridge 
 ```
 
 To build on the remote application side (POETS box):
