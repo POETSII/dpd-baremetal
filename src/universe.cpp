@@ -319,7 +319,7 @@ bool Universe<S>::space(const bead_t *in) {
    PDeviceId b_su = _locToId[t];
 
    // check to make sure there is still enough room in the device
-   if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev-1)) {
+   if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev)) {
 	   return false;
    } else {
 	   return true;
@@ -378,11 +378,14 @@ void Universe<S>::run() {
         //for(uint32_t i=0; i<_g->numDevices; i++) {
         //for(uint32_t i=0; i<100; i++) {
            _hostLink->recvMsg(&msg, sizeof(msg));
-	   pts_to_extern_t eMsg;
-	   eMsg.timestep = msg.payload.timestep;
-	   eMsg.from = msg.payload.from;
-	   eMsg.bead = msg.payload.beads[0];
-	   _extern->send(&eMsg);
+	   // uncomment if default is to remove water
+	   //if(msg.payload.beads[0].type != 0){
+	       pts_to_extern_t eMsg;
+	       eMsg.timestep = msg.payload.timestep;
+	       eMsg.from = msg.payload.from;
+	       eMsg.bead = msg.payload.beads[0];
+	       _extern->send(&eMsg);
+	   //}
 	   //printf("<%d,%d,%d> timestep=%u bead ID:%u pos:<%.4f,%.4f,%.4f>\n", msg.payload.from.x, msg.payload.from.y, msg.payload.from.z, msg.payload.timestep, msg.payload.beads[0].id, msg.payload.beads[0].pos.x(), msg.payload.beads[0].pos.y(), msg.payload.beads[0].pos.z());
 	//}
 	//break; // exit the main loop

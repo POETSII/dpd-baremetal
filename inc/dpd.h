@@ -12,6 +12,8 @@
 #define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
 #define PADDING 0 
 
+#define DT10_RAND_MAX 4294967295
+
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
@@ -36,7 +38,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 5;
+const uint32_t emitperiod = 10;
 
 // ---------------------------------------------------------------------------------------
 
@@ -181,7 +183,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    Vector3D<ptype> v_j = b->velo;
 	    Vector3D<ptype> v_ij = v_i - v_j;
 	    const ptype drag_coef(4.5); // the drag coefficient
-	    const ptype sigma_ij(3.0); // sqrt(2*drag_coef*KBt) assumed same for all
+	    //const ptype sigma_ij(275.0); // sqrt(2*drag_coef*KBt) assumed same for all
+	    const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
 	    const ptype sqrt_dt(0.1414); // sqrt(0.02)
 
             // switching function
@@ -196,10 +199,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             force = force + (r_ij / (r_ij_dist * r_ij_dist)) * w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef);
 
 	    // get the pairwise random number
-	    ptype r((pairwise_rand(a->id, b->id) / (float)(4294967296)) * 0.5);
+	    //ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX)) * 0.5);
+	    ptype r_t((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
+	    ptype r = (r_t - ptype(1.0)) * 0.5;
 	    ptype w_r = (ptype(1.0) - r_ij_dist);
 	    
 	    // random force
+	    //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0); 
 	    force = force - (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij; 
         
             return force;
@@ -208,11 +214,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
 		s->timestep = 0;
+		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
 		s->emitcnt = emitperiod;
 		s->mode = UPDATE;
-		s->rngstate = 1234; // start with a seed
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
 	        else

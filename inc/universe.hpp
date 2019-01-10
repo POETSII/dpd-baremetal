@@ -11,7 +11,7 @@
 #include <map>
 #include "ExternalServer.hpp"
 
-const uint8_t max_beads_per_dev = 5;
+const uint8_t max_beads_per_dev = 7;
 
 template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
 class Universe {

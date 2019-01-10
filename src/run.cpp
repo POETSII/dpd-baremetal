@@ -38,14 +38,17 @@ int main()
 
   printf("Universe setup -- adding beads\n");
 
+  // w 600 o 400 r 50
+
   uint32_t b_uid = 0;
-  for(int i=0; i<12000; i++) {
+  for(int i=0; i<624; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
           b1->id = b_uid++; 
           b1->type = 0; 
-          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
+          //b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
+          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
           b1->velo.set(0.0,0.0,0.0);
           if(uni.space(b1)) {
               uni.add(b1);
@@ -54,13 +57,30 @@ int main()
       }
   }
 
-  for(int i=0; i<6000; i++) {
+  for(int i=0; i<675; i++) {
       bool added = false;
       while(!added) {
           bead_t *b1 = new bead_t;
           b1->id = b_uid++; 
           b1->type = 1; 
-          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
+          //b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
+          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
+          b1->velo.set(0.0,0.0,0.0);
+          if(uni.space(b1)) {
+              uni.add(b1);
+              added = true;
+          }
+      }
+  }
+
+  for(int i=0; i<94; i++) {
+      bool added = false;
+      while(!added) {
+          bead_t *b1 = new bead_t;
+          b1->id = b_uid++; 
+          b1->type = 2; 
+          //b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
+          b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
           b1->velo.set(0.0,0.0,0.0);
           if(uni.space(b1)) {
               uni.add(b1);

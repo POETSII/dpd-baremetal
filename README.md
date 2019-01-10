@@ -1,4 +1,11 @@
 # dpd-baremetal
+
+| real-time example | slowed down |
+| ----------------- | ----------- |
+| ![example](gifs/dpd-baremetal-oil-and-water-realtime.gif) | ![example](gifs/dpd-baremetal-oil-and-water-slowed-start.gif) |
+
+An oil-and-water demo (ran on Byron with 1000 threads).
+ 
 A tinsel-based version of the DPD application
 
 It consists of two main parts:
