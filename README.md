@@ -50,18 +50,25 @@ Where:
 
 
 ## running the default example
+
+The default application is a 2D oil-and-water example (gif at the top of this page). To run this application code needs to be executed on both the client-side and the application side in a specific order -- as there is not currently startup synchronisation like there is in `ImPOLite` or `poets-ecosystem` yet. 
+
+#### step 1: _launch the remote application_
 On the POETS box you can start the application with the following:
 ```bash
 cd bin; ./run
 ```
 
-You then need to start the client side before `running...` appears on the POETS box application. This can be done by typing the following on the client machine:
+#### step 2: _launch the local client_
+Before `running...` appears on the POETS box application. The web interface needs to be lauched on the client-side by typing:
 ```bash
 make client_run
 ```
+
+#### step 3: _open the web-interface_
 
 Once the application is running the web-interface can be launched from the client machine by opening `http://localhost:3000`. From here the user can watch a live output of the simulation and play the simulation back from the start at a faster framerate. 
 
 ## implmentation details
 
-C urrently this application is mainly built around POLite -- although the ultimate goal is to modify POLite to create a more application specific code base. The current implementation also makes use of the latest Tinsel idle-detection features to make globally synchronus transition changes between the update, migration, and emit phases of the computation. The plan is ultimately to play with the synchronisation and see how it effect performance.
+Currently this application is mainly built around POLite -- although the ultimate goal is to modify POLite to create a more application specific code base. The current implementation also makes use of the latest Tinsel idle-detection features to make globally synchronus transition changes between the update, migration, and emit phases of the computation. The plan is ultimately to play with the synchronisation and see how it effect performance.
