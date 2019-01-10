@@ -1,4 +1,5 @@
 # dpd-baremetal
+A tinsel-based version of the DPD application
 
 | real-time example | slowed down |
 | ----------------- | ----------- |
@@ -6,8 +7,6 @@
 
 An oil-and-water demo (ran on Byron with 1000 threads).
  
-A tinsel-based version of the DPD application
-
 It consists of two main parts:
 * __[the application]__ this run's the simulation on the POETS box
 * __[the client]__ this is a web-based GUI that displays the simulation in real-time and allows simulation playback
