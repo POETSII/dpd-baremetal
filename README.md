@@ -1,5 +1,5 @@
 # dpd-baremetal
-A tinsel-based version of the DPD application
+_A tinsel-based version of the DPD application_
 
 | real-time example | slowed down |
 | ----------------- | ----------- |
@@ -8,11 +8,35 @@ A tinsel-based version of the DPD application
 
 An oil-and-water demo (ran on Byron: 2D = 100 threads, 3D = 1000 threads).
  
-It consists of two main parts:
-* __[the application]__ this run's the simulation on the POETS box
-* __[the client]__ this is a web-based GUI that displays the simulation in real-time and allows simulation playback
+__dpd-baremetal__ consists of two main parts:
+* _[the application]_ the simulation application that is running on the _remote_ POETS box.
+* _[the client]_ a _local_ web-based GUI that displays the real-time output from the application and allows simulation playback and storage.
 
-To connect the client and the application a user must have ssh key-based authetification access to the POETS box where the application is running and must edit the following lines of `dpd-baremetal/Makefile`:
+--------------------------------------------------------------
+
+## setup
+
+#### install requirments
+
+Both client and application
+* `libboost`
+* `socat`
+
+--------------------------------------------------------------
+
+#### building
+
+To build on the local client-side:
+```bash
+ make bridge 
+```
+
+To build on the remote application side (POETS box):
+```bash
+make
+```
+
+To connect the client and the application the user must have ssh key-based authetification access to the POETS box where the application is running and must edit the following lines of `dpd-baremetal/Makefile`:
 
 ```bash
   # ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,31 +49,24 @@ Where:
 * `REMOTE_FULL` is the username of the user and the address of the POETS box where the application will be executed.
 * `REMOTE_SOCKET` is the name of the socket on the POETS box that is created by the application
 
-## install requirments
 
-* `libboost`
-* `socat`
+## running the default example
 
-To build on the client-side:
-```bash
- make bridge 
-```
+The default application is a 2D oil-and-water example (gif at the top of this page). To run this application code needs to be executed on both the client-side and the application side in a specific order -- as there is not currently startup synchronisation like there is in `ImPOLite` or `poets-ecosystem` yet. 
 
-To build on the remote application side (POETS box):
-```bash
-make
-```
-
-## running the default
+#### step 1: _launch the remote application_
 On the POETS box you can start the application with the following:
 ```bash
 cd bin; ./run
 ```
 
-You then need to start the client side before `running...` appears on the POETS box application. This can be done by typing the following on the client machine:
+#### step 2: _launch the local client_
+Before `running...` appears on the POETS box application. The web interface needs to be lauched on the client-side by typing:
 ```bash
 make client_run
 ```
+
+#### step 3: _open the web-interface_
 
 Once the application is running the web-interface can be launched from the client machine by opening `http://localhost:3000`. From here the user can watch a live output of the simulation and play the simulation back from the start at a faster framerate. 
 
