@@ -4,8 +4,9 @@ A tinsel-based version of the DPD application
 | real-time example | slowed down |
 | ----------------- | ----------- |
 | ![example](gifs/dpd-baremetal-oil-and-water-realtime.gif) | ![example](gifs/dpd-baremetal-oil-and-water-slowed-start.gif) |
+| ![example](gifs/dpd-baremetal-oil-and-water-3D-realtime.gif) | ![example](gifs/dpd-baremetal-oil-and-water-3D-slowed-down.gif) |
 
-An oil-and-water demo (ran on Byron with 1000 threads).
+An oil-and-water demo (ran on Byron: 2D = 100 threads, 3D = 1000 threads).
  
 It consists of two main parts:
 * __[the application]__ this run's the simulation on the POETS box
