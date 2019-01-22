@@ -1,5 +1,5 @@
 # dpd-baremetal
-_A tinsel-based version of the DPD application_
+_A tinsel-based (POLite) version of the DPD application_
 
 Based around the equations set out in the DL_MESO manual [[1](http://www.cse.scitech.ac.uk/ccg/software/DL_MESO/MANUAL/USRMAN.pdf)].
 
