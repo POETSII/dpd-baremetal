@@ -10,10 +10,10 @@ DPD_UTILS=./utils
 include $(TINSEL_ROOT)/globals.mk
 
 # Local compiler flags
-CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11 
-LDFLAGS = -melf32lriscv -G 0  
-DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o 
-HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o 
+CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11
+LDFLAGS = -melf32lriscv -G 0
+DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
 SOCAT_SCRIPT = ./scripts/socat_script
 
@@ -24,8 +24,8 @@ bridge: $(DPD_BIN)/dpd-bridge
 
 # ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
 LOCAL_SOCKET=./_external.sock
-REMOTE_FULL=sf306@byron.cl.cam.ac.uk
-REMOTE_SOCKET=/home/sf306/dpd-baremetal/bin/_external.sock
+REMOTE_FULL=jrbeaumont@eliot.cl.cam.ac.uk
+REMOTE_SOCKET=/home/jrbeaumont/dpd-baremetal/bin/_external.sock
 # ~~~~~~~~~~~~~~~ Client side run ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 client_run: bridge
 	$(SOCAT_SCRIPT) $(LOCAL_SOCKET) $(REMOTE_FULL) $(REMOTE_SOCKET)
@@ -34,29 +34,29 @@ client_run: bridge
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 $(DPD_BIN):
-	mkdir -p $(DPD_BIN) 
+	mkdir -p $(DPD_BIN)
 
 # -------------- Host Object files --------------------------
 $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp 
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp
 
 $(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp 
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
 
 $(DPD_BIN)/universe.o: $(DPD_SRC)/universe.cpp $(DPD_INC)/universe.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp 
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp
 
 # -------------- Tinsel Object files --------------------------
 $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 	mkdir -p $(DPD_BIN)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@	
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
 $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	mkdir -p $(DPD_BIN)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@	
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
 # -------------- elf --------------------------
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
@@ -89,7 +89,7 @@ $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system 
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
 # ------------ the external client ----------------
 $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
