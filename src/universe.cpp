@@ -293,6 +293,7 @@ Universe<S>::Universe(S size, unsigned D) {
         _g->devices[cId]->state.loc.y = loc.y;
         _g->devices[cId]->state.loc.z = loc.z;
         _g->devices[cId]->state.unit_size = _unit_size;
+        _g->devices[cId]->state.N = _D;
     }
 
 }

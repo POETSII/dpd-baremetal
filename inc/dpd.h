@@ -25,8 +25,8 @@ typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
-const float problem_size = 18.0; // total size of the sim universe in one dimension
-const unsigned N = 18; // the size of the sim universe in each dimension
+// const float problem_size = 18.0; // total size of the sim universe in one dimension
+// const unsigned N = 18; // the size of the sim universe in each dimension
 
 const ptype r_c(1.0);
 
@@ -92,6 +92,7 @@ struct DPDMessage {
 // the state of the DPD Device
 struct DPDState{
     float unit_size; // the size of this spatial unit in one dimension
+    uint8_t N;
     unit_t loc; // the location of this cube
     uint8_t bslot; // a bitmap of which bead slot is occupied
     uint8_t sentslot; // a bitmap of which bead slot has not been sent from yet
@@ -258,7 +259,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 //    migration in the x dim
                 if(s->bead_slot[ci].pos.x() >= s->unit_size){
                     migrating = true;
-                    if(s->loc.x == (N-1)){
+                    if(s->loc.x == (s->N-1)){
                         d_loc.x = 0;
                     } else {
                         d_loc.x = s->loc.x + 1;
@@ -267,7 +268,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 } else if (s->bead_slot[ci].pos.x() < ptype(0.0)) {
                     migrating = true;
                     if(s->loc.x == 0) {
-                        d_loc.x = N - 1;
+                        d_loc.x = s->N - 1;
                     } else {
                         d_loc.x = s->loc.x - 1;
                     }
@@ -279,7 +280,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            //    migration in the y dim
 	            if(s->bead_slot[ci].pos.y() >= s->unit_size){
 		            migrating = true;
-		            if(s->loc.y == (N-1)){
+		            if(s->loc.y == (s->N-1)){
                         d_loc.y = 0;
 		            } else {
 			            d_loc.y = s->loc.y + 1;
@@ -288,7 +289,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            } else if (s->bead_slot[ci].pos.y() < ptype(0.0)) {
                     migrating = true;
 		            if(s->loc.y == 0) {
-			            d_loc.y = N - 1;
+			            d_loc.y = s->N - 1;
     		        } else {
 			            d_loc.y = s->loc.y - 1;
 		            }
@@ -300,7 +301,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	        //    migration in the z dim
     	        if(s->bead_slot[ci].pos.z() >= s->unit_size){
     		        migrating = true;
-    		        if(s->loc.z == (N-1)){
+    		        if(s->loc.z == (s->N-1)){
                         d_loc.z = 0;
     		        } else {
         			    d_loc.z = s->loc.z + 1;
@@ -309,7 +310,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            } else if (s->bead_slot[ci].pos.z() < ptype(0.0)) {
                     migrating = true;
 		            if(s->loc.z == 0) {
-			            d_loc.z = N - 1;
+			            d_loc.z = s->N - 1;
 		            } else {
 			            d_loc.z = s->loc.z - 1;
 		            }
