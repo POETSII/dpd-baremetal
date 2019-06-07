@@ -21,6 +21,8 @@
 #define MIGRATION 1
 #define EMIT 2
 
+#define MAX_BEADS 11
+
 typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
@@ -38,7 +40,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 10;
+const uint32_t emitperiod = 100000;
 
 // ---------------------------------------------------------------------------------------
 
@@ -84,6 +86,7 @@ struct unit_t {
 
 // Format of message
 struct DPDMessage {
+    uint8_t type;
     uint32_t timestep; // the timestep this message is from
     unit_t from; // the unit that this message is from
     bead_t beads[1]; // the beads payload from this unit
@@ -94,13 +97,13 @@ struct DPDState{
     float unit_size; // the size of this spatial unit in one dimension
     uint8_t N;
     unit_t loc; // the location of this cube
-    uint8_t bslot; // a bitmap of which bead slot is occupied
-    uint8_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    uint8_t num_beads; // the number of beads in this device
-    bead_t bead_slot[8]; // at most we have five beads per device
-    Vector3D<ptype> force_slot[8]; // at most 5 beads -- force for each bead
+    uint16_t bslot; // a bitmap of which bead slot is occupied
+    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    uint16_t num_beads; // the number of beads in this device
+    bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
+    Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
     uint8_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
-    unit_t migrate_loc[8]; // slots containing the destinations of where we want to send a bead to
+    unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
     uint32_t emitcnt; // a counter to kept track of updates between emitting the state
     uint32_t timestep; // the current timestep that we are on
@@ -110,44 +113,47 @@ struct DPDState{
     // send tracking
     uint8_t sentcnt; // a counter used to track how many beads have been sent
     uint8_t sendmode; // keeps track of what mode this device is in sendmode = 0 force_update; sendmode = 1 migration
+
+    uint32_t lost_beads;
 };
 
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
+
     // ----------------- bead slots ---------------------------
     // helper functions for managing bead slots
-    inline uint8_t clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
-    inline uint8_t set_slot(uint8_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
-    inline bool is_slot_set(uint8_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
+    inline uint16_t clear_slot(uint16_t slotlist, uint16_t pos){  return slotlist & ~(1 << pos);  }
+    inline uint16_t set_slot(uint16_t slotlist, uint16_t pos){ return slotlist | (1 << pos); }
+    inline bool is_slot_set(uint16_t slotlist, uint16_t pos){ return slotlist & (1 << pos); }
 
-    inline uint8_t get_next_slot(uint8_t slotlist){
-        uint8_t mask = 0x1;
-        for(int i=0; i<8; i++) {
+    inline uint16_t get_next_slot(uint16_t slotlist){
+        uint16_t mask = 0x1;
+        for(int i=0; i<MAX_BEADS; i++) {
             if(slotlist & mask){
                     return i;
             }
             mask = mask << 1; // shift to the next pos
         }
-        return 0xF; // we are empty
+        return 0xFFFF; // we are empty
     }
 
-    inline uint8_t get_next_free_slot(uint8_t slotlist){
-        uint8_t mask = 0x1;
-        for(int i=0; i<8; i++){
+    inline uint16_t get_next_free_slot(uint16_t slotlist){
+        uint16_t mask = 0x1;
+        for(int i=0; i<MAX_BEADS; i++){
                 if(!(slotlist & mask)) {
                        return i;
                 }
                 mask = mask << 1;
         }
-        return 0xF; // error there are no free slots!
+        return 0xFFFF; // error there are no free slots!
     }
 
     // get the number of beads occupying a slot
-    inline uint8_t get_num_beads(uint8_t slotlist){
-        uint8_t cnt = 0;
-        uint8_t mask = 0x1;
-        for(int i=0; i<8; i++){
+    inline uint16_t get_num_beads(uint16_t slotlist){
+        uint16_t cnt = 0;
+        uint16_t mask = 0x1;
+        for(int i=0; i<MAX_BEADS; i++){
                 if(slotlist & mask) {
                       cnt++;
                 }
@@ -218,7 +224,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-		s->emitcnt = emitperiod;
+		s->emitcnt = 0;
 		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
@@ -228,7 +234,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
-
         // default case
         //*readyToSend = No;
 
@@ -237,7 +242,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         	s->mode = MIGRATION;
     	    s->timestep++;
     	    s->grand = rand(); // advance the random number
-    	    uint8_t i = s->bslot;
+    	    uint16_t i = s->bslot;
     	    while(i){
                 int ci = get_next_slot(i);
 
@@ -334,7 +339,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we have just finished a particle migration step
         if(s->mode == MIGRATION) {
         	// do we want to export?
-        	if(s->emitcnt >= emitperiod) {
+        	if(s->emitcnt >= emitperiod || s->timestep >= 1000) {
     	        s->mode = EMIT;
 	            if(s->bslot) {
     	            s->sentslot = s->bslot;
@@ -354,6 +359,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         // we have just finished emitting the state to the host
 	    if(s->mode == EMIT) {
+            if (s->timestep >= 1000) {
+                return false;
+            }
             // move into the update mode
 	        s->mode = UPDATE;
 	        s->sentslot = s->bslot;
@@ -367,7 +375,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
 	    if(s->mode == UPDATE) {
-	        uint8_t ci = get_next_slot(s->sentslot);
+	        uint16_t ci = get_next_slot(s->sentslot);
 	        // send all of our beads to neighbours
 	        msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
@@ -385,10 +393,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            *readyToSend = No;
 
                 // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
-	            uint8_t i = s->bslot;
+	            uint16_t i = s->bslot;
 	            while(i) {
                     int ci = get_next_slot(i);
-	                uint8_t j = s->bslot;
+	                uint16_t j = s->bslot;
 	                while(j) {
 	                    int cj = get_next_slot(j);
                         if(ci != cj) {
@@ -406,7 +414,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	    if(s->mode == MIGRATION) { // we are in the MIGRATION mode we want to send beads to our neighbours
 	        // overload from with the dst filtering will happen on the recv side
-	        uint8_t ci = get_next_slot(s->migrateslot);
+	        uint16_t ci = get_next_slot(s->migrateslot);
             msg->from.x = s->migrate_loc[ci].x;
             msg->from.y = s->migrate_loc[ci].y;
             msg->from.z = s->migrate_loc[ci].z;
@@ -431,7 +439,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we are emitting our state to the host
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
-	        uint8_t ci = get_next_slot(s->sentslot);
+	        uint16_t ci = get_next_slot(s->sentslot);
 
 	        msg->timestep = s->timestep;
             msg->from.x = s->loc.x;
@@ -478,7 +486,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
 
             // loop through the occupied bead slots -- update force
-	        uint8_t i = s->bslot;
+	        uint16_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
                 if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
@@ -491,7 +499,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        // it depends on whether the from address matches our own
 	        if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
 	            // looks like we are getting a new addition to our family
-	            uint8_t ci = get_next_free_slot(s->bslot); // I hope we have space...
+	            uint16_t ci = get_next_free_slot(s->bslot); // I hope we have space...
+                if (ci == 0xFFFF) {
+                    s->lost_beads++;
+                }
                 s->bslot = set_slot(s->bslot, ci);
 	            s->sentslot = s->bslot;
 
@@ -507,7 +518,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-	    return false;
+        msg->type = 0xAA;
+        msg->timestep = s->lost_beads;
+	    return true;
     }
 
 };
