@@ -40,7 +40,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-const uint32_t emitperiod = 100000;
+const uint32_t emitperiod = 10;
 
 // ---------------------------------------------------------------------------------------
 
@@ -224,7 +224,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-		s->emitcnt = 0;
+		s->emitcnt = emitperiod;
 		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
@@ -339,7 +339,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we have just finished a particle migration step
         if(s->mode == MIGRATION) {
         	// do we want to export?
-        	if(s->emitcnt >= emitperiod || s->timestep >= 1000) {
+        	if(s->emitcnt >= emitperiod) {
     	        s->mode = EMIT;
 	            if(s->bslot) {
     	            s->sentslot = s->bslot;
@@ -359,9 +359,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         // we have just finished emitting the state to the host
 	    if(s->mode == EMIT) {
-            if (s->timestep >= 1000) {
-                return false;
-            }
             // move into the update mode
 	        s->mode = UPDATE;
 	        s->sentslot = s->bslot;
@@ -518,8 +515,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        msg->type = 0xAA;
-        msg->timestep = s->lost_beads;
 	    return true;
     }
 
