@@ -326,7 +326,7 @@ bool Universe<S>::space(const bead_t *in) {
 
 // add a bead to the simulation universe
 template<class S>
-void Universe<S>::add(const bead_t *in) {
+unit_t Universe<S>::add(const bead_t *in) {
     bead_t b = *in;
     unit_pos_t x = floor(b.pos.x()/_unit_size);
     unit_pos_t y = floor(b.pos.y()/_unit_size);
@@ -354,6 +354,26 @@ void Universe<S>::add(const bead_t *in) {
         _g->devices[b_su]->state.bead_slot[slot] = b;
         _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
     }
+
+    return t;
+}
+
+template<class S>
+void Universe<S>::add(const unit_t cell, const bead_t *in) {
+    bead_t b = *in;
+    if (b.pos.x() > _unit_size || b.pos.y() > _unit_size || b.pos.z() > _unit_size) {
+        printf("Error: Bead position given (%f, %f, %f) is outside the bounds of this unit (%d, %d, %d) which has side length %f\n", b.pos.x(), b.pos.y(), b.pos.z(), cell.x, cell.y, cell.z, _unit_size);
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+
+    // lookup the device
+    PDeviceId b_su = _locToId[cell];
+
+    // get the next free slot in this device
+    uint8_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
+    _g->devices[b_su]->state.bead_slot[slot] = b;
+    _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
 }
 
 // writes the universe into the POETS system
@@ -386,6 +406,36 @@ void Universe<S>::run() {
     timersub(&_finish, &_start, &_diff);
     double duration = (double) _diff.tv_sec + (double) _diff.tv_usec / 1000000.0;
     printf("Time = %lf\n", duration);
+}
+
+// Runs a test, gets the bead outputs and returns this to the test file
+template<class S>
+std::map<uint32_t, DPDMessage> Universe<S>::test() {
+    std::map<uint32_t, DPDMessage> result;
+    // Finish counter
+    uint32_t finish = 0, t = 0;
+
+    _hostLink->boot("code.v", "data.v");
+    _hostLink->go();
+
+    // enter the main loop
+    while(1) {
+        PMessage<None, DPDMessage> msg;
+        _hostLink->recvMsg(&msg, sizeof(msg));
+        t++;
+        if (msg.payload.type == 0xAA) {
+            finish++;
+            std::cerr << "GOT MESSAGE FROM CELL EXIT MESSAGE FROM CELL " << finish << "\n";
+            if (finish >= (_D*_D*_D)) {
+                return result;
+            }
+        } else {
+            std::cerr << "GOT OUTPUT MESSAGE FROM CELL " << t << "\n";
+            result[msg.payload.beads[0].id] = msg.payload;
+        }
+    }
+
+    return result;
 }
 
 #endif /* __UNIVERSE_IMPL */

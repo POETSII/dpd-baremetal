@@ -21,22 +21,24 @@ class Universe {
     ~Universe();
 
     // setup
-    void add(const bead_t* in); // adds a bead to the universe
+    unit_t add(const bead_t* in); // adds a bead to the universe
+    void add(const unit_t bead, const bead_t* in); // adds a bead to the universe in given cell space. Value of all positions must be less than unit length
     bool space(const bead_t* in); // checks to see if this bead can be added to the universe
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
     // simulation control
     void write(); // writes the simulation env onto the POETS system
-    void run(); // runs the simulation 
+    void run(); // runs the simulation
+    std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
 
     // bead slot management
     uint8_t clear_slot(uint8_t slotlist, uint8_t pos);
     uint8_t set_slot(uint8_t slotlist, uint8_t pos);
     bool is_slot_set(uint8_t slotlist, uint8_t pos);
-    
+
     uint8_t get_next_slot(uint8_t slotlist);
     uint8_t get_next_free_slot(uint8_t slotlist);
-    
+
     void print_slot(uint8_t slotlist);
     uint8_t get_num_beads(uint8_t slotlist);
 
@@ -57,7 +59,7 @@ class Universe {
         std::map<unit_t, PDeviceId> _locToId;
 
 	// for the external connection
-        ExternalServer *_extern;	
+        ExternalServer *_extern;
 
 	// measuring performance
 	struct timeval _start, _finish, _diff;

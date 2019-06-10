@@ -339,14 +339,19 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we have just finished a particle migration step
         if(s->mode == MIGRATION) {
         	// do we want to export?
-        	if(s->emitcnt >= emitperiod) {
+        #ifdef TESTING
+            if (s->timestep >= 1000)
+        #else
+        	if(s->emitcnt >= emitperiod)
+        #endif
+            {
     	        s->mode = EMIT;
 	            if(s->bslot) {
     	            s->sentslot = s->bslot;
                     *readyToSend = HostPin;
     	        }
     	        s->emitcnt = 0;
-    	    } else {
+            } else {
     	        s->emitcnt++;
     	        s->mode = UPDATE;
     	        if(get_num_beads(s->bslot) > 0){
@@ -359,6 +364,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         // we have just finished emitting the state to the host
 	    if(s->mode == EMIT) {
+        #ifdef TESTING
+            if (s->timestep >= 1000) {
+                return false;
+            }
+        #endif
             // move into the update mode
 	        s->mode = UPDATE;
 	        s->sentslot = s->bslot;
@@ -367,6 +377,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        }
 	        return true;
 	    }
+        return false;
 	}
 
 	// send handler -- called when the ready to send flag has been set
@@ -515,6 +526,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
+        #ifdef TESTING
+        msg->type = 0xAA;
+        #endif
 	    return true;
     }
 
