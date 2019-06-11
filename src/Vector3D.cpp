@@ -4,11 +4,13 @@
 #ifndef _VECTOR_3D_IMPL
 #define _VECTOR_3D_IMPL
 
+#define FIXED 24
+
 // constructor
 template<class S>
 Vector3D<S>::Vector3D(S x, S y, S z){
-   _x = x; 
-   _y = y; 
+   _x = x;
+   _y = y;
    _z = z;
 }
 
@@ -152,9 +154,9 @@ S Vector3D<S>::dot(Vector3D<S> a) {
 template<class S>
 Vector3D<float> Vector3D<S>::modulo_add(Vector3D<S> a, float N) {
     // add to the vector mod the universe size
-    float x = fmod(_x + (float)a.x(), N); 
-    float y = fmod(_y + (float)a.y(), N); 
-    float z = fmod(_z + (float)a.z(), N); 
+    float x = fmod(_x + (float)a.x(), N);
+    float y = fmod(_y + (float)a.y(), N);
+    float z = fmod(_z + (float)a.z(), N);
 
     return Vector3D<float>(x,y,z);
 
@@ -164,9 +166,9 @@ Vector3D<float> Vector3D<S>::modulo_add(Vector3D<S> a, float N) {
 template<class S>
 Vector3D<S> Vector3D<S>::cross(Vector3D<S> a){
    Vector3D<S> c;
-   S x = (_y*a.z()) - (_z*a.y()); 
-   S y = (_z*a.x()) - (_x*a.z()); 
-   S z = (_x*a.y()) - (_y*a.x()); 
+   S x = (_y*a.z()) - (_z*a.y());
+   S y = (_z*a.x()) - (_x*a.z());
+   S z = (_x*a.y()) - (_y*a.x());
    c.set(x,y,z);
    return c;
 }
@@ -179,14 +181,40 @@ S Vector3D<S>::mag(){
    #else
    return newt_sqrt(_x*_x + _y*_y + _z*_z);
    #endif
-} 
+}
 
 // dist
 template<class S>
 S Vector3D<S>::dist(Vector3D<S> a) {
-   Vector3D<S> c = *this - a; 
+   Vector3D<S> c = *this - a;
    return c.mag();
 }
 
+//Floating-point Vector to Fixed-point Vector
+template<class S>
+Vector3D<int32_t> Vector3D<S>::floatToFixed() {
+  Vector3D<int32_t> c;
+  int32_t x = int32_t(this->_x * (1<<FIXED));
+  int32_t y = int32_t(this->_y * (1<<FIXED));
+  int32_t z = int32_t(this->_z * (1<<FIXED));
+  c.set(x, y, z);
+  return c;
+}
+
+//Fixed-point Vector to floating-point Vector
+template<class S>
+Vector3D<float> Vector3D<S>::fixedToFloat() {
+  Vector3D<float> c;
+  float x = (float)(this->_x) / 2;
+  float y = (float)(this->_y) / 2;
+  float z = (float)(this->_z) / 2;
+  for (int i = 1; i < FIXED; i++) {
+    x = x / 2;
+    y = y / 2;
+    z = z / 2;
+  }
+  c.set(x, y, z);
+  return c;
+}
 
 #endif /* _VECTOR_3D_IMPL */
