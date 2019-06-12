@@ -14,7 +14,6 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
-DFLAGS=
 
 SOCAT_SCRIPT = ./scripts/socat_script
 
@@ -86,7 +85,7 @@ $(HL)/%.o:
 
 # -------------- host program --------------------------
 $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
@@ -97,6 +96,9 @@ $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
 	g++ -O2 -std=c++17 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
 		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
 
+# ------------- Run with wallclock timer ------------
+timed-run: DFLAGS=-DTIMER
+timed-run: all
 
 # ------------ TESTING ---------------------------------
 .PHONY: test

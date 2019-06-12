@@ -10,6 +10,9 @@
 #include <sys/time.h>
 #include <map>
 #include "ExternalServer.hpp"
+#ifdef TIMER
+    #include "timer.h"
+#endif
 
 const uint8_t max_beads_per_dev = 7;
 

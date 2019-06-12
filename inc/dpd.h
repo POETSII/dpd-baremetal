@@ -185,10 +185,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     // calculate a new force acting between two particles
     Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-        ptype a_ij = A[a->type][b->type];
         Vector3D<ptype> r_i = a->pos;
         Vector3D<ptype> r_j = b->pos;
         ptype r_ij_dist = r_i.dist(r_j);
+
+        Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
+
+        if (r_ij_dist > r_c) {
+            return force;
+        }
+
+        ptype a_ij = A[a->type][b->type];
         Vector3D<ptype> r_ij = r_i - r_j;
         Vector3D<ptype> v_i = a->velo;
         Vector3D<ptype> v_j = b->velo;
@@ -200,8 +207,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         // switching function
         ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
-
-        Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
 
         //Conservative force: Equation 8.5 in the dl_meso manual
         force = (r_ij/r_ij_dist) * (a_ij * (ptype(1.0) - (r_ij_dist/r_c)));
@@ -421,15 +426,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	                while(j) {
 	                    int cj = get_next_slot(j);
                         if(ci != cj) {
-	                        if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
+	                        // if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
                             #ifndef TESTING
                                 s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
                             #else
                                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-                                Vector3D<int32_t> i = f.floatToFixed();
-                                s->force_slot[ci] = s->force_slot[ci] + i;
+                                Vector3D<int32_t> x = f.floatToFixed();
+                                s->force_slot[ci] = s->force_slot[ci] + x;
                             #endif
-	         	            }
+	         	            // }
 	                    }
                         j = clear_slot(j,cj);
 	                }
@@ -516,15 +521,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        uint16_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
-                if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
+                // if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
                 #ifndef TESTING
                     s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
                 #else
                     Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
-                    Vector3D<int32_t> i = f.floatToFixed();
-                    s->force_slot[ci] = s->force_slot[ci] + i;
+                    Vector3D<int32_t> x = f.floatToFixed();
+                    s->force_slot[ci] = s->force_slot[ci] + x;
                 #endif
-	            }
+	            // }
 	            i = clear_slot(i, ci);
 	        }
 	    } else { // we are in the MIGRATION mode beads we receive here _may_ be added to our state

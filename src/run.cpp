@@ -9,6 +9,9 @@
 #include <map>
 #include <math.h>
 #include <random>
+#ifdef TIMER
+    #include "timer.cpp"
+#endif
 
 //! generates a random position within a given space (NxN)
 Vector3D<ptype> rand2DPos(unsigned N) {
