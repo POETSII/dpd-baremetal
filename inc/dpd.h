@@ -101,7 +101,11 @@ struct DPDState{
     uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
     uint16_t num_beads; // the number of beads in this device
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
+#ifdef TESTING
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
+#else
+    Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
+#endif
     uint8_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
@@ -247,7 +251,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 int ci = get_next_slot(i);
 
                 // ------ velocity verlet ------
+            #ifdef TESTING
                 Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
+            #else
+                Vector3D<ptype> force = s->force_slot[ci];
+            #endif
                 Vector3D<ptype> acceleration = force / p_mass;
                 Vector3D<ptype> delta_v = acceleration * dt;
                 // update velocity
@@ -256,8 +264,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
 
                 // ----- clear the forces ---------------
-                // s->force_slot[ci].set(ptype(0.0), ptype(0.0), ptype(0.0));
+            #ifdef TESTING
                 s->force_slot[ci].set(0, 0, 0);
+            #else
+                s->force_slot[ci].set(ptype(0.0), ptype(0.0), ptype(0.0));
+            #endif
 
                 // ----- migration code ------
                 bool migrating = false; // flag that says whether this particle needs to migrate
@@ -411,10 +422,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	                    int cj = get_next_slot(j);
                         if(ci != cj) {
 	                        if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
-                                // s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                            #ifndef TESTING
+                                s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                            #else
                                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
                                 Vector3D<int32_t> i = f.floatToFixed();
                                 s->force_slot[ci] = s->force_slot[ci] + i;
+                            #endif
 	         	            }
 	                    }
                         j = clear_slot(j,cj);
@@ -503,10 +517,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        while(i) {
                 int ci = get_next_slot(i);
                 if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
-                    // s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
+                #ifndef TESTING
+                    s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
+                #else
                     Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
                     Vector3D<int32_t> i = f.floatToFixed();
                     s->force_slot[ci] = s->force_slot[ci] + i;
+                #endif
 	            }
 	            i = clear_slot(i, ci);
 	        }
