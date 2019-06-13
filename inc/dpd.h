@@ -95,6 +95,7 @@ struct unit_t {
 // Format of message
 struct DPDMessage {
     uint8_t type;
+    uint32_t thread;
     uint32_t timestep; // the timestep this message is from
 #ifdef TIMER
     uint32_t extra; //Used for sending cycle counts
@@ -207,7 +208,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     // calculate a new force acting between two particles
-    Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+    inline Vector3D<ptype> force_update(bead_t *a, bead_t *b){
         Vector3D<ptype> r_i = a->pos;
         Vector3D<ptype> r_j = b->pos;
         ptype r_ij_dist = r_i.dist(r_j);
@@ -292,6 +293,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = Pin(0);
             else
                 *readyToSend = No;
+            s->dpd_startU = tinselCycleCountU();
+            s->dpd_start  = tinselCycleCount();
             return true;
         }
     #endif
@@ -302,6 +305,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #ifdef TIMER
             // Timed run has ended
             if (s->timestep >= 1000) {
+                s->dpd_endU = tinselCycleCountU();
+                s->dpd_end  = tinselCycleCount();
                 return false;
             }
         #endif
@@ -647,10 +652,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #ifdef TIMER
         if (s->timer) {
             msg->type = 0xAB;
+            msg->thread = tinselId();
             msg->timestep = s->board_startU;
             msg->extra = s->board_start;
         } else {
             msg->type = 0xAA;
+            msg->thread = tinselId();
             msg->timestep = s->dpd_startU;
             msg->extra = s->dpd_start;
             msg->beads[0].id = s->dpd_endU;

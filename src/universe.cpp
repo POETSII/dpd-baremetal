@@ -393,27 +393,49 @@ void Universe<S>::run() {
     gettimeofday(&_start, NULL);
     _hostLink->go();
 
-    uint32_t timers_got = 0;
-    uint32_t devices_got = 0;
+#ifdef TIMER
+    uint32_t timers = 0;
+    uint32_t devices = 0;
+    std::map<uint32_t,uint64_t> board_start;
+    std::map<uint32_t,uint64_t> dpd_start;
+    std::map<uint32_t,uint64_t> dpd_end;
+    uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
+    uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
+#endif
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
-            printf("Got message from timer\n");
-            timers_got++;
-            if (devices_got >= (_D*_D*_D) && timers_got >= 6) {
-                printf("Got %u timers, got %d devices\n", timers_got, devices_got);
-                return;
-            }
+            timers++;
+            uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
+            board_start[(uint32_t)msg.payload.thread/1024] = t;
         } else if (msg.payload.type = 0xAA) {
-            printf("Got message from device %u\n", devices_got);
-            devices_got++;
-            if (devices_got >= (_D*_D*_D) && timers_got >= 6) {
-                printf("Got %u timers, got %d devices\n", timers_got, devices_got);
-                return;
+            devices++;
+            uint32_t threadId = msg.payload.thread;
+            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
+            uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
+            dpd_start[threadId] = s;
+            dpd_end[threadId] = e;
+        }
+        if (devices >= (_D*_D*_D) && timers >= 6) {
+            for(std::map<uint32_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
+                uint32_t threadId = i->first;
+                uint32_t board = (uint32_t) threadId/1024;
+                uint64_t s = dpd_start[threadId] - board_start[board];
+                uint64_t e = dpd_end[threadId] - board_start[board];
+                if (s < earliest_start) {
+                    earliest_start = s;
+                }
+                if (e < earliest_end) {
+                    earliest_end = e;
+                }
             }
+            uint64_t diff = earliest_end - earliest_start;
+            double time = (double)diff/250000000;
+            printf("Runtime = %f\n", time);
+            return;
         }
     #else
         pts_to_extern_t eMsg;
