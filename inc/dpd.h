@@ -209,9 +209,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     // calculate a new force acting between two particles
     inline Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-        Vector3D<ptype> r_i = a->pos;
-        Vector3D<ptype> r_j = b->pos;
-        ptype r_ij_dist = r_i.dist(r_j);
+        // Vector3D<ptype> r_i = a->pos;
+        // Vector3D<ptype> r_j = b->pos;
+        // ptype r_ij_dist = r_i.dist(r_j);
+        ptype r_ij_dist = a->pos.dist(b->pos);
 
         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
 
@@ -220,10 +221,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
 
         ptype a_ij = A[a->type][b->type];
-        Vector3D<ptype> r_ij = r_i - r_j;
-        Vector3D<ptype> v_i = a->velo;
-        Vector3D<ptype> v_j = b->velo;
-        Vector3D<ptype> v_ij = v_i - v_j;
+        // Vector3D<ptype> r_ij = r_i - r_j;
+        Vector3D<ptype> r_ij = a->pos - b->pos;
+        // Vector3D<ptype> v_i = a->velo;
+        // Vector3D<ptype> v_j = b->velo;
+        // Vector3D<ptype> v_ij = v_i - v_j;
+        Vector3D<ptype> v_ij = a->velo - b->velo;
         const ptype drag_coef(4.5); // the drag coefficient
         //const ptype sigma_ij(275.0); // sqrt(2*drag_coef*KBt) assumed same for all
         const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
