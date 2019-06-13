@@ -401,6 +401,7 @@ void Universe<S>::run() {
     std::map<uint32_t,uint64_t> dpd_end;
     uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
+    uint32_t recalls = 0;
 #endif
     // enter the main loop
     while(1) {
@@ -411,6 +412,7 @@ void Universe<S>::run() {
             timers++;
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             board_start[(uint32_t)msg.payload.thread/1024] = t;
+            recalls += msg.payload.beads[0].pos.x();
         } else if (msg.payload.type = 0xAA) {
             devices++;
             uint32_t threadId = msg.payload.thread;
@@ -418,6 +420,7 @@ void Universe<S>::run() {
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
             dpd_start[threadId] = s;
             dpd_end[threadId] = e;
+            recalls += msg.payload.beads[0].pos.x();
         }
         if (devices >= (_D*_D*_D) && timers >= 6) {
             for(std::map<uint32_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
@@ -435,6 +438,7 @@ void Universe<S>::run() {
             uint64_t diff = earliest_end - earliest_start;
             double time = (double)diff/250000000;
             printf("Runtime = %f\n", time);
+            printf("Number of times local_calcs is called in recv = %d\n", recalls);
             return;
         }
     #else

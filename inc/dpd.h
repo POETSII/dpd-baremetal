@@ -111,6 +111,8 @@ struct DPDState{
     unit_t loc; // the location of this cube
     uint16_t bslot; // a bitmap of which bead slot is occupied
     uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    uint16_t local_slot_i; // an outer bitmap of which bead slot has not been used in local calculations yet
+    uint16_t local_slot_j; // an inner bitmap of which bead slot has not been used in local calculations yet
     uint16_t num_beads; // the number of beads in this device
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
 #ifdef TESTING
@@ -143,6 +145,8 @@ struct DPDState{
     uint32_t dpd_end = 0;
     uint8_t timer;
 #endif
+    uint32_t recalls = 0;
+    uint32_t calcs = 0;
 };
 
 // DPD Device code
@@ -252,6 +256,47 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         force = force - (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij;
 
         return force;
+    }
+
+    __attribute__((noinline)) void local_calcs() {
+        // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
+        // s->local_slot_i = s->bslot;
+        while(s->local_slot_i) {
+            int ci = get_next_slot(s->local_slot_i);
+            if (s->local_slot_j == 0) {
+                s->local_slot_j = s->bslot;
+            }
+            while(s->local_slot_j) {
+                int cj = get_next_slot(s->local_slot_j);
+                s->calcs++;
+                if(ci != cj) {
+                    #ifndef TESTING
+                        s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                    #else
+                        Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                        Vector3D<int32_t> x = f.floatToFixed();
+                        s->force_slot[ci] = s->force_slot[ci] + x;
+                    #endif
+                }
+                s->local_slot_j = clear_slot(s->local_slot_j, cj);
+                if (tinselCanRecv()) {
+                    if (s->local_slot_j == 0) {
+                        s->local_slot_i = clear_slot(s->local_slot_i, ci);
+                    }
+                    return;
+                }
+            }
+            s->local_slot_i = clear_slot(s->local_slot_i, ci);
+            if (tinselCanRecv()) {
+                return;
+            }
+        }
+        s->sentslot = s->bslot;
+        uint32_t numBeads = get_num_beads(s->bslot);
+        if (s->calcs < numBeads*numBeads) {
+            s->recalls++;
+        }
+        s->calcs = 0;
     }
 
 	// init handler -- called once by POLite at the start of execution
@@ -489,31 +534,35 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->sentslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
-	            s->sentslot = s->bslot;
-	            *readyToSend = No;
+                s->local_slot_i = s->bslot;
+                s->local_slot_j = s->bslot;
+                *readyToSend = No;
+                local_calcs();
+	            // s->sentslot = s->bslot;
+	            // *readyToSend = No;
 
-                // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
-	            uint16_t i = s->bslot;
-	            while(i) {
-                    int ci = get_next_slot(i);
-	                uint16_t j = s->bslot;
-	                while(j) {
-	                    int cj = get_next_slot(j);
-                        if(ci != cj) {
-	                        // if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
-                            #ifndef TESTING
-                                s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-                            #else
-                                Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-                                Vector3D<int32_t> x = f.floatToFixed();
-                                s->force_slot[ci] = s->force_slot[ci] + x;
-                            #endif
-	         	            // }
-	                    }
-                        j = clear_slot(j,cj);
-	                }
-	                i = clear_slot(i, ci);
-	            }
+             //    // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
+	            // uint16_t i = s->bslot;
+	            // while(i) {
+             //        int ci = get_next_slot(i);
+	            //     uint16_t j = s->bslot;
+	            //     while(j) {
+	            //         int cj = get_next_slot(j);
+             //            if(ci != cj) {
+	            //             // if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
+             //                #ifndef TESTING
+             //                    s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+             //                #else
+             //                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+             //                    Vector3D<int32_t> x = f.floatToFixed();
+             //                    s->force_slot[ci] = s->force_slot[ci] + x;
+             //                #endif
+	         	  //           // }
+	            //         }
+             //            j = clear_slot(j,cj);
+	            //     }
+	            //     i = clear_slot(i, ci);
+	            // }
 	        }
 	        return;
 	    }
@@ -618,6 +667,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            // }
 	            i = clear_slot(i, ci);
 	        }
+            if (s->sentslot == 0 && s->local_slot_i && !tinselCanRecv()) {
+            // #ifdef TIMER
+            //     s->recalls++;
+            // #endif
+                local_calcs();
+            }
 	    } else if (s->mode == MIGRATION) { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
 	        // it depends on whether the from address matches our own
@@ -658,6 +713,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->thread = tinselId();
             msg->timestep = s->board_startU;
             msg->extra = s->board_start;
+            msg->beads[0].pos.set((float)s->recalls, 0, 0);
         } else {
             msg->type = 0xAA;
             msg->thread = tinselId();
@@ -665,6 +721,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->extra = s->dpd_start;
             msg->beads[0].id = s->dpd_endU;
             msg->beads[0].type = s->dpd_end;
+            msg->beads[0].pos.set((float)s->recalls, 0, 0);
         }
     #endif
 	    return true;
