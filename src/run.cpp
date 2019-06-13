@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
 
     uni.write(); // write the universe into the POETS memory
 
-    uni.print_occupancy();
+    // uni.print_occupancy();
 
     printf("running...\n");
     uni.run(); // start the simulation

@@ -19,7 +19,13 @@
 
 #define UPDATE 0
 #define MIGRATION 1
+#ifndef TIMER
 #define EMIT 2
+#endif
+
+#ifdef TIMER
+    #define START 3
+#endif
 
 #define MAX_BEADS 11
 
@@ -40,7 +46,9 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
+#ifndef TIMER
 const uint32_t emitperiod = 10;
+#endif
 
 // ---------------------------------------------------------------------------------------
 
@@ -88,6 +96,9 @@ struct unit_t {
 struct DPDMessage {
     uint8_t type;
     uint32_t timestep; // the timestep this message is from
+#ifdef TIMER
+    uint32_t extra; //Used for sending cycle counts
+#endif
     unit_t from; // the unit that this message is from
     bead_t beads[1]; // the beads payload from this unit
 };
@@ -109,7 +120,9 @@ struct DPDState{
     uint8_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
+#ifndef TIMER
     uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+#endif
     uint32_t timestep; // the current timestep that we are on
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
@@ -119,6 +132,16 @@ struct DPDState{
     uint8_t sendmode; // keeps track of what mode this device is in sendmode = 0 force_update; sendmode = 1 migration
 
     uint32_t lost_beads;
+
+#ifdef TIMER
+    uint32_t board_startU = 0;
+    uint32_t board_start = 0;
+    uint32_t dpd_startU = 0;
+    uint32_t dpd_start = 0;
+    uint32_t dpd_endU = 0;
+    uint32_t dpd_end = 0;
+    uint8_t timer;
+#endif
 };
 
 // DPD Device code
@@ -229,7 +252,20 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-		s->timestep = 0;
+    #ifdef TIMER
+        s->mode = START;
+        if (s->timer == 1) {
+            *readyToSend = Pin(0);
+        } else if (s->timer == 2) {
+            *readyToSend = No;
+        } else {
+            s->timestep = 0;
+            s->rngstate = 1234; // start with a seed
+            s->grand = rand();
+            s->sentslot = s->bslot;
+            *readyToSend = No;
+        }
+    #else
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
@@ -239,17 +275,36 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		    *readyToSend = Pin(0);
         else
 		    *readyToSend = No;
+    #endif
 	}
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
         // default case
         //*readyToSend = No;
-
+    #ifdef TIMER
+        if (s->mode == START) {
+            if (s->timer) {
+                return false;
+            }
+            s->mode = UPDATE;
+            if(get_num_beads(s->bslot) > 0)
+                *readyToSend = Pin(0);
+            else
+                *readyToSend = No;
+            return true;
+        }
+    #endif
         // we have just finished an update step
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
+        #ifdef TIMER
+            // Timed run has ended
+            if (s->timestep >= 1000) {
+                return false;
+            }
+        #endif
     	    s->grand = rand(); // advance the random number
     	    uint16_t i = s->bslot;
     	    while(i){
@@ -359,9 +414,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         	// do we want to export?
         #ifdef TESTING
             if (s->timestep >= 1000)
-        #else
+        #elif !defined(TIMER)
         	if(s->emitcnt >= emitperiod)
         #endif
+        #ifndef TIMER
             {
     	        s->mode = EMIT;
 	            if(s->bslot) {
@@ -378,9 +434,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	        }
 	        }
             return true;
+        #else
+            s->mode = UPDATE;
+            if(get_num_beads(s->bslot) > 0){
+                s->sentslot = s->bslot;
+                *readyToSend = Pin(0);
+            }
+            return true;
+        #endif
 	    }
 
         // we have just finished emitting the state to the host
+    #ifndef TIMER
 	    if(s->mode == EMIT) {
         #ifdef TESTING
             if (s->timestep >= 1000) {
@@ -395,6 +460,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        }
 	        return true;
 	    }
+    #endif
         return false;
 	}
 
@@ -469,6 +535,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
 	    // we are emitting our state to the host
+    #ifndef TIMER
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint16_t ci = get_next_slot(s->sentslot);
@@ -491,6 +558,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        }
             return;
 	    }
+    #endif
+
+    #ifdef TIMER
+        if (s->timer == 1) {
+            msg->type = 0xEE;
+            s->board_startU = tinselCycleCountU();
+            s->board_start  =  tinselCycleCount();
+            *readyToSend = 0;
+            return;
+        }
+    #endif
 	}
 
 	// used to help adjust the relative positions for the periodic boundary
@@ -532,7 +610,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            // }
 	            i = clear_slot(i, ci);
 	        }
-	    } else { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
+	    } else if (s->mode == MIGRATION) { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
 	        // it depends on whether the from address matches our own
 	        if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
@@ -552,13 +630,33 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	        }
         }
+    #ifdef TIMER
+        else if (msg->type == 0xEE) {
+            s->board_startU = tinselCycleCountU();
+            s->board_start  = tinselCycleCount();
+        }
+    #endif
 	}
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        #ifdef TESTING
+    #ifdef TESTING
         msg->type = 0xAA;
-        #endif
+    #endif
+
+    #ifdef TIMER
+        if (s->timer) {
+            msg->type = 0xAB;
+            msg->timestep = s->board_startU;
+            msg->extra = s->board_start;
+        } else {
+            msg->type = 0xAA;
+            msg->timestep = s->dpd_startU;
+            msg->extra = s->dpd_start;
+            msg->beads[0].id = s->dpd_endU;
+            msg->beads[0].type = s->dpd_end;
+        }
+    #endif
 	    return true;
     }
 

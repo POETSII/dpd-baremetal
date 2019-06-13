@@ -393,15 +393,35 @@ void Universe<S>::run() {
     gettimeofday(&_start, NULL);
     _hostLink->go();
 
+    uint32_t timers_got = 0;
+    uint32_t devices_got = 0;
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
+    #ifdef TIMER
+        if (msg.payload.type == 0xAB) {
+            printf("Got message from timer\n");
+            timers_got++;
+            if (devices_got >= (_D*_D*_D) && timers_got >= 6) {
+                printf("Got %u timers, got %d devices\n", timers_got, devices_got);
+                return;
+            }
+        } else if (msg.payload.type = 0xAA) {
+            printf("Got message from device %u\n", devices_got);
+            devices_got++;
+            if (devices_got >= (_D*_D*_D) && timers_got >= 6) {
+                printf("Got %u timers, got %d devices\n", timers_got, devices_got);
+                return;
+            }
+        }
+    #else
         pts_to_extern_t eMsg;
         eMsg.timestep = msg.payload.timestep;
         eMsg.from = msg.payload.from;
         eMsg.bead = msg.payload.beads[0];
         _extern->send(&eMsg);
+    #endif
     }
     // get end time
     gettimeofday(&_finish, NULL);
