@@ -321,7 +321,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
+    #ifndef TESTING
 		s->emitcnt = emitperiod;
+    #endif
 		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
