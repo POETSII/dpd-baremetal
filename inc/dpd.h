@@ -17,8 +17,11 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+#define MAX_BEADS 11
+
 #define UPDATE 0
 #define MIGRATION 1
+
 #ifndef TIMER
 #define EMIT 2
 #endif
@@ -27,7 +30,9 @@
     #define START 3
 #endif
 
-#define MAX_BEADS 11
+#ifdef TESTING
+#define TEST_LENGTH 1000
+#endif
 
 typedef float ptype;
 
@@ -46,7 +51,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-#ifndef TIMER
+#if !defined(TIMER) && !defined(TESTING)
 const uint32_t emitperiod = 10;
 #endif
 
@@ -120,7 +125,7 @@ struct DPDState{
 #else
     Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
 #endif
-    uint8_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
+    uint16_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
 #ifndef TIMER
@@ -212,10 +217,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     // calculate a new force acting between two particles
-    inline Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-        // Vector3D<ptype> r_i = a->pos;
-        // Vector3D<ptype> r_j = b->pos;
-        // ptype r_ij_dist = r_i.dist(r_j);
+    __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+
         ptype r_ij_dist = a->pos.dist(b->pos);
 
         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
@@ -258,7 +261,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         return force;
     }
 
-    __attribute__((noinline)) void local_calcs() {
+    void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
         // s->local_slot_i = s->bslot;
         while(s->local_slot_i) {
@@ -466,7 +469,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if(s->mode == MIGRATION) {
         	// do we want to export?
         #ifdef TESTING
-            if (s->timestep >= 1000)
+            if (s->timestep >= TEST_LENGTH)
         #elif !defined(TIMER)
         	if(s->emitcnt >= emitperiod)
         #endif
@@ -501,7 +504,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #ifndef TIMER
 	    if(s->mode == EMIT) {
         #ifdef TESTING
-            if (s->timestep >= 1000) {
+            if (s->timestep >= TEST_LENGTH) {
                 return false;
             }
         #endif

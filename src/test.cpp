@@ -10,6 +10,7 @@
 #include <math.h>
 #include <random>
 #include <boost/algorithm/string.hpp>
+#include <iomanip>
 
 int main() {
 
@@ -101,37 +102,70 @@ int main() {
 
     uni.write(); // write the universe into the POETS memory
 
-    uni.print_occupancy();
+    // uni.print_occupancy();
 
     printf("running...\n");
     // Run the test and get the result
     std::map<uint32_t, DPDMessage> actual_out = uni.test();
 
-    for (std::map<uint32_t, bead_t>::iterator i = expected_beads_map.begin(); i!=expected_beads_map.end(); ++i) {
+    bool fail = false;
+
+    for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
+        // Actual values
+        bead_id_t actual_id = i->second.beads[0].id;
+        bead_class_t actual_type = i->second.beads[0].type;
+        Vector3D<ptype> actual_pos = i->second.beads[0].pos;
+        // Actual cell location
+        unit_t actual_cell;
+        actual_cell.x = i->second.from.x;
+        actual_cell.y = i->second.from.y;
+        actual_cell.z = i->second.from.z;
         // Expected values
-        bead_id_t expected_id = i->second.id;
-        bead_class_t expected_type = i->second.type;
-        Vector3D<ptype> expected_pos = i->second.pos;
+        bead_id_t expected_id = expected_beads_map[i->first].id;
+        bead_class_t expected_type = expected_beads_map[i->first].type;
+        Vector3D<ptype> expected_pos = expected_beads_map[i->first].pos;
         // Expected cell location
         unit_t expected_cell;
         expected_cell.x = expected_cell_map[i->first].x;
         expected_cell.y = expected_cell_map[i->first].y;
         expected_cell.z = expected_cell_map[i->first].z;
-        // Actual values
-        bead_id_t actual_id = actual_out[i->first].beads[0].id;
-        bead_class_t actual_type = actual_out[i->first].beads[0].type;
-        Vector3D<ptype> actual_pos = actual_out[i->first].beads[0].pos;
-        // Actual cell location
-        unit_t actual_cell;
-        actual_cell.x = actual_out[i->first].from.x;
-        actual_cell.y = actual_out[i->first].from.y;
-        actual_cell.z = actual_out[i->first].from.z;
 
         std::cerr << "ID: " << expected_id << "\n";
-        std::cerr << "Type: Expected " << expected_type << " Actual " << actual_type << "\n";
-        std::cerr << "Cell: Expected (" << expected_cell.x << ", " << expected_cell.y << ", " << expected_cell.z << ") Actual " << actual_cell.x << ", " << actual_cell.y << ", " << actual_cell.z << ")\n";
-        std::cerr << "Position: Expected (" << expected_pos.x() << ", " << expected_pos.y() << ", " << expected_pos.z() << ") ";
-        std::cerr << " Actual (" << actual_pos.x() << ", " << actual_pos.y() << ", " << actual_pos.z() << ")\n";
+
+        std::cerr << "Type: Expected " << expected_type << " Actual " << actual_type << " ";
+        if (expected_type == actual_type) {
+            std::cerr << "PASS\n";
+        } else {
+            std::cerr << "FAIL\n";
+            fail = true;
+        }
+
+        std::cerr << "Cell: Expected (" << expected_cell.x << ", " << expected_cell.y << ", " << expected_cell.z << ") Actual (" << actual_cell.x << ", " << actual_cell.y << ", " << actual_cell.z << ") ";
+        if (expected_cell.x == actual_cell.x && expected_cell.y == actual_cell.y && expected_cell.z == actual_cell.z) {
+            std::cerr << "PASS\n";
+        } else {
+            std::cerr << "FAIL\n";
+            fail = true;
+        }
+
+        printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
+        printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
+        if (expected_pos.x() == actual_pos.x() && expected_pos.y() == actual_pos.y() && expected_pos.z() == actual_pos.z()) {
+            printf("PASS\n");
+        } else {
+            printf("FAIL\n");
+            fail = true;
+        }
+
+    }
+
+    printf("TESTING HAS ");
+    if (fail) {
+        printf("FAILED\n");
+        return 1;
+    } else {
+        printf("PASSED\n");
+        return 0;
     }
 
     return 0;

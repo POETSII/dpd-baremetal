@@ -4,7 +4,8 @@
 
 #ifndef __UNIVERSE_IMPL
 #define __UNIVERSE_IMPL
-
+#include <boost/algorithm/string.hpp>
+#include <iomanip>
 // helper functions for managing bead slots
 template<class S>
 uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
@@ -463,7 +464,7 @@ template<class S>
 std::map<uint32_t, DPDMessage> Universe<S>::test() {
     std::map<uint32_t, DPDMessage> result;
     // Finish counter
-    uint32_t finish = 0, t = 0;
+    uint32_t finish = 0;
 
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
@@ -472,15 +473,12 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
-        t++;
         if (msg.payload.type == 0xAA) {
             finish++;
-            std::cerr << "GOT MESSAGE FROM CELL EXIT MESSAGE FROM CELL " << finish << "\n";
             if (finish >= (_D*_D*_D)) {
                 return result;
             }
         } else {
-            std::cerr << "GOT OUTPUT MESSAGE FROM CELL " << t << "\n";
             result[msg.payload.beads[0].id] = msg.payload;
         }
     }

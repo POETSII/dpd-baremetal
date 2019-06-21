@@ -4,7 +4,8 @@
 #ifndef _VECTOR_3D_IMPL
 #define _VECTOR_3D_IMPL
 
-#define FIXED 24
+const float FIXED = (1<<20);
+const float FLOAT = 1/FIXED;
 
 // constructor
 template<class S>
@@ -190,13 +191,13 @@ S Vector3D<S>::dist(Vector3D<S> a) {
    return c.mag();
 }
 
-//Floating-point Vector to Fixed-point Vector
+//Floating-point Vector to fixed-point Vector
 template<class S>
 Vector3D<int32_t> Vector3D<S>::floatToFixed() {
   Vector3D<int32_t> c;
-  int32_t x = int32_t(this->_x * (1<<FIXED));
-  int32_t y = int32_t(this->_y * (1<<FIXED));
-  int32_t z = int32_t(this->_z * (1<<FIXED));
+  int32_t x = int32_t(this->_x * FIXED);
+  int32_t y = int32_t(this->_y * FIXED);
+  int32_t z = int32_t(this->_z * FIXED);
   c.set(x, y, z);
   return c;
 }
@@ -205,14 +206,9 @@ Vector3D<int32_t> Vector3D<S>::floatToFixed() {
 template<class S>
 Vector3D<float> Vector3D<S>::fixedToFloat() {
   Vector3D<float> c;
-  float x = (float)(this->_x) / 2;
-  float y = (float)(this->_y) / 2;
-  float z = (float)(this->_z) / 2;
-  for (int i = 1; i < FIXED; i++) {
-    x = x / 2;
-    y = y / 2;
-    z = z / 2;
-  }
+  float x = (float)(this->_x) * FLOAT;
+  float y = (float)(this->_y) * FLOAT;
+  float z = (float)(this->_z) * FLOAT;
   c.set(x, y, z);
   return c;
 }
