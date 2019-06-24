@@ -30,7 +30,7 @@
     #define START 3
 #endif
 
-#ifdef TESTING
+#if defined(TESTING) || defined(TIMER)
 #define TEST_LENGTH 1000
 #endif
 
@@ -42,6 +42,7 @@ typedef float ptype;
 // const unsigned N = 18; // the size of the sim universe in each dimension
 
 const ptype r_c(1.0);
+const ptype sq_r_c(r_c * r_c);
 
 // interaction matrix
 const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
@@ -150,8 +151,6 @@ struct DPDState{
     uint32_t dpd_end = 0;
     uint8_t timer;
 #endif
-    uint32_t recalls = 0;
-    uint32_t calcs = 0;
 };
 
 // DPD Device code
@@ -209,23 +208,29 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     // dt10's hash based random num gen
     uint32_t pairwise_rand(uint32_t pid1, uint32_t pid2){
-        uint32_t la= MIN(pid1, pid2);
-        uint32_t lb= MAX(pid1, pid2);
+        // uint32_t la= MIN(pid1, pid2);
+        // uint32_t lb= MAX(pid1, pid2);
         uint32_t s0 = (pid1 ^ s->grand)*pid2;
         uint32_t s1 = (pid2 ^ s->grand)*pid1;
         return s0 + s1;
     }
 
     // calculate a new force acting between two particles
+#ifdef TESTING
     __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+#else
+    Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+#endif
 
-        ptype r_ij_dist = a->pos.dist(b->pos);
+        ptype r_ij_dist = a->pos.sq_dist(b->pos);
 
         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
 
-        if (r_ij_dist > r_c) {
+        if (r_ij_dist > sq_r_c) {
             return force;
         }
+
+        r_ij_dist = newt_sqrt(r_ij_dist); // Only square root for distance once it's known these beads interact
 
         ptype a_ij = A[a->type][b->type];
         // Vector3D<ptype> r_ij = r_i - r_j;
@@ -261,17 +266,21 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         return force;
     }
 
-    void local_calcs() {
+    __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
-        // s->local_slot_i = s->bslot;
         while(s->local_slot_i) {
+            if (tinselCanRecv()) {
+                return;
+            }
             int ci = get_next_slot(s->local_slot_i);
             if (s->local_slot_j == 0) {
                 s->local_slot_j = s->bslot;
             }
             while(s->local_slot_j) {
+                if (tinselCanRecv()) {
+                    return;
+                }
                 int cj = get_next_slot(s->local_slot_j);
-                s->calcs++;
                 if(ci != cj) {
                     #ifndef TESTING
                         s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
@@ -282,24 +291,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     #endif
                 }
                 s->local_slot_j = clear_slot(s->local_slot_j, cj);
-                if (tinselCanRecv()) {
-                    if (s->local_slot_j == 0) {
-                        s->local_slot_i = clear_slot(s->local_slot_i, ci);
-                    }
-                    return;
-                }
             }
             s->local_slot_i = clear_slot(s->local_slot_i, ci);
-            if (tinselCanRecv()) {
-                return;
-            }
         }
         s->sentslot = s->bslot;
-        uint32_t numBeads = get_num_beads(s->bslot);
-        if (s->calcs < numBeads*numBeads) {
-            s->recalls++;
-        }
-        s->calcs = 0;
     }
 
 	// init handler -- called once by POLite at the start of execution
@@ -357,7 +352,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	    s->timestep++;
         #ifdef TIMER
             // Timed run has ended
-            if (s->timestep >= 1000) {
+            if (s->timestep >= TEST_LENGTH) {
                 s->dpd_endU = tinselCycleCountU();
                 s->dpd_end  = tinselCycleCount();
                 return false;
@@ -661,7 +656,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        uint16_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
-                // if(s->bead_slot[ci].pos.dist(msg->beads[0].pos) <= r_c){
                 #ifndef TESTING
                     s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
                 #else
@@ -669,13 +663,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     Vector3D<int32_t> x = f.floatToFixed();
                     s->force_slot[ci] = s->force_slot[ci] + x;
                 #endif
-	            // }
 	            i = clear_slot(i, ci);
 	        }
             if (s->sentslot == 0 && s->local_slot_i && !tinselCanRecv()) {
-            // #ifdef TIMER
-            //     s->recalls++;
-            // #endif
                 local_calcs();
             }
 	    } else if (s->mode == MIGRATION) { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
@@ -718,7 +708,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->thread = tinselId();
             msg->timestep = s->board_startU;
             msg->extra = s->board_start;
-            msg->beads[0].pos.set((float)s->recalls, 0, 0);
         } else {
             msg->type = 0xAA;
             msg->thread = tinselId();
@@ -726,7 +715,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->extra = s->dpd_start;
             msg->beads[0].id = s->dpd_endU;
             msg->beads[0].type = s->dpd_end;
-            msg->beads[0].pos.set((float)s->recalls, 0, 0);
         }
     #endif
 	    return true;
