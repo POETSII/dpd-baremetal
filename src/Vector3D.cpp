@@ -191,6 +191,14 @@ S Vector3D<S>::dist(Vector3D<S> a) {
    return c.mag();
 }
 
+// Euclidian distance squared (less time in sqrt hopefully)
+template<class S>
+S Vector3D<S>::sq_dist(Vector3D<S> a) {
+   Vector3D<S> c = *this - a;
+
+   return (c.x()*c.x() + c.y()*c.y() + c.z()*c.z());
+}
+
 //Floating-point Vector to fixed-point Vector
 template<class S>
 Vector3D<int32_t> Vector3D<S>::floatToFixed() {

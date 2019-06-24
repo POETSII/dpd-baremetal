@@ -54,6 +54,9 @@ class Vector3D {
        // distance
        S dist(Vector3D<S> a); /**< calculates the euclidean distance */
 
+       // Euclidian distance squared (less time in sqrt hopefully)
+       S sq_dist(Vector3D<S> a);
+
        Vector3D<int32_t> floatToFixed();
        Vector3D<float> fixedToFloat();
 
