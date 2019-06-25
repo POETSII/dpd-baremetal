@@ -2,6 +2,13 @@
 // It is used to define various DPD particles
 
 #include <stdint.h>
+
+// Used by POLite to count various statistics
+#ifdef STATS
+#define POLITE_DUMP_STATS
+#define POLITE_COUNT_MSGS
+#endif
+
 #include <POLite.h>
 
 #include "Vector3D.hpp"
@@ -22,7 +29,7 @@
 #define UPDATE 0
 #define MIGRATION 1
 
-#ifndef TIMER
+#if !defined(TIMER) && !defined(STATS)
 #define EMIT 2
 #endif
 
@@ -30,7 +37,7 @@
     #define START 3
 #endif
 
-#if defined(TESTING) || defined(TIMER)
+#if defined(TESTING) || defined(TIMER) || defined(STATS)
 #define TEST_LENGTH 1000
 #endif
 
@@ -52,7 +59,7 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-#if !defined(TIMER) && !defined(TESTING)
+#if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
 const uint32_t emitperiod = 10;
 #endif
 
@@ -121,26 +128,22 @@ struct DPDState{
     uint16_t local_slot_j; // an inner bitmap of which bead slot has not been used in local calculations yet
     uint16_t num_beads; // the number of beads in this device
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-#ifdef TESTING
+// #ifdef TESTING
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
-#else
-    Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
-#endif
+// #else
+    // Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
+// #endif
     uint16_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#ifndef TIMER
+#if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
     uint32_t emitcnt; // a counter to kept track of updates between emitting the state
 #endif
     uint32_t timestep; // the current timestep that we are on
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
 
-    // send tracking
-    uint8_t sentcnt; // a counter used to track how many beads have been sent
-    uint8_t sendmode; // keeps track of what mode this device is in sendmode = 0 force_update; sendmode = 1 migration
-
-    uint32_t lost_beads;
+    // uint32_t lost_beads;
 
 #ifdef TIMER
     uint32_t board_startU = 0;
@@ -216,7 +219,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     // calculate a new force acting between two particles
-#ifdef TESTING
+#if defined(TESTING) || defined(STATS)
     __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
 #else
     Vector3D<ptype> force_update(bead_t *a, bead_t *b){
@@ -282,13 +285,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 }
                 int cj = get_next_slot(s->local_slot_j);
                 if(ci != cj) {
-                    #ifndef TESTING
-                        s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-                    #else
+                    // #ifndef TESTING
+                        // s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                    // #else
                         Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
                         Vector3D<int32_t> x = f.floatToFixed();
                         s->force_slot[ci] = s->force_slot[ci] + x;
-                    #endif
+                    // #endif
                 }
                 s->local_slot_j = clear_slot(s->local_slot_j, cj);
             }
@@ -316,10 +319,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-    #ifndef TESTING
+    #if !defined(TESTING) && !defined(STATS)
 		s->emitcnt = emitperiod;
     #endif
-		s->mode = UPDATE;
+		// s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
         else
@@ -350,11 +353,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #ifdef TIMER
+        #if defined(TIMER) || defined(STATS)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
+            #ifndef STATS
                 s->dpd_endU = tinselCycleCountU();
                 s->dpd_end  = tinselCycleCount();
+            #endif
                 return false;
             }
         #endif
@@ -364,11 +369,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 int ci = get_next_slot(i);
 
                 // ------ velocity verlet ------
-            #ifdef TESTING
+            // #ifdef TESTING
                 Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
-            #else
-                Vector3D<ptype> force = s->force_slot[ci];
-            #endif
+            // #else
+                // Vector3D<ptype> force = s->force_slot[ci];
+            // #endif
                 Vector3D<ptype> acceleration = force / p_mass;
                 Vector3D<ptype> delta_v = acceleration * dt;
                 // update velocity
@@ -377,11 +382,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
 
                 // ----- clear the forces ---------------
-            #ifdef TESTING
+            // #ifdef TESTING
                 s->force_slot[ci].set(0, 0, 0);
-            #else
-                s->force_slot[ci].set(ptype(0.0), ptype(0.0), ptype(0.0));
-            #endif
+            // #else
+                // s->force_slot[ci].set(ptype(0.0), ptype(0.0), ptype(0.0));
+            // #endif
 
                 // ----- migration code ------
                 bool migrating = false; // flag that says whether this particle needs to migrate
@@ -465,21 +470,25 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we have just finished a particle migration step
         if(s->mode == MIGRATION) {
         	// do we want to export?
-        #ifdef TESTING
+        #if defined(TESTING)
             if (s->timestep >= TEST_LENGTH)
-        #elif !defined(TIMER)
+        #elif !defined(TIMER) && !defined(STATS)
         	if(s->emitcnt >= emitperiod)
         #endif
-        #ifndef TIMER
+        #if !defined(TIMER) && !defined(STATS)
             {
     	        s->mode = EMIT;
 	            if(s->bslot) {
     	            s->sentslot = s->bslot;
                     *readyToSend = HostPin;
     	        }
+            #if !defined(TESTING) && !defined(STATS)
     	        s->emitcnt = 0;
+            #endif
             } else {
+            #if !defined(TESTING) && !defined(STATS)
     	        s->emitcnt++;
+            #endif
     	        s->mode = UPDATE;
     	        if(get_num_beads(s->bslot) > 0){
     	            s->sentslot = s->bslot;
@@ -498,9 +507,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         // we have just finished emitting the state to the host
-    #ifndef TIMER
+    #if !defined(TIMER) && !defined(STATS)
 	    if(s->mode == EMIT) {
-        #ifdef TESTING
+        #if defined(TESTING) || defined(STATS)
             if (s->timestep >= TEST_LENGTH) {
                 return false;
             }
@@ -538,31 +547,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 s->local_slot_j = s->bslot;
                 *readyToSend = No;
                 local_calcs();
-	            // s->sentslot = s->bslot;
-	            // *readyToSend = No;
-
-             //    // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
-	            // uint16_t i = s->bslot;
-	            // while(i) {
-             //        int ci = get_next_slot(i);
-	            //     uint16_t j = s->bslot;
-	            //     while(j) {
-	            //         int cj = get_next_slot(j);
-             //            if(ci != cj) {
-	            //             // if(s->bead_slot[ci].pos.dist(s->bead_slot[cj].pos) <= r_c) {
-             //                #ifndef TESTING
-             //                    s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-             //                #else
-             //                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-             //                    Vector3D<int32_t> x = f.floatToFixed();
-             //                    s->force_slot[ci] = s->force_slot[ci] + x;
-             //                #endif
-	         	  //           // }
-	            //         }
-             //            j = clear_slot(j,cj);
-	            //     }
-	            //     i = clear_slot(i, ci);
-	            // }
 	        }
 	        return;
 	    }
@@ -592,7 +576,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
 	    // we are emitting our state to the host
-    #ifndef TIMER
+    #if !defined(TIMER) && !defined(STATS)
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint16_t ci = get_next_slot(s->sentslot);
@@ -656,16 +640,16 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        uint16_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
-                #ifndef TESTING
-                    s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
-                #else
+                // #ifndef TESTING
+                    // s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
+                // #else
                     Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
                     Vector3D<int32_t> x = f.floatToFixed();
                     s->force_slot[ci] = s->force_slot[ci] + x;
-                #endif
+                // #endif
 	            i = clear_slot(i, ci);
 	        }
-            if (s->sentslot == 0 && s->local_slot_i && !tinselCanRecv()) {
+            if (s->sentslot == 0) {
                 local_calcs();
             }
 	    } else if (s->mode == MIGRATION) { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
@@ -674,9 +658,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
 	            // looks like we are getting a new addition to our family
 	            uint16_t ci = get_next_free_slot(s->bslot); // I hope we have space...
-                if (ci == 0xFFFF) {
-                    s->lost_beads++;
-                }
+                // if (ci == 0xFFFF) {
+                    // s->lost_beads++;
+                // }
                 s->bslot = set_slot(s->bslot, ci);
 	            s->sentslot = s->bslot;
 
@@ -698,7 +682,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-    #ifdef TESTING
+    #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
     #endif
 

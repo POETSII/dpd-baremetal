@@ -2,10 +2,14 @@
 
 #include "universe.hpp"
 
+#define POLITE_DUMP_STATS
+#define POLITE_COUNT_MSGS
+
 #ifndef __UNIVERSE_IMPL
 #define __UNIVERSE_IMPL
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
+
 // helper functions for managing bead slots
 template<class S>
 uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
@@ -394,15 +398,17 @@ void Universe<S>::run() {
     gettimeofday(&_start, NULL);
     _hostLink->go();
 
+#if defined(TIMER) || defined(STATS)
+    uint32_t devices = 0;
+#endif
+
 #ifdef TIMER
     uint32_t timers = 0;
-    uint32_t devices = 0;
     std::map<uint32_t,uint64_t> board_start;
     std::map<uint32_t,uint64_t> dpd_start;
     std::map<uint32_t,uint64_t> dpd_end;
     uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
-    uint32_t recalls = 0;
 #endif
     // enter the main loop
     while(1) {
@@ -413,7 +419,6 @@ void Universe<S>::run() {
             timers++;
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             board_start[(uint32_t)msg.payload.thread/1024] = t;
-            recalls += msg.payload.beads[0].pos.x();
         } else if (msg.payload.type = 0xAA) {
             devices++;
             uint32_t threadId = msg.payload.thread;
@@ -421,7 +426,6 @@ void Universe<S>::run() {
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
             dpd_start[threadId] = s;
             dpd_end[threadId] = e;
-            recalls += msg.payload.beads[0].pos.x();
         }
         if (devices >= (_D*_D*_D) && timers >= 6) {
             for(std::map<uint32_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
@@ -439,8 +443,15 @@ void Universe<S>::run() {
             uint64_t diff = earliest_end - earliest_start;
             double time = (double)diff/250000000;
             printf("Runtime = %f\n", time);
-            printf("Number of times local_calcs is called in recv = %d\n", recalls);
             return;
+        }
+    #elif defined(STATS)
+        if (msg.payload.type = 0xAA) {
+            devices++;
+            if (devices >= (_D*_D*_D)) {
+                politeSaveStats(_hostLink, "stats.txt");
+                return;
+            }
         }
     #else
         pts_to_extern_t eMsg;

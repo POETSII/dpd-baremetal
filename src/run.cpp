@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     float problem_size = (float) std::stoi(argv[1]);
     int N = std::stoi(argv[1]);
-
+    int beads_added = 0;
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) {
             if(uni.space(b1)) {
                 uni.add(b1);
                 added = true;
+                beads_added++;
             }
         }
     }
@@ -83,6 +84,7 @@ int main(int argc, char *argv[]) {
             if(uni.space(b1)) {
                 uni.add(b1);
                 added = true;
+                beads_added++;
             }
         }
     }
@@ -99,6 +101,7 @@ int main(int argc, char *argv[]) {
             if(uni.space(b1)) {
                 uni.add(b1);
                 added = true;
+                beads_added++;
             }
         }
     }
@@ -106,6 +109,7 @@ int main(int argc, char *argv[]) {
     uni.write(); // write the universe into the POETS memory
 
     // uni.print_occupancy();
+    printf("Number of beads in simulation: %u\n", beads_added);
 
     printf("running...\n");
     uni.run(); // start the simulation
