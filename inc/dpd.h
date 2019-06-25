@@ -669,7 +669,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            s->bead_slot[ci].id = msg->beads[0].id;
 	            s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
 	            s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-
 	        }
         }
     #ifdef TIMER

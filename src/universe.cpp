@@ -98,8 +98,8 @@ Universe<S>::Universe(S size, unsigned D) {
     _D = D;
     _unit_size = _size / S(D);
     _extern = new ExternalServer("_external.sock");
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>();
-    _hostLink = new HostLink();
+    _hostLink = new HostLink(1, 2);
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(1, 2);
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -291,7 +291,7 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g);
+    timerMap(_g, 1, 2);
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -397,7 +397,7 @@ void Universe<S>::run() {
     gettimeofday(&_start, NULL);
     _hostLink->go();
 
-#if defined(TIMER) || defined(STATS)
+#if defined(TIMER)
     uint32_t devices = 0;
 #endif
 
@@ -446,11 +446,9 @@ void Universe<S>::run() {
         }
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
-            devices++;
-            if (devices >= (_D*_D*_D)) {
-                politeSaveStats(_hostLink, "stats.txt");
-                return;
-            }
+            politeSaveStats(_hostLink, "stats.txt");
+            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+            return;
         }
     #else
         pts_to_extern_t eMsg;

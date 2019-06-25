@@ -9,9 +9,9 @@ bool isTimer(PDeviceId* timers, uint32_t numtimers, PDeviceId t) {
     return false;
 }
 
-void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g) {
-    uint32_t numBoardsX = 3;
-    uint32_t numBoardsY = 2;
+void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBoxesX, uint32_t numPBoxesY) {
+    uint32_t numBoardsX = 3 * numPBoxesX;
+    uint32_t numBoardsY = 2 * numPBoxesY;
 
     PDeviceId timers[numBoardsX * numBoardsY];
     uint32_t timers_placed = 0;
