@@ -287,13 +287,12 @@ Universe<S>::Universe(S size, unsigned D) {
         }
     }
     // all the edges have been connected
-
+    _g->mapVerticesToDRAM = true;
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
     timerMap(_g);
 #endif
-
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
