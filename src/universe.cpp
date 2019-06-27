@@ -287,7 +287,8 @@ Universe<S>::Universe(S size, unsigned D) {
         }
     }
     // all the edges have been connected
-    _g->mapVerticesToDRAM = true;
+
+    // _g->mapVerticesToDRAM = true;
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
@@ -442,6 +443,9 @@ void Universe<S>::run() {
             uint64_t diff = earliest_end - earliest_start;
             double time = (double)diff/250000000;
             printf("Runtime = %f\n", time);
+            FILE* f = fopen("../timing_results.csv", "a+");
+            fprintf(f, "%1.10f", time);
+            fclose(f);
             return;
         }
     #elif defined(STATS)
