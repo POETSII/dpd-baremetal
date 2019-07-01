@@ -9,6 +9,7 @@
 #define POLITE_COUNT_MSGS
 #endif
 
+#define POLITE_MAX_FANOUT 32
 #include <POLite.h>
 
 #include "Vector3D.hpp"

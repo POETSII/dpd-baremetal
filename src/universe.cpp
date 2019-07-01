@@ -98,8 +98,8 @@ Universe<S>::Universe(S size, unsigned D) {
     _D = D;
     _unit_size = _size / S(D);
     _extern = new ExternalServer("_external.sock");
-    _hostLink = new HostLink(1, 2);
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(1, 2);
+    _hostLink = new HostLink();
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>();
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -288,11 +288,11 @@ Universe<S>::Universe(S size, unsigned D) {
     }
     // all the edges have been connected
 
-    // _g->mapVerticesToDRAM = true;
+    _g->mapVerticesToDRAM = true;
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g, 1, 2);
+    timerMap(_g, 1, 1);
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -405,8 +405,9 @@ void Universe<S>::run() {
 #ifdef TIMER
     uint32_t timers = 0;
     std::map<uint32_t,uint64_t> board_start;
-    std::map<uint32_t,uint64_t> dpd_start;
-    std::map<uint32_t,uint64_t> dpd_end;
+    std::map<unit_t, uint64_t> dpd_start;
+    std::map<unit_t, uint64_t> dpd_end;
+    std::map<unit_t, uint32_t> locToThread;
     uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
 #endif
@@ -417,22 +418,26 @@ void Universe<S>::run() {
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;
+            printf("RECEIVED A TIMER FINISH %u\n", timers);
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             board_start[(uint32_t)msg.payload.thread/1024] = t;
         } else if (msg.payload.type = 0xAA) {
             devices++;
-            uint32_t threadId = msg.payload.thread;
+            printf("RECEIVED A CELL FINISH %u\n", devices);
+            unit_t cell_loc = msg.payload.from;
             uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            dpd_start[threadId] = s;
-            dpd_end[threadId] = e;
+            uint32_t threadId = msg.payload.thread;
+            dpd_start[cell_loc] = s;
+            dpd_end[cell_loc] = e;
+            locToThread[cell_loc] = threadId;
         }
         if (devices >= (_D*_D*_D) && timers >= 6) {
-            for(std::map<uint32_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
-                uint32_t threadId = i->first;
+            for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
+                uint32_t threadId = locToThread[i->first];
                 uint32_t board = (uint32_t) threadId/1024;
-                uint64_t s = dpd_start[threadId] - board_start[board];
-                uint64_t e = dpd_end[threadId] - board_start[board];
+                uint64_t s = dpd_start[i->first] - board_start[board];
+                uint64_t e = dpd_end[i->first] - board_start[board];
                 if (s < earliest_start) {
                     earliest_start = s;
                 }

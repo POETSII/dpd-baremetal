@@ -13,14 +13,16 @@ void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBox
     uint32_t numBoardsX = 3 * numPBoxesX;
     uint32_t numBoardsY = 2 * numPBoxesY;
 
-    PDeviceId timers[numBoardsX * numBoardsY];
-    uint32_t timers_placed = 0;
-    for (int i = 0; i < (numBoardsX * numBoardsY); i++) {
-        timers[i] = g->newDevice();
-        if (i > 0) {
-            g->addEdge(timers[0], 0, timers[i]);
-        }
-    }
+    uint32_t empty = 0;
+
+    // PDeviceId timers[numBoardsX * numBoardsY];
+    // uint32_t timers_placed = 0;
+    // for (int i = 0; i < (numBoardsX * numBoardsY); i++) {
+    //     timers[i] = g->newDevice();
+    //     if (i > 0) {
+    //         g->addEdge(timers[0], 0, timers[i]);
+    //     }
+    // }
     // Release all mapping and heap structures
     g->releaseAll();
 
@@ -51,28 +53,28 @@ void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBox
             PartitionId t = boxes.mapping[mailboxY][mailboxX];
             Placer threads(&boxes.subgraphs[t], numThreads, 1);
 
-            // Remove previously placed timers
-            for (uint32_t threadNum = 0; threadNum < numThreads; threadNum++) {
-                uint32_t threadId = boardY;
-                threadId = (threadId << TinselMeshXBits) | boardX;
-                threadId = (threadId << TinselMailboxMeshYBits) | mailboxY;
-                threadId = (threadId << TinselMailboxMeshXBits) | mailboxX;
-                threadId = (threadId << (TinselLogCoresPerMailbox +
-                            TinselLogThreadsPerCore)) | threadNum;
+            // // Remove previously placed timers
+            // for (uint32_t threadNum = 0; threadNum < numThreads; threadNum++) {
+            //     uint32_t threadId = boardY;
+            //     threadId = (threadId << TinselMeshXBits) | boardX;
+            //     threadId = (threadId << TinselMailboxMeshYBits) | mailboxY;
+            //     threadId = (threadId << TinselMailboxMeshXBits) | mailboxX;
+            //     threadId = (threadId << (TinselLogCoresPerMailbox +
+            //                 TinselLogThreadsPerCore)) | threadNum;
 
-                Graph* sg = &threads.subgraphs[threadNum];
+            //     Graph* sg = &threads.subgraphs[threadNum];
 
-                uint32_t numDevs = sg->incoming->numElems;
-                for (int32_t devNum = 0; devNum < numDevs; devNum++) {
-                    if (isTimer(timers, (numBoardsX * numBoardsY), sg->labels->elems[devNum])) {
-                        sg->incoming->remove(sg->incoming->elems[devNum]);
-                        sg->outgoing->remove(sg->outgoing->elems[devNum]);
-                        sg->pins->remove(sg->pins->elems[devNum]);
-                        sg->edgeLabels->remove(sg->edgeLabels->elems[devNum]);
-                        sg->labels->remove(devNum);
-                    }
-                }
-            }
+            //     uint32_t numDevs = sg->incoming->numElems;
+            //     for (int32_t devNum = 0; devNum < numDevs; devNum++) {
+            //         if (isTimer(timers, (numBoardsX * numBoardsY), sg->labels->elems[devNum])) {
+            //             sg->incoming->remove(sg->incoming->elems[devNum]);
+            //             sg->outgoing->remove(sg->outgoing->elems[devNum]);
+            //             sg->pins->remove(sg->pins->elems[devNum]);
+            //             sg->edgeLabels->remove(sg->edgeLabels->elems[devNum]);
+            //             sg->labels->remove(devNum);
+            //         }
+            //     }
+            // }
 
             // For each thread
             for (uint32_t threadNum = 0; threadNum < numThreads; threadNum++) {
@@ -88,14 +90,19 @@ void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBox
               Graph* sg = &threads.subgraphs[threadNum];
 
               // If first thread on board, add timer
-              if (threadNum == 0 && mailboxX == 0 && mailboxY == 0) {
-                NodeId t = sg->newNode();
-                sg->setLabel(t, timers[timers_placed]);
-                timers_placed++;
-              }
+              // if (threadNum == 0 && mailboxX == 0 && mailboxY == 0) {
+              //   NodeId t = sg->newNode();
+              //   sg->setLabel(t, timers[timers_placed]);
+              //   timers_placed++;
+              // }
 
               // Populate fromDeviceAddr mapping
               uint32_t numDevs = sg->incoming->numElems;
+              if (numDevs == 0) {
+                empty++;
+              } else {
+                std::cerr << "Thread " << threadId << " has " << numDevs << " devices in it\n";
+              }
               g->numDevicesOnThread[threadId] = numDevs;
               g->fromDeviceAddr[threadId] = (PDeviceId*)
                 malloc(sizeof(PDeviceId) * numDevs);
@@ -118,8 +125,10 @@ void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBox
     g->allocatePartitions();
     g->initialisePartitions();
     // Tell the timers what they are, place a value in state.
-    g->devices[timers[0]]->state.timer = 1;
-    for (int i = 1; i < 6; i++) {
-      g->devices[timers[i]]->state.timer = 2;
-    }
+    // g->devices[timers[0]]->state.timer = 1;
+    // for (int i = 1; i < 6; i++) {
+    //   g->devices[timers[i]]->state.timer = 2;
+    // }
+
+    std::cerr << empty << " empty threads\n";
 }
