@@ -9,7 +9,7 @@
 #define POLITE_COUNT_MSGS
 #endif
 
-#define POLITE_MAX_FANOUT 32
+#define POLITE_MAX_FANOUT 27
 #include <POLite.h>
 
 #include "Vector3D.hpp"
@@ -25,7 +25,7 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-#define MAX_BEADS 11
+#define MAX_BEADS 31
 
 #define UPDATE 0
 #define MIGRATION 1
@@ -123,10 +123,10 @@ struct DPDState{
     float unit_size; // the size of this spatial unit in one dimension
     uint8_t N;
     unit_t loc; // the location of this cube
-    uint16_t bslot; // a bitmap of which bead slot is occupied
-    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    uint16_t local_slot_i; // an outer bitmap of which bead slot has not been used in local calculations yet
-    uint16_t local_slot_j; // an inner bitmap of which bead slot has not been used in local calculations yet
+    uint32_t bslot; // a bitmap of which bead slot is occupied
+    uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    uint32_t local_slot_i; // an outer bitmap of which bead slot has not been used in local calculations yet
+    uint32_t local_slot_j; // an inner bitmap of which bead slot has not been used in local calculations yet
     uint16_t num_beads; // the number of beads in this device
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
 // #ifdef TESTING
@@ -134,7 +134,7 @@ struct DPDState{
 // #else
     // Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
 // #endif
-    uint16_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
+    uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
 #if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
@@ -144,17 +144,21 @@ struct DPDState{
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
 
-    // uint32_t lost_beads;
+    uint32_t lost_beads;
 
 #ifdef TIMER
-    uint32_t board_startU = 0;
-    uint32_t board_start = 0;
-    uint32_t dpd_startU = 0;
-    uint32_t dpd_start = 0;
-    uint32_t dpd_endU = 0;
-    uint32_t dpd_end = 0;
+    uint32_t board_startU;
+    uint32_t board_start;
+    uint32_t dpd_startU;
+    uint32_t dpd_start;
+    uint32_t dpd_endU;
+    uint32_t dpd_end;
     uint8_t timer;
 #endif
+
+    uint32_t migrates = 0;
+    uint32_t total_messages = 0;
+    uint32_t updates = 0;
 };
 
 // DPD Device code
@@ -163,36 +167,36 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     // ----------------- bead slots ---------------------------
     // helper functions for managing bead slots
-    inline uint16_t clear_slot(uint16_t slotlist, uint16_t pos){  return slotlist & ~(1 << pos);  }
-    inline uint16_t set_slot(uint16_t slotlist, uint16_t pos){ return slotlist | (1 << pos); }
-    inline bool is_slot_set(uint16_t slotlist, uint16_t pos){ return slotlist & (1 << pos); }
+    inline uint32_t clear_slot(uint32_t slotlist, uint32_t pos){  return slotlist & ~(1 << pos);  }
+    inline uint32_t set_slot(uint32_t slotlist, uint32_t pos){ return slotlist | (1 << pos); }
+    inline bool is_slot_set(uint32_t slotlist, uint32_t pos){ return slotlist & (1 << pos); }
 
-    inline uint16_t get_next_slot(uint16_t slotlist){
-        uint16_t mask = 0x1;
+    inline uint32_t get_next_slot(uint32_t slotlist){
+        uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++) {
             if(slotlist & mask){
                     return i;
             }
             mask = mask << 1; // shift to the next pos
         }
-        return 0xFFFF; // we are empty
+        return 0xFFFFFFFF; // we are empty
     }
 
-    inline uint16_t get_next_free_slot(uint16_t slotlist){
-        uint16_t mask = 0x1;
+    inline uint32_t get_next_free_slot(uint32_t slotlist){
+        uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++){
                 if(!(slotlist & mask)) {
                        return i;
                 }
                 mask = mask << 1;
         }
-        return 0xFFFF; // error there are no free slots!
+        return 0xFFFFFFFF; // error there are no free slots!
     }
 
     // get the number of beads occupying a slot
-    inline uint16_t get_num_beads(uint16_t slotlist){
-        uint16_t cnt = 0;
-        uint16_t mask = 0x1;
+    inline uint32_t get_num_beads(uint32_t slotlist){
+        uint32_t cnt = 0;
+        uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++){
                 if(slotlist & mask) {
                       cnt++;
@@ -305,17 +309,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline void init() {
     #ifdef TIMER
         s->mode = START;
-        if (s->timer == 1) {
-            *readyToSend = Pin(0);
-        } else if (s->timer == 2) {
+        if (s->timer)
+            *readyToSend = HostPin;
+        else
             *readyToSend = No;
-        } else {
-            s->timestep = 0;
-            s->rngstate = 1234; // start with a seed
-            s->grand = rand();
-            s->sentslot = s->bslot;
-            *readyToSend = No;
-        }
+        s->timestep = 0;
+        s->rngstate = 1234; // start with a seed
+        s->grand = rand();
+        s->sentslot = s->bslot;
     #else
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
@@ -337,9 +338,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         //*readyToSend = No;
     #ifdef TIMER
         if (s->mode == START) {
-            if (s->timer) {
-                return false;
-            }
             s->mode = UPDATE;
             if(get_num_beads(s->bslot) > 0)
                 *readyToSend = Pin(0);
@@ -348,7 +346,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             s->dpd_startU = tinselCycleCountU();
             s->dpd_start  = tinselCycleCount();
             return true;
-        }
+        } else
     #endif
         // we have just finished an update step
         if( s->mode == UPDATE ) {
@@ -365,7 +363,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
         #endif
     	    s->grand = rand(); // advance the random number
-    	    uint16_t i = s->bslot;
+    	    uint32_t i = s->bslot;
     	    while(i){
                 int ci = get_next_slot(i);
 
@@ -530,7 +528,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
 	    if(s->mode == UPDATE) {
-	        uint16_t ci = get_next_slot(s->sentslot);
+	        uint32_t ci = get_next_slot(s->sentslot);
 	        // send all of our beads to neighbours
 	        msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
@@ -554,7 +552,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	    if(s->mode == MIGRATION) { // we are in the MIGRATION mode we want to send beads to our neighbours
 	        // overload from with the dst filtering will happen on the recv side
-	        uint16_t ci = get_next_slot(s->migrateslot);
+	        uint32_t ci = get_next_slot(s->migrateslot);
             msg->from.x = s->migrate_loc[ci].x;
             msg->from.y = s->migrate_loc[ci].y;
             msg->from.z = s->migrate_loc[ci].z;
@@ -580,7 +578,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #if !defined(TIMER) && !defined(STATS)
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
-	        uint16_t ci = get_next_slot(s->sentslot);
+	        uint32_t ci = get_next_slot(s->sentslot);
 
 	        msg->timestep = s->timestep;
             msg->from.x = s->loc.x;
@@ -603,10 +601,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
 
     #ifdef TIMER
-        if (s->timer == 1) {
-            msg->type = 0xEE;
-            s->board_startU = tinselCycleCountU();
-            s->board_start  =  tinselCycleCount();
+        if (s->timer) {
+            msg->type = 0xAB;
+            msg->thread = tinselId();
+            msg->timestep = tinselCycleCountU();
+            msg->extra = tinselCycleCount();
             *readyToSend = 0;
             return;
         }
@@ -626,7 +625,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge) {
+        s->total_messages++;
         if(s->mode == UPDATE) {
+            s->updates++;
 	        // from the device locaton get the adjustments to the bead positions
             int x_rel = period_bound_adj(msg->from.x - s->loc.x);
             int y_rel = period_bound_adj(msg->from.y - s->loc.y);
@@ -638,7 +639,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
 
             // loop through the occupied bead slots -- update force
-	        uint16_t i = s->bslot;
+	        uint32_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
                 // #ifndef TESTING
@@ -653,53 +654,49 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             if (s->sentslot == 0) {
                 local_calcs();
             }
-	    } else if (s->mode == MIGRATION) { // we are in the MIGRATION mode beads we receive here _may_ be added to our state
+	    } else if (s->mode == MIGRATION) {
+            s->migrates++;
+            // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
 	        // it depends on whether the from address matches our own
 	        if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
 	            // looks like we are getting a new addition to our family
-	            uint16_t ci = get_next_free_slot(s->bslot); // I hope we have space...
-                // if (ci == 0xFFFF) {
-                    // s->lost_beads++;
-                // }
-                s->bslot = set_slot(s->bslot, ci);
-	            s->sentslot = s->bslot;
+	            uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
+                if (ci == 0xFFFFFFFF) {
+                    s->lost_beads++;
+                } else {
+                    s->bslot = set_slot(s->bslot, ci);
+    	            s->sentslot = s->bslot;
 
-	            // welcome the new little bead
-	            s->bead_slot[ci].type = msg->beads[0].type;
-	            s->bead_slot[ci].id = msg->beads[0].id;
-	            s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-	            s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+    	            // welcome the new little bead
+    	            s->bead_slot[ci].type = msg->beads[0].type;
+    	            s->bead_slot[ci].id = msg->beads[0].id;
+    	            s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+    	            s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                }
 	        }
         }
-    #ifdef TIMER
-        else if (msg->type == 0xEE) {
-            s->board_startU = tinselCycleCountU();
-            s->board_start  = tinselCycleCount();
-        }
-    #endif
 	}
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
+        msg->timestep = s->migrates;
+        msg->thread = s->total_messages;
+        msg->beads[0].id = s->updates;
     #endif
 
     #ifdef TIMER
-        if (s->timer) {
-            msg->type = 0xAB;
-            msg->thread = tinselId();
-            msg->timestep = s->board_startU;
-            msg->extra = s->board_start;
-        } else {
-            msg->type = 0xAA;
-            msg->thread = tinselId();
-            msg->timestep = s->dpd_startU;
-            msg->extra = s->dpd_start;
-            msg->beads[0].id = s->dpd_endU;
-            msg->beads[0].type = s->dpd_end;
-        }
+        msg->type = 0xAA;
+        msg->thread = tinselId();
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
+        msg->timestep = s->dpd_startU;
+        msg->extra = s->dpd_start;
+        msg->beads[0].id = s->dpd_endU;
+        msg->beads[0].type = s->dpd_end;
     #endif
 	    return true;
     }

@@ -398,11 +398,8 @@ void Universe<S>::run() {
     gettimeofday(&_start, NULL);
     _hostLink->go();
 
-#if defined(TIMER)
-    uint32_t devices = 0;
-#endif
-
 #ifdef TIMER
+    uint32_t devices = 0;
     uint32_t timers = 0;
     std::map<uint32_t,uint64_t> board_start;
     std::map<unit_t, uint64_t> dpd_start;
@@ -411,6 +408,11 @@ void Universe<S>::run() {
     uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
 #endif
+    uint32_t stats_finished = 0;
+    uint32_t total_migrates = 0;
+    uint32_t total_messages = 0;
+    uint32_t total_updates = 0;
+    int32_t timestep = -1;
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
@@ -418,13 +420,16 @@ void Universe<S>::run() {
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;
-            printf("RECEIVED A TIMER FINISH %u\n", timers);
+            printf("RECEIVED A TIMER FINISH %u THREAD = %u\n", timers, msg.payload.thread);
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             board_start[(uint32_t)msg.payload.thread/1024] = t;
         } else if (msg.payload.type = 0xAA) {
             devices++;
             printf("RECEIVED A CELL FINISH %u\n", devices);
-            unit_t cell_loc = msg.payload.from;
+            unit_t cell_loc;
+            cell_loc.x = msg.payload.from.x;
+            cell_loc.y = msg.payload.from.y;
+            cell_loc.z = msg.payload.from.z;
             uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
             uint32_t threadId = msg.payload.thread;
@@ -455,25 +460,31 @@ void Universe<S>::run() {
         }
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
-            politeSaveStats(_hostLink, "stats.txt");
-            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-            return;
+            stats_finished++;
+            total_migrates += msg.payload.timestep;
+            total_messages += msg.payload.thread;
+            total_updates += msg.payload.beads[0].id;
+            printf("total_migrates = %u\n", total_migrates);
+            printf("total messages = %u\n", total_messages);
+            printf("total updates  = %u\n", total_updates);
+            if (stats_finished >= _D*_D*_D) {
+                politeSaveStats(_hostLink, "stats.txt");
+                printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+                return;
+            }
         }
     #else
-        pts_to_extern_t eMsg;
-        eMsg.timestep = msg.payload.timestep;
-        eMsg.from = msg.payload.from;
-        eMsg.bead = msg.payload.beads[0];
-        _extern->send(&eMsg);
+        if (msg.payload.timestep != timestep) {
+            timestep = msg.payload.timestep;
+            printf("TIMESTEP %d\n", timestep);
+        }
+        // pts_to_extern_t eMsg;
+        // eMsg.timestep = msg.payload.timestep;
+        // eMsg.from = msg.payload.from;
+        // eMsg.bead = msg.payload.beads[0];
+        // _extern->send(&eMsg);
     #endif
     }
-    // get end time
-    gettimeofday(&_finish, NULL);
-
-    // Display time
-    timersub(&_finish, &_start, &_diff);
-    double duration = (double) _diff.tv_sec + (double) _diff.tv_usec / 1000000.0;
-    printf("Time = %lf\n", duration);
 }
 
 // Runs a test, gets the bead outputs and returns this to the test file
@@ -482,7 +493,6 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     std::map<uint32_t, DPDMessage> result;
     // Finish counter
     uint32_t finish = 0;
-
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
 

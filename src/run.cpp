@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 
     uni.write(); // write the universe into the POETS memory
 
-    // uni.print_occupancy();
+    uni.print_occupancy();
     printf("Number of beads in simulation: %u\n", beads_added);
 
     printf("running...\n");
