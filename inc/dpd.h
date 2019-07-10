@@ -39,7 +39,7 @@
 #endif
 
 #if defined(TESTING) || defined(TIMER) || defined(STATS)
-#define TEST_LENGTH 1000
+#define TEST_LENGTH 1
 #endif
 
 typedef float ptype;
@@ -119,7 +119,7 @@ struct DPDMessage {
 };
 
 // the state of the DPD Device
-struct DPDState{
+struct DPDState {
     float unit_size; // the size of this spatial unit in one dimension
     uint8_t N;
     unit_t loc; // the location of this cube
@@ -156,20 +156,27 @@ struct DPDState{
     uint8_t timer;
 #endif
 
-    uint32_t migrates = 0;
-    uint32_t total_messages = 0;
-    uint32_t updates = 0;
+    uint32_t intraThreadNeighbours;
+    uint32_t intraThreadMessagesSent = 0;
+    uint32_t intraThreadMessagesRecv = 0;
+    uint32_t interThreadMessagesSent = 0;
+    uint32_t interThreadMessagesRecv = 0;
+    uint32_t seen[100];
 };
 
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
-
+    inline void clear_seen(uint32_t* seen) {
+        for (int i = 0; i < 100; i++) {
+            seen[i] = 0;
+        }
+    }
     // ----------------- bead slots ---------------------------
     // helper functions for managing bead slots
-    inline uint32_t clear_slot(uint32_t slotlist, uint32_t pos){  return slotlist & ~(1 << pos);  }
-    inline uint32_t set_slot(uint32_t slotlist, uint32_t pos){ return slotlist | (1 << pos); }
-    inline bool is_slot_set(uint32_t slotlist, uint32_t pos){ return slotlist & (1 << pos); }
+    inline uint32_t clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
+    inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
+    inline bool is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
     inline uint32_t get_next_slot(uint32_t slotlist){
         uint32_t mask = 0x1;
@@ -277,17 +284,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
         while(s->local_slot_i) {
-            if (tinselCanRecv()) {
-                return;
-            }
+            // if (tinselCanRecv()) {
+            //     return;
+            // }
             int ci = get_next_slot(s->local_slot_i);
             if (s->local_slot_j == 0) {
                 s->local_slot_j = s->bslot;
             }
             while(s->local_slot_j) {
-                if (tinselCanRecv()) {
-                    return;
-                }
+                // if (tinselCanRecv()) {
+                //     return;
+                // }
                 int cj = get_next_slot(s->local_slot_j);
                 if(ci != cj) {
                     // #ifndef TESTING
@@ -324,7 +331,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #if !defined(TESTING) && !defined(STATS)
 		s->emitcnt = emitperiod;
     #endif
-		// s->mode = UPDATE;
+		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
         else
@@ -335,7 +342,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
         // default case
-        //*readyToSend = No;
+        *readyToSend = No;
     #ifdef TIMER
         if (s->mode == START) {
             s->mode = UPDATE;
@@ -537,6 +544,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->beads[0].id = s->bead_slot[ci].id;
             msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+            msg->thread = tinselId();
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
 	        if(s->sentslot != 0) {
@@ -547,12 +555,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = No;
                 local_calcs();
 	        }
+            s->intraThreadMessagesSent += s->intraThreadNeighbours;
+            s->interThreadMessagesSent += 26 - s->intraThreadNeighbours;
 	        return;
 	    }
 
 	    if(s->mode == MIGRATION) { // we are in the MIGRATION mode we want to send beads to our neighbours
 	        // overload from with the dst filtering will happen on the recv side
-	        uint32_t ci = get_next_slot(s->migrateslot);
+	        uint8_t ci = get_next_slot(s->migrateslot);
             msg->from.x = s->migrate_loc[ci].x;
             msg->from.y = s->migrate_loc[ci].y;
             msg->from.z = s->migrate_loc[ci].z;
@@ -560,6 +570,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        msg->beads[0].id = s->bead_slot[ci].id;
 	        msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
 	        msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+            msg->thread = tinselId();
 
 	        // clear the migration slot bit
 	        s->migrateslot = clear_slot(s->migrateslot, ci);
@@ -571,6 +582,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        } else {
                 *readyToSend = No;
 	        }
+            s->intraThreadMessagesSent += s->intraThreadNeighbours;
+            s->interThreadMessagesSent += 26 - s->intraThreadNeighbours;
 	        return;
 	    }
 
@@ -589,6 +602,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        msg->beads[0].id = s->bead_slot[ci].id;
 	        msg->beads[0].type = s->bead_slot[ci].type;
 
+
 	        s->sentslot = clear_slot(s->sentslot, ci);
 	        if(s->sentslot != 0) {
                 *readyToSend = HostPin;
@@ -606,7 +620,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->thread = tinselId();
             msg->timestep = tinselCycleCountU();
             msg->extra = tinselCycleCount();
-            *readyToSend = 0;
+            *readyToSend = No;
             return;
         }
     #endif
@@ -625,9 +639,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge) {
-        s->total_messages++;
+        if (msg->thread == tinselId()) {
+            s->intraThreadMessagesRecv++;
+        } else {
+            s->interThreadMessagesRecv++;
+        }
         if(s->mode == UPDATE) {
-            s->updates++;
 	        // from the device locaton get the adjustments to the bead positions
             int x_rel = period_bound_adj(msg->from.x - s->loc.x);
             int y_rel = period_bound_adj(msg->from.y - s->loc.y);
@@ -655,7 +672,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 local_calcs();
             }
 	    } else if (s->mode == MIGRATION) {
-            s->migrates++;
             // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
 	        // it depends on whether the from address matches our own
@@ -682,21 +698,24 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->migrates;
-        msg->thread = s->total_messages;
-        msg->beads[0].id = s->updates;
+        msg->timestep = s->intraThreadMessagesSent;
+        msg->thread = s->interThreadMessagesSent;
+        msg->beads[0].id = s->intraThreadMessagesRecv;
+        msg->beads[0].type = s->interThreadMessagesRecv;
     #endif
 
     #ifdef TIMER
         msg->type = 0xAA;
-        msg->thread = tinselId();
-        msg->from.x = s->loc.x;
-        msg->from.y = s->loc.y;
-        msg->from.z = s->loc.z;
-        msg->timestep = s->dpd_startU;
-        msg->extra = s->dpd_start;
-        msg->beads[0].id = s->dpd_endU;
-        msg->beads[0].type = s->dpd_end;
+        msg->timestep = s->intraThreadMessagesSent;
+        // msg->thread = s->migrates;
+        // msg->thread = tinselId();
+        // msg->from.x = s->loc.x;
+        // msg->from.y = s->loc.y;
+        // msg->from.z = s->loc.z;
+        // msg->timestep = s->dpd_startU;
+        // msg->extra = s->dpd_start;
+        // msg->beads[0].id = s->dpd_endU;
+        // msg->beads[0].type = s->dpd_end;
     #endif
 	    return true;
     }

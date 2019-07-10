@@ -303,7 +303,29 @@ Universe<S>::Universe(S size, unsigned D) {
         _g->devices[cId]->state.loc.z = loc.z;
         _g->devices[cId]->state.unit_size = _unit_size;
         _g->devices[cId]->state.N = _D;
+        PDeviceAddr srcAddr = _g->toDeviceAddr[cId];
+        PThreadId srcThread = getThreadId(srcAddr);
+        uint32_t intraThread = 0;
+        uint32_t seen[26];
+        for (int j = 0; j < _g->graph.outgoing->elems[cId]->numElems; j++) {
+            PDeviceId destId = _g->graph.outgoing->elems[cId]->elems[j];
+            PDeviceAddr destAddr = _g->toDeviceAddr[destId];
+            PThreadId destThread = getThreadId(destAddr);
+            if (srcThread == destThread) {
+                intraThread++;
+            }
+            for (int k = 0; k < j; k++) {
+                if (seen[k] == destId) {
+                    std::cerr << "FAIL\n";
+                    exit(EXIT_FAILURE);
+                }
+            }
+            seen[j] = destId;
+
+        }
+        _g->devices[cId]->state.intraThreadNeighbours = intraThread;
     }
+    std::cerr << "num devices = " << _g->numDevices << "\n";
 
 }
 
@@ -409,10 +431,12 @@ void Universe<S>::run() {
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
 #endif
     uint32_t stats_finished = 0;
-    uint32_t total_migrates = 0;
-    uint32_t total_messages = 0;
-    uint32_t total_updates = 0;
+    uint32_t intraThreadMessagesSent = 0;
+    uint32_t intraThreadMessagesRecv = 0;
+    uint32_t interThreadMessagesSent = 0;
+    uint32_t interThreadMessagesRecv = 0;
     int32_t timestep = -1;
+
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
@@ -425,49 +449,51 @@ void Universe<S>::run() {
             board_start[(uint32_t)msg.payload.thread/1024] = t;
         } else if (msg.payload.type = 0xAA) {
             devices++;
-            printf("RECEIVED A CELL FINISH %u\n", devices);
-            unit_t cell_loc;
-            cell_loc.x = msg.payload.from.x;
-            cell_loc.y = msg.payload.from.y;
-            cell_loc.z = msg.payload.from.z;
-            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            uint32_t threadId = msg.payload.thread;
-            dpd_start[cell_loc] = s;
-            dpd_end[cell_loc] = e;
-            locToThread[cell_loc] = threadId;
+            // printf("RECEIVED A CELL FINISH %u\n", devices);
+            // unit_t cell_loc;
+            // cell_loc.x = msg.payload.from.x;
+            // cell_loc.y = msg.payload.from.y;
+            // cell_loc.z = msg.payload.from.z;
+            // uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
+            // uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
+            // uint32_t threadId = msg.payload.thread;
+            // dpd_start[cell_loc] = s;
+            // dpd_end[cell_loc] = e;
+            // locToThread[cell_loc] = threadId;
         }
         if (devices >= (_D*_D*_D) && timers >= 6) {
-            for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
-                uint32_t threadId = locToThread[i->first];
-                uint32_t board = (uint32_t) threadId/1024;
-                uint64_t s = dpd_start[i->first] - board_start[board];
-                uint64_t e = dpd_end[i->first] - board_start[board];
-                if (s < earliest_start) {
-                    earliest_start = s;
-                }
-                if (e < earliest_end) {
-                    earliest_end = e;
-                }
-            }
-            uint64_t diff = earliest_end - earliest_start;
-            double time = (double)diff/250000000;
-            printf("Runtime = %f\n", time);
-            FILE* f = fopen("../timing_results.csv", "a+");
-            fprintf(f, "%1.10f", time);
-            fclose(f);
+            // for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
+            //     uint32_t threadId = locToThread[i->first];
+            //     uint32_t board = (uint32_t) threadId/1024;
+            //     uint64_t s = dpd_start[i->first] - board_start[board];
+            //     uint64_t e = dpd_end[i->first] - board_start[board];
+            //     if (s < earliest_start) {
+            //         earliest_start = s;
+            //     }
+            //     if (e < earliest_end) {
+            //         earliest_end = e;
+            //     }
+            // }
+            // uint64_t diff = earliest_end - earliest_start;
+            // double time = (double)diff/250000000;
+            // printf("Runtime = %f\n", time);
+            // FILE* f = fopen("../timing_results.csv", "a+");
+            // fprintf(f, "%1.10f", time);
+            // fclose(f);
             return;
         }
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
             stats_finished++;
-            total_migrates += msg.payload.timestep;
-            total_messages += msg.payload.thread;
-            total_updates += msg.payload.beads[0].id;
-            printf("total_migrates = %u\n", total_migrates);
-            printf("total messages = %u\n", total_messages);
-            printf("total updates  = %u\n", total_updates);
+            intraThreadMessagesSent += msg.payload.timestep;
+            intraThreadMessagesRecv += msg.payload.beads[0].id;
+            interThreadMessagesSent += msg.payload.thread;
+            interThreadMessagesRecv += msg.payload.beads[0].type;
             if (stats_finished >= _D*_D*_D) {
+                printf("Intra-thread messages sent = %u\n", intraThreadMessagesSent);
+                printf("Intra-thread messages recv = %u\n", intraThreadMessagesRecv);
+                printf("Inter-thread messages sent = %u\n", interThreadMessagesSent);
+                printf("Inter-thread messages recv = %u\n", interThreadMessagesRecv);
                 politeSaveStats(_hostLink, "stats.txt");
                 printf("Stat collection complete, run \"make print-stats -C ..\"\n");
                 return;
