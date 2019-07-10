@@ -303,30 +303,7 @@ Universe<S>::Universe(S size, unsigned D) {
         _g->devices[cId]->state.loc.z = loc.z;
         _g->devices[cId]->state.unit_size = _unit_size;
         _g->devices[cId]->state.N = _D;
-        PDeviceAddr srcAddr = _g->toDeviceAddr[cId];
-        PThreadId srcThread = getThreadId(srcAddr);
-        uint32_t intraThread = 0;
-        uint32_t seen[26];
-        for (int j = 0; j < _g->graph.outgoing->elems[cId]->numElems; j++) {
-            PDeviceId destId = _g->graph.outgoing->elems[cId]->elems[j];
-            PDeviceAddr destAddr = _g->toDeviceAddr[destId];
-            PThreadId destThread = getThreadId(destAddr);
-            if (srcThread == destThread) {
-                intraThread++;
-            }
-            for (int k = 0; k < j; k++) {
-                if (seen[k] == destId) {
-                    std::cerr << "FAIL\n";
-                    exit(EXIT_FAILURE);
-                }
-            }
-            seen[j] = destId;
-
-        }
-        _g->devices[cId]->state.intraThreadNeighbours = intraThread;
     }
-    std::cerr << "num devices = " << _g->numDevices << "\n";
-
 }
 
 // deconstructor
@@ -444,39 +421,37 @@ void Universe<S>::run() {
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;
-            printf("RECEIVED A TIMER FINISH %u THREAD = %u\n", timers, msg.payload.thread);
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             board_start[(uint32_t)msg.payload.thread/1024] = t;
         } else if (msg.payload.type = 0xAA) {
             devices++;
-            // printf("RECEIVED A CELL FINISH %u\n", devices);
-            // unit_t cell_loc;
-            // cell_loc.x = msg.payload.from.x;
-            // cell_loc.y = msg.payload.from.y;
-            // cell_loc.z = msg.payload.from.z;
-            // uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            // uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            // uint32_t threadId = msg.payload.thread;
-            // dpd_start[cell_loc] = s;
-            // dpd_end[cell_loc] = e;
-            // locToThread[cell_loc] = threadId;
+            unit_t cell_loc;
+            cell_loc.x = msg.payload.from.x;
+            cell_loc.y = msg.payload.from.y;
+            cell_loc.z = msg.payload.from.z;
+            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
+            uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
+            uint32_t threadId = msg.payload.thread;
+            dpd_start[cell_loc] = s;
+            dpd_end[cell_loc] = e;
+            locToThread[cell_loc] = threadId;
         }
         if (devices >= (_D*_D*_D) && timers >= 6) {
-            // for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
-            //     uint32_t threadId = locToThread[i->first];
-            //     uint32_t board = (uint32_t) threadId/1024;
-            //     uint64_t s = dpd_start[i->first] - board_start[board];
-            //     uint64_t e = dpd_end[i->first] - board_start[board];
-            //     if (s < earliest_start) {
-            //         earliest_start = s;
-            //     }
-            //     if (e < earliest_end) {
-            //         earliest_end = e;
-            //     }
-            // }
-            // uint64_t diff = earliest_end - earliest_start;
-            // double time = (double)diff/250000000;
-            // printf("Runtime = %f\n", time);
+            for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
+                uint32_t threadId = locToThread[i->first];
+                uint32_t board = (uint32_t) threadId/1024;
+                uint64_t s = dpd_start[i->first] - board_start[board];
+                uint64_t e = dpd_end[i->first] - board_start[board];
+                if (s < earliest_start) {
+                    earliest_start = s;
+                }
+                if (e < earliest_end) {
+                    earliest_end = e;
+                }
+            }
+            uint64_t diff = earliest_end - earliest_start;
+            double time = (double)diff/250000000;
+            printf("Runtime = %f\n", time);
             // FILE* f = fopen("../timing_results.csv", "a+");
             // fprintf(f, "%1.10f", time);
             // fclose(f);
@@ -485,30 +460,18 @@ void Universe<S>::run() {
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
             stats_finished++;
-            intraThreadMessagesSent += msg.payload.timestep;
-            intraThreadMessagesRecv += msg.payload.beads[0].id;
-            interThreadMessagesSent += msg.payload.thread;
-            interThreadMessagesRecv += msg.payload.beads[0].type;
             if (stats_finished >= _D*_D*_D) {
-                printf("Intra-thread messages sent = %u\n", intraThreadMessagesSent);
-                printf("Intra-thread messages recv = %u\n", intraThreadMessagesRecv);
-                printf("Inter-thread messages sent = %u\n", interThreadMessagesSent);
-                printf("Inter-thread messages recv = %u\n", interThreadMessagesRecv);
                 politeSaveStats(_hostLink, "stats.txt");
                 printf("Stat collection complete, run \"make print-stats -C ..\"\n");
                 return;
             }
         }
     #else
-        if (msg.payload.timestep != timestep) {
-            timestep = msg.payload.timestep;
-            printf("TIMESTEP %d\n", timestep);
-        }
-        // pts_to_extern_t eMsg;
-        // eMsg.timestep = msg.payload.timestep;
-        // eMsg.from = msg.payload.from;
-        // eMsg.bead = msg.payload.beads[0];
-        // _extern->send(&eMsg);
+        pts_to_extern_t eMsg;
+        eMsg.timestep = msg.payload.timestep;
+        eMsg.from = msg.payload.from;
+        eMsg.bead = msg.payload.beads[0];
+        _extern->send(&eMsg);
     #endif
     }
 }

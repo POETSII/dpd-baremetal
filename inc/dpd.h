@@ -39,7 +39,7 @@
 #endif
 
 #if defined(TESTING) || defined(TIMER) || defined(STATS)
-#define TEST_LENGTH 1
+#define TEST_LENGTH 1000
 #endif
 
 typedef float ptype;
@@ -65,7 +65,6 @@ const uint32_t emitperiod = 10;
 #endif
 
 // ---------------------------------------------------------------------------------------
-
 
 typedef uint32_t bead_class_t; // the type of the bead, we are not expecting too many
 typedef uint32_t bead_id_t; // the ID for the bead
@@ -109,9 +108,9 @@ struct unit_t {
 // Format of message
 struct DPDMessage {
     uint8_t type;
-    uint32_t thread;
     uint32_t timestep; // the timestep this message is from
 #ifdef TIMER
+    uint32_t thread;
     uint32_t extra; //Used for sending cycle counts
 #endif
     unit_t from; // the unit that this message is from
@@ -144,7 +143,7 @@ struct DPDState {
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
 
-    uint32_t lost_beads;
+    // uint32_t lost_beads;
 
 #ifdef TIMER
     uint32_t board_startU;
@@ -156,12 +155,6 @@ struct DPDState {
     uint8_t timer;
 #endif
 
-    uint32_t intraThreadNeighbours;
-    uint32_t intraThreadMessagesSent = 0;
-    uint32_t intraThreadMessagesRecv = 0;
-    uint32_t interThreadMessagesSent = 0;
-    uint32_t interThreadMessagesRecv = 0;
-    uint32_t seen[100];
 };
 
 // DPD Device code
@@ -284,17 +277,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
         while(s->local_slot_i) {
-            // if (tinselCanRecv()) {
-            //     return;
-            // }
+            if (tinselCanRecv()) {
+                return;
+            }
             int ci = get_next_slot(s->local_slot_i);
             if (s->local_slot_j == 0) {
                 s->local_slot_j = s->bslot;
             }
             while(s->local_slot_j) {
-                // if (tinselCanRecv()) {
-                //     return;
-                // }
+                if (tinselCanRecv()) {
+                    return;
+                }
                 int cj = get_next_slot(s->local_slot_j);
                 if(ci != cj) {
                     // #ifndef TESTING
@@ -544,7 +537,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->beads[0].id = s->bead_slot[ci].id;
             msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-            msg->thread = tinselId();
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
 	        if(s->sentslot != 0) {
@@ -555,8 +547,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = No;
                 local_calcs();
 	        }
-            s->intraThreadMessagesSent += s->intraThreadNeighbours;
-            s->interThreadMessagesSent += 26 - s->intraThreadNeighbours;
 	        return;
 	    }
 
@@ -570,7 +560,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        msg->beads[0].id = s->bead_slot[ci].id;
 	        msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
 	        msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-            msg->thread = tinselId();
 
 	        // clear the migration slot bit
 	        s->migrateslot = clear_slot(s->migrateslot, ci);
@@ -582,8 +571,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        } else {
                 *readyToSend = No;
 	        }
-            s->intraThreadMessagesSent += s->intraThreadNeighbours;
-            s->interThreadMessagesSent += 26 - s->intraThreadNeighbours;
 	        return;
 	    }
 
@@ -617,7 +604,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #ifdef TIMER
         if (s->timer) {
             msg->type = 0xAB;
-            msg->thread = tinselId();
             msg->timestep = tinselCycleCountU();
             msg->extra = tinselCycleCount();
             *readyToSend = No;
@@ -639,11 +625,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge) {
-        if (msg->thread == tinselId()) {
-            s->intraThreadMessagesRecv++;
-        } else {
-            s->interThreadMessagesRecv++;
-        }
         if(s->mode == UPDATE) {
 	        // from the device locaton get the adjustments to the bead positions
             int x_rel = period_bound_adj(msg->from.x - s->loc.x);
@@ -678,9 +659,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
 	            // looks like we are getting a new addition to our family
 	            uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
-                if (ci == 0xFFFFFFFF) {
-                    s->lost_beads++;
-                } else {
+                // if (ci == 0xFFFFFFFF) {
+                //     s->lost_beads++;
+                // } else {
                     s->bslot = set_slot(s->bslot, ci);
     	            s->sentslot = s->bslot;
 
@@ -689,7 +670,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	            s->bead_slot[ci].id = msg->beads[0].id;
     	            s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
     	            s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-                }
+                // }
 	        }
         }
 	}
@@ -698,24 +679,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->intraThreadMessagesSent;
-        msg->thread = s->interThreadMessagesSent;
-        msg->beads[0].id = s->intraThreadMessagesRecv;
-        msg->beads[0].type = s->interThreadMessagesRecv;
     #endif
 
     #ifdef TIMER
         msg->type = 0xAA;
-        msg->timestep = s->intraThreadMessagesSent;
-        // msg->thread = s->migrates;
-        // msg->thread = tinselId();
-        // msg->from.x = s->loc.x;
-        // msg->from.y = s->loc.y;
-        // msg->from.z = s->loc.z;
-        // msg->timestep = s->dpd_startU;
-        // msg->extra = s->dpd_start;
-        // msg->beads[0].id = s->dpd_endU;
-        // msg->beads[0].type = s->dpd_end;
+        msg->thread = tinselId();
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
+        msg->timestep = s->dpd_startU;
+        msg->extra = s->dpd_start;
+        msg->beads[0].id = s->dpd_endU;
+        msg->beads[0].type = s->dpd_end;
     #endif
 	    return true;
     }

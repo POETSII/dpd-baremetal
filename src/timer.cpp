@@ -101,6 +101,4 @@ void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBox
     for (int i = 0; i < timerNum; i++) {
       g->devices[timerIds[i]]->state.timer = true;
     }
-    std::cerr << timerNum << " timers\n";
-    std::cerr << empty << " empty threads\n";
 }
