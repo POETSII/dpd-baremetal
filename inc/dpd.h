@@ -110,7 +110,6 @@ struct DPDMessage {
     uint8_t type;
     uint32_t timestep; // the timestep this message is from
 #ifdef TIMER
-    uint32_t thread;
     uint32_t extra; //Used for sending cycle counts
 #endif
     unit_t from; // the unit that this message is from
@@ -604,6 +603,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #ifdef TIMER
         if (s->timer) {
             msg->type = 0xAB;
+            msg->from.x = s->loc.x;
+            msg->from.y = s->loc.y;
+            msg->from.z = s->loc.z;
             msg->timestep = tinselCycleCountU();
             msg->extra = tinselCycleCount();
             *readyToSend = No;
@@ -683,7 +685,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     #ifdef TIMER
         msg->type = 0xAA;
-        msg->thread = tinselId();
         msg->from.x = s->loc.x;
         msg->from.y = s->loc.y;
         msg->from.z = s->loc.z;

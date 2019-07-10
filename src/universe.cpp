@@ -390,6 +390,15 @@ void Universe<S>::write() {
     _g->write(_hostLink);
 }
 
+// Use unit_t location to acquire thread id
+template<class S>
+PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
+    PDeviceId dev_id = _locToId[loc];
+    PDeviceAddr dev_addr = _g->toDeviceAddr[dev_id];
+    PThreadId thread_id = getThreadId(dev_addr);
+    return thread_id;
+}
+
 // starts the simulation
 template<class S>
 void Universe<S>::run() {
@@ -406,13 +415,9 @@ void Universe<S>::run() {
     std::map<unit_t, uint32_t> locToThread;
     uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
-#endif
+#elif defined(STATS)
     uint32_t stats_finished = 0;
-    uint32_t intraThreadMessagesSent = 0;
-    uint32_t intraThreadMessagesRecv = 0;
-    uint32_t interThreadMessagesSent = 0;
-    uint32_t interThreadMessagesRecv = 0;
-    int32_t timestep = -1;
+#endif
 
     // enter the main loop
     while(1) {
@@ -422,7 +427,12 @@ void Universe<S>::run() {
         if (msg.payload.type == 0xAB) {
             timers++;
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            board_start[(uint32_t)msg.payload.thread/1024] = t;
+            unit_t timer_loc;
+            timer_loc.x = msg.payload.from.x;
+            timer_loc.y = msg.payload.from.y;
+            timer_loc.z = msg.payload.from.z;
+            PThreadId timer_thread = get_thread_from_loc(timer_loc);
+            board_start[(uint32_t)timer_thread/1024] = t;
         } else if (msg.payload.type = 0xAA) {
             devices++;
             unit_t cell_loc;
@@ -431,7 +441,7 @@ void Universe<S>::run() {
             cell_loc.z = msg.payload.from.z;
             uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            uint32_t threadId = msg.payload.thread;
+            PThreadId threadId = get_thread_from_loc(cell_loc);
             dpd_start[cell_loc] = s;
             dpd_end[cell_loc] = e;
             locToThread[cell_loc] = threadId;
