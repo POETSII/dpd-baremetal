@@ -3,8 +3,8 @@
 cd ./bin
 
 i=0
-s=3
-while [[ $s -le 100 ]]
+s=24
+while [[ $s -ge 3 ]]
 do
     while [[ $i -lt 5 ]]
     do
@@ -17,10 +17,9 @@ do
             echo -n ", " >> ../timing_results.csv
         fi
         i=$((i + 1))
-        make print-stats -C ..
         sleep 5s
     done
     i=0
     echo >> ../timing_results.csv
-    s=$((s + 1))
+    s=$((s - 1))
 done
