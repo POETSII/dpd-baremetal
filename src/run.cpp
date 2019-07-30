@@ -34,8 +34,13 @@ Vector3D<ptype> randPos(unsigned N) {
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 2) {
+    if (argc < 2) {
         printf("Not enough arguments. Please provide simulation volume length\n");
+        return 1;
+    }
+
+    if (argc > 3) {
+        printf("Too many arguments. Please provide at least: Simulation volume length\n");
         return 1;
     }
 
@@ -44,6 +49,13 @@ int main(int argc, char *argv[]) {
     int beads_added = 0;
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
+
+    bool printBeadNum = false;
+    if (argc == 3) {
+        if (std::stoi(argv[2]) > 0) {
+            printBeadNum = true;
+        }
+    }
 
     Universe<ptype> uni(problem_size, N);
 
@@ -112,7 +124,7 @@ int main(int argc, char *argv[]) {
     printf("Number of beads in simulation: %u\n", beads_added);
 
     printf("running...\n");
-    uni.run(); // start the simulation
+    uni.run(printBeadNum, beads_added); // start the simulation
 
     return 0;
 }

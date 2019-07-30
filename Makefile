@@ -121,7 +121,7 @@ print-stats: $(DPD_BIN)/stats.txt
 # ------------ TESTING ---------------------------------
 .PHONY: test
 test: DFLAGS=-DTESTING
-test: $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \

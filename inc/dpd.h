@@ -142,7 +142,7 @@ struct DPDState {
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
 
-    // uint32_t lost_beads;
+    uint32_t lost_beads;
 
 #ifdef TIMER
     uint32_t board_startU;
@@ -152,7 +152,10 @@ struct DPDState {
     uint32_t dpd_endU;
     uint32_t dpd_end;
     uint8_t timer;
+    uint32_t upperCount;
+    uint32_t wraps; // Number of times tinselCycleCountU has reset
 #endif
+    uint32_t migrations;
 
 };
 
@@ -522,10 +525,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = Pin(0);
             else
                 *readyToSend = No;
+
             s->dpd_startU = tinselCycleCountU();
             s->dpd_start  = tinselCycleCount();
             return true;
-        } else
+        } else if (s->timer) {
+            uint32_t count = tinselCycleCountU();
+            if (count < s->upperCount) {
+                s->wraps++;
+            }
+            s->upperCount = count;
+        }
     #endif
         // we have just finished an update step
         if( s->mode == UPDATE ) {
@@ -745,6 +755,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
 	        s->sentslot = s->bslot;
+            s->migrations++;
 	        if(s->migrateslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
@@ -875,9 +886,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
 	            // looks like we are getting a new addition to our family
 	            uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
-                // if (ci == 0xFFFFFFFF) {
-                //     s->lost_beads++;
-                // } else {
+                if (ci == 0xFFFFFFFF) {
+                    s->lost_beads++;
+                } else {
                     s->bslot = set_slot(s->bslot, ci);
     	            s->sentslot = s->bslot;
 
@@ -886,7 +897,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	            s->bead_slot[ci].id = msg->beads[0].id;
     	            s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
     	            s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-                // }
+                }
 	        }
         }
 	}
@@ -895,10 +906,16 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
+        msg->timestep = s->lost_beads;
+        msg->beads[0].id = s->migrations;
     #endif
 
     #ifdef TIMER
-        msg->type = 0xAA;
+        if (s->timer)
+            msg->type = 0xAC;
+        else
+            msg->type = 0xAA;
+
         msg->from.x = s->loc.x;
         msg->from.y = s->loc.y;
         msg->from.z = s->loc.z;
@@ -906,6 +923,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         msg->extra = s->dpd_start;
         msg->beads[0].id = s->dpd_endU;
         msg->beads[0].type = s->dpd_end;
+        msg->beads[0].pos.set((float)s->wraps, 0, 0);
     #endif
 	    return true;
     }
