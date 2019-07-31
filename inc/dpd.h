@@ -13,6 +13,9 @@
 #include <POLite.h>
 
 #include "Vector3D.hpp"
+#ifdef ACCELERATE
+    #include "accelerator.h"
+#endif
 
 #ifndef _DPD_H_
 #define _DPD_H_
@@ -225,202 +228,60 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         return s0 + s1;
     }
 
-// OPTION 1 - Pass bead positions, bead velocities, squared euclidian distance, and all constants
-    typedef struct update_message1 {
-        Vector3D<float> i_pos; // Position of bead i - 12 bytes now - Aiming for 6 with int16_t
-        Vector3D<float> j_pos; // Position of bead j - 12 bytes now - Aiming for 6 with int16_t
-        Vector3D<float> i_vel; // Velocity of bead i - 12 bytes now - Aiming for 6 with bfloat
-        Vector3D<float> j_vel; // Velocity of bead j - 12 bytes now - Aiming for 6 with bfloat
-        uint32_t i_id; // ID of bead i - 4 bytes. Needs to remain at 4 bytes to allow for large numbers of beads with unique IDs
-        uint32_t j_id; // ID of bead j - 4 bytes. Needs to remain at 4 bytes to allow for large numbers of beads with unique IDs
-        float r_ij_dist_sq; // Square of the euclidian distance between beads - 4 bytes - Ideally remain at 4
-        // Square root could be peformed in accelerator? If not, pass in the squar-root of this.
-        float r_c;// Cutoff radius used to determine if calculations are performed - 4 bytes - 2 using uint16_t
-        // This check should probably be done before sending anything to an accelerator, otherwise it's a waster of accelerator time.
-        float a_ij; // Interaction between bead type of i and bead type of j - 4 bytes - Aiming for 2 with bfloat
-        float drag_coef; // Drag coefficient constant - 4 bytes now - Aiming for 2 with bfloat
-        float sigma_ij; // Sigma constant used in random force - 4 bytes now - Aiming for 2 with bfloat
-        float sqrt_dt; // Square root of the timestep (0.02) - 4 bytes now - Aiming for 2 with bfloat
-        // Could this be calculated in accelerator?
-    } update_message1; // Total size = 80 bytes now - 46 bytes with bfloat and fixed-point positions
-    // This will not require more calculations to be done in the POLite app, but could be heavy on the accelerator.
-    // Testing this with a timed run is too large, as it's considerable to make the structs before calling force_update.
-    // POLite reports this as taking: 32.5701 seconds
-    // Make test - FAIL - Need to investigate
-
+#ifndef ACCELERATE
+    // calculate a new force acting between two particles
 #if defined(TESTING) || defined(STATS)
-    __attribute__((noinline)) Vector3D<ptype> force_update1(update_message1* m){
+    __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
 #else
-    Vector3D<ptype> force_update1(update_message1* m){
+    Vector3D<ptype> force_update(bead_t *a, bead_t *b){
 #endif
 
-      // ptype r_ij_dist = m->i_pos.sq_dist(m->j_pos);
+        ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
 
-        if (m->r_ij_dist_sq > (m->r_c * m->r_c)) {
+        if (r_ij_dist_sq > sq_r_c) {
             return force;
         }
 
-        float r_ij_dist = newt_sqrt(m->r_ij_dist_sq); // Only square root for distance once it's known these beads interact
+        ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
 
-        // ptype a_ij = A[a->type][b->type];
+        ptype a_ij = A[a->type][b->type];
         // Vector3D<ptype> r_ij = r_i - r_j;
-        Vector3D<ptype> r_ij = m->i_pos - m->j_pos;
+        Vector3D<ptype> r_ij = a->pos - b->pos;
         // Vector3D<ptype> v_i = a->velo;
         // Vector3D<ptype> v_j = b->velo;
         // Vector3D<ptype> v_ij = v_i - v_j;
-        Vector3D<ptype> v_ij = m->i_vel - m->j_vel;
-        // const ptype drag_coef(4.5); // the drag coefficient
-        //const ptype sigma_ij(275.0); // sqrt(2*drag_coef*KBt) assumed same for all
-        // const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
-        // const ptype sqrt_dt(0.1414); // sqrt(0.02)
+        Vector3D<ptype> v_ij = a->velo - b->velo;
+        const ptype drag_coef(4.5); // the drag coefficient
+        const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
+        const ptype sqrt_dt(0.1414); // sqrt(0.02)
 
         // switching function
         ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
 
         //Conservative force: Equation 8.5 in the dl_meso manual
-        force = (r_ij/r_ij_dist) * (m->a_ij * (ptype(1.0) - (r_ij_dist/r_c)));
+        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/r_c));
+        force = (r_ij/r_ij_dist) * con;
 
         // Drag force
-        force = force + (r_ij / (r_ij_dist * r_ij_dist)) * w_d * r_ij.dot(v_ij) * (ptype(-1.0) * m->drag_coef);
+        ptype drag = w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef);
+        force = force + ((r_ij / (r_ij_dist_sq)) * drag);
 
         // get the pairwise random number
         //ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX)) * 0.5);
-        ptype r_t((pairwise_rand(m->i_id, m->j_id) / (float)(DT10_RAND_MAX/2))); // May need to pass RAND_MAX in...or hardwire it?
+        ptype r_t((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
         ptype r = (r_t - ptype(1.0)) * 0.5;
         ptype w_r = (ptype(1.0) - r_ij_dist);
 
         // random force
         //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0);
-        force = force - (r_ij / r_ij_dist)*m->sqrt_dt*r*w_r*m->sigma_ij;
+        ptype ran = sqrt_dt*r*w_r*sigma_ij;
+        force = force - ((r_ij / r_ij_dist) * ran);
 
         return force;
     }
-
-// // OPTION 2 - Pass pre-calculated distances and velocity differences etc, as well as constants
-//     typedef struct update_message2 {
-//         float r_ij_dist; // Euclidian distance between beads i and j - 4 bytes now - Aiming for 2 with bfloat
-//         Vector3D<float> r_ij; // Vector distance between beads i and j - 12 bytes now - Aiming for 6 with int16_t
-//         Vector3D<float> v_ij; // Vector difference in velocity between beads i and j - 12 bytes now - Aiming for 6 with bfloat
-//         // float r_t; // Pairwise random generated using the two bead ids - 4 bytes now - Could be 2?
-//         uint32_t i_id;
-//         uint32_t j_id;
-//         // Square root could be peformed in accelerator? If not, pass in the squar-root of this.
-//         float r_c;// Cutoff radius used to determine if calculations are performed - 4 bytes - 2 using uint16_t
-//         float a_ij; // Interaction between bead type of i and bead type of j - 4 bytes - Aiming for 2 with bfloat
-//         float drag_coef; // Drag coefficient constant - 4 bytes now - Aiming for 2 with bfloat
-//         float sigma_ij; // Sigma constant used in random force - 4 bytes now - Aiming for 2 with bfloat
-//         float sqrt_dt; // Square root of the timestep (0.02) - 4 bytes now - Aiming for 2 with bfloat
-//         // Could this be calculated in accelerator?
-//     } update_message2; // Total size = 48 bytes now - 30 bytes with bfloat and fixed-point positions
-//     // Adds overhead, as calculations will need to be done before passing to the accelerator.
-//     // Testing this with a timed run works! Reported time is: 10.880934 (Quicker than normal, there must be a problem)
-//     // Make test - FAIL - potentially pairwise random being shortened
-//     // Remove pairwise random, pass in IDs: make test - FAIL - More to think about...
-//     //
-
-// #if defined(TESTING) || defined(STATS)
-//     __attribute__((noinline)) Vector3D<ptype> force_update2(update_message2* m){
-// #else
-//     Vector3D<ptype> force_update2(update_message2* m){
-// #endif
-
-//         // ptype r_ij_dist = a->pos.sq_dist(b->pos);
-
-//         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
-
-//         // if (r_ij_dist > sq_r_c) {
-//         //     return force;
-//         // }
-
-//         // r_ij_dist = newt_sqrt(r_ij_dist); // Only square root for distance once it's known these beads interact
-
-//         // ptype a_ij = A[a->type][b->type];
-//         // Vector3D<ptype> r_ij = r_i - r_j;
-//         // Vector3D<ptype> r_ij = a->pos - b->pos;
-//         // Vector3D<ptype> v_i = a->velo;
-//         // Vector3D<ptype> v_j = b->velo;
-//         // Vector3D<ptype> v_ij = v_i - v_j;
-//         // Vector3D<ptype> v_ij = a->velo - b->velo;
-//         // const ptype drag_coef(4.5); // the drag coefficient
-//         //const ptype sigma_ij(275.0); // sqrt(2*drag_coef*KBt) assumed same for all
-//         // const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
-//         // const ptype sqrt_dt(0.1414); // sqrt(0.02)
-
-//         // switching function
-//         ptype w_d = (ptype(1.0) - m->r_ij_dist)*(ptype(1.0) - m->r_ij_dist);
-
-//         //Conservative force: Equation 8.5 in the dl_meso manual
-//         force = (m->r_ij/m->r_ij_dist) * (m->a_ij * (ptype(1.0) - (m->r_ij_dist/m->r_c)));
-
-//         // Drag force
-//         force = force + (m->r_ij / (m->r_ij_dist * m->r_ij_dist)) * w_d * m->r_ij.dot(m->v_ij) * (ptype(-1.0) * m->drag_coef);
-
-//         // get the pairwise random number
-//         //ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX)) * 0.5);
-//         ptype r_t((pairwise_rand(m->i_id, m->i_id) / (float)(DT10_RAND_MAX/2)));
-//         ptype r = (r_t - ptype(1.0)) * 0.5;
-//         ptype w_r = (ptype(1.0) - m->r_ij_dist);
-
-//         // random force
-//         //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0);
-//         force = force - (m->r_ij / m->r_ij_dist)*m->sqrt_dt*r*w_r*m->sigma_ij;
-
-//         return force;
-//     }
-
-
-    // calculate a new force acting between two particles
-// #if defined(TESTING) || defined(STATS)
-//     __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-// #else
-//     Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-// #endif
-
-//         ptype r_ij_dist = a->pos.sq_dist(b->pos);
-
-//         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
-
-//         if (r_ij_dist > sq_r_c) {
-//             return force;
-//         }
-
-//         r_ij_dist = newt_sqrt(r_ij_dist); // Only square root for distance once it's known these beads interact
-
-//         ptype a_ij = A[a->type][b->type];
-//         // Vector3D<ptype> r_ij = r_i - r_j;
-//         Vector3D<ptype> r_ij = a->pos - b->pos;
-//         // Vector3D<ptype> v_i = a->velo;
-//         // Vector3D<ptype> v_j = b->velo;
-//         // Vector3D<ptype> v_ij = v_i - v_j;
-//         Vector3D<ptype> v_ij = a->velo - b->velo;
-//         const ptype drag_coef(4.5); // the drag coefficient
-//         //const ptype sigma_ij(275.0); // sqrt(2*drag_coef*KBt) assumed same for all
-//         const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
-//         const ptype sqrt_dt(0.1414); // sqrt(0.02)
-
-//         // switching function
-//         ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
-
-//         //Conservative force: Equation 8.5 in the dl_meso manual
-//         force = (r_ij/r_ij_dist) * (a_ij * (ptype(1.0) - (r_ij_dist/r_c)));
-
-//         // Drag force
-//         force = force + (r_ij / (r_ij_dist * r_ij_dist)) * w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef);
-
-//         // get the pairwise random number
-//         //ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX)) * 0.5);
-//         ptype r_t((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
-//         ptype r = (r_t - ptype(1.0)) * 0.5;
-//         ptype w_r = (ptype(1.0) - r_ij_dist);
-
-//         // random force
-//         //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0);
-//         force = force - (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij;
-
-//         return force;
-//     }
+#endif
 
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
@@ -438,47 +299,22 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 }
                 int cj = get_next_slot(s->local_slot_j);
                 if(ci != cj) {
-                    // #ifndef TESTING
-                        // s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-                    // #else
-                        // Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-
-                        update_message1 m = { s->bead_slot[ci].pos,
-                                              s->bead_slot[cj].pos,
-                                              s->bead_slot[ci].velo,
-                                              s->bead_slot[cj].velo,
-                                              s->bead_slot[ci].id,
-                                              s->bead_slot[cj].id,
-                                              s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos),
-                                              r_c,
-                                              A[s->bead_slot[ci].type][s->bead_slot[cj].type],
-                                              4.5, // drag_coefficient
-                                              275.0, // sigma_ij
-                                              0.1414 // square root of timestep (0.02)
-                                            };
-                        Vector3D<ptype> f = force_update1(&m);
-
-                    // float r_ij_dist_sq = s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos);
-                    // if (r_ij_dist_sq < (r_c*r_c)) {
-                    //     update_message2 m = { newt_sqrt(r_ij_dist_sq),
-                    //                           s->bead_slot[ci].pos - s->bead_slot[cj].pos,
-                    //                           s->bead_slot[ci].velo - s->bead_slot[cj].velo,
-                    //                           s->bead_slot[ci].id,
-                    //                           s->bead_slot[cj].id,
-                    //                           // (pairwise_rand(s->bead_slot[ci].id, s->bead_slot[cj].id) / (float)(DT10_RAND_MAX)) * 0.5,
-                    //                           r_c,
-                    //                           A[s->bead_slot[ci].type][s->bead_slot[cj].type],
-                    //                           4.5, // drag_coefficient
-                    //                           275.0, // sigma_ij
-                    //                           0.1414 // square root of timestep (0.02)
-                    //                         };
-
-                    //     Vector3D<ptype> f = force_update2(&m);
+                    #ifndef ACCELERATE
+                        Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                    #else
+                        return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                         s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                                         s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                         s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                                         s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                                         s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+                                                         A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                        Vector3D<ptype> f;
+                        f.set(r.x, r.y, r.z);
+                    #endif
 
                         Vector3D<int32_t> x = f.floatToFixed();
                         s->force_slot[ci] = s->force_slot[ci] + x;
-                    // }
-                    // #endif
                 }
                 s->local_slot_j = clear_slot(s->local_slot_j, cj);
             }
@@ -833,47 +669,23 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        uint32_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
-                // #ifndef TESTING
-                    // s->force_slot[ci] = s->force_slot[ci] + force_update(&s->bead_slot[ci], &msg->beads[0]);
-                // #else
-                    // Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
+            #ifndef ACCELERATE
+                Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
+            #else
+                return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                 msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z(),
+                                                 s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                 msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z(),
+                                                 s->bead_slot[ci].id, msg->beads[0].id,
+                                                 s->bead_slot[ci].pos.sq_dist(msg->beads[0].pos),
+                                                 r_c, A[s->bead_slot[ci].type][msg->beads[0].type], s->grand);
+                Vector3D<ptype> f;
+                f.set(r.x, r.y, r.z);
+            #endif
 
-                    update_message1 m = { s->bead_slot[ci].pos,
-                                          msg->beads[0].pos,
-                                          s->bead_slot[ci].velo,
-                                          msg->beads[0].velo,
-                                          s->bead_slot[ci].id,
-                                          msg->beads[0].id,
-                                          s->bead_slot[ci].pos.sq_dist(msg->beads[0].pos),
-                                          1.0, // r_c
-                                          A[s->bead_slot[ci].type][msg->beads[0].type],
-                                          4.5, // drag_coefficient
-                                          275.0, // sigma_ij
-                                          0.1414 // square root of timestep (0.02)
-                                        };
-                    Vector3D<ptype> f = force_update1(&m);
+                Vector3D<int32_t> x = f.floatToFixed();
+                s->force_slot[ci] = s->force_slot[ci] + x;
 
-                //    float r_ij_dist_sq = s->bead_slot[ci].pos.sq_dist(msg->beads[0].pos);
-                // if (r_ij_dist_sq < (r_c*r_c)) {
-                //     update_message2 m = { newt_sqrt(r_ij_dist_sq),
-                //                           s->bead_slot[ci].pos - msg->beads[0].pos,
-                //                           s->bead_slot[ci].velo - msg->beads[0].velo,
-                //                           s->bead_slot[ci].id,
-                //                           msg->beads[0].id,
-                //                           // (pairwise_rand(s->bead_slot[ci].id, msg->beads[0].id) / (float)(DT10_RAND_MAX)) * 0.5,
-                //                           r_c,
-                //                           A[s->bead_slot[ci].type][msg->beads[0].type],
-                //                           4.5, // drag_coefficient
-                //                           275.0, // sigma_ij
-                //                           0.1414 // square root of timestep (0.02)
-                //                         };
-
-                //     Vector3D<ptype> f = force_update2(&m);
-
-                    Vector3D<int32_t> x = f.floatToFixed();
-                    s->force_slot[ci] = s->force_slot[ci] + x;
-                // }
-                // #endif
 	            i = clear_slot(i, ci);
 	        }
             if (s->sentslot == 0) {
