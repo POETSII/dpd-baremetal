@@ -128,6 +128,20 @@ test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
+# --------------- ACCELERATOR TESTING ------------------
+$(DPD_BIN)/accelerator.o: $(DPD_SRC)/accelerator.cpp $(DPD_INC)/accelerator.h
+	mkdir -p $(DPD_BIN)
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
+
+test-accelerator: DFLAGS=-DTESTING -DACCELERATE
+test-accelerator: DPD_OBJS=$(DPD_BIN)/accelerator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+test-accelerator: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json
