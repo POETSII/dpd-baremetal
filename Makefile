@@ -27,7 +27,7 @@ bridge: $(DPD_BIN)/dpd-bridge
 
 # ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
 LOCAL_SOCKET=./_external.sock
-REMOTE_FULL=jrbeaumont@eliot.cl.cam.ac.uk
+REMOTE_FULL=jrbeaumont@fielding.cl.cam.ac.uk
 REMOTE_SOCKET=/home/jrbeaumont/dpd-baremetal/bin/_external.sock
 # ~~~~~~~~~~~~~~~ Client side run ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 client_run: bridge
