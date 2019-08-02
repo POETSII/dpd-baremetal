@@ -16,9 +16,9 @@ class Vector3D {
 
        // various getters and setters
        void clear(); /**< clears the current vector values (sets them all to zero) */
-       S x(); /**< returns the x value of this vector */
-       S y(); /**< returns the x value of this vector */
-       S z(); /**< returns the x value of this vector */
+       S x() const; /**< returns the x value of this vector */
+       S y() const; /**< returns the x value of this vector */
+       S z() const; /**< returns the x value of this vector */
        void x(S in); /**< sets the value of x */
        void y(S in); /**< sets the value of y */
        void z(S in); /**< sets the value of z */

@@ -44,11 +44,11 @@ void Vector3D<S>::clear() {
 
 // getters
 template<class S>
-S Vector3D<S>::x() { return _x; }
+S Vector3D<S>::x() const { return _x; }
 template<class S>
-S Vector3D<S>::y() { return _y; }
+S Vector3D<S>::y() const { return _y; }
 template<class S>
-S Vector3D<S>::z() { return _z; }
+S Vector3D<S>::z() const { return _z; }
 
 // setters
 template<class S>

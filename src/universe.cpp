@@ -335,6 +335,38 @@ bool Universe<S>::space(const bead_t *in) {
     }
 }
 
+// checks to see if a pair of beads can be added to the universe
+template<class S>
+bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
+   unit_pos_t xa = floor(pa->pos.x()/_unit_size);
+   unit_pos_t ya = floor(pa->pos.y()/_unit_size);
+   unit_pos_t za = floor(pa->pos.z()/_unit_size);
+   unit_t ta = {xa,ya,za};
+
+    unit_pos_t xb = floor(pb->pos.x()/_unit_size);
+   unit_pos_t yb = floor(pb->pos.y()/_unit_size);
+   unit_pos_t zb = floor(pb->pos.z()/_unit_size);
+   unit_t tb = {xb,yb,zb};
+
+    if(_locToId.find(ta)==_locToId.end()){
+     return false;
+   }
+   if(_locToId.find(tb)==_locToId.end()){
+     return false;
+   }
+
+    // lookup the device
+   PDeviceId b_sua = _locToId[ta];
+   PDeviceId b_sub = _locToId[tb];
+
+    if(b_sua==b_sub){
+     return get_num_beads(_g->devices[b_sua]->state.bslot)+1 < max_beads_per_dev;
+   }else{
+     return (get_num_beads(_g->devices[b_sua]->state.bslot) < max_beads_per_dev)
+           && get_num_beads(_g->devices[b_sub]->state.bslot) < max_beads_per_dev;
+   }
+}
+
 // add a bead to the simulation universe
 template<class S>
 unit_t Universe<S>::add(const bead_t *in) {

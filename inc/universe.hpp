@@ -27,6 +27,7 @@ class Universe {
     unit_t add(const bead_t* in); // adds a bead to the universe
     void add(const unit_t bead, const bead_t* in); // adds a bead to the universe in given cell space. Value of all positions must be less than unit length
     bool space(const bead_t* in); // checks to see if this bead can be added to the universe
+    bool space(const bead_t* a, const bead_t *b); // checks to see if this pair of beads can be added to the universe
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
     // simulation control

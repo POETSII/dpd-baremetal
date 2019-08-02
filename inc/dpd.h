@@ -63,6 +63,22 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
+/* DT10: Playing with bonds.
+    Particles of any species are bonded if:
+    - They have an id with the MSB set; and
+    - Their id differs by exactly 1.
+    This allows for dimers and polymers, but does not allow for multi-way stuff
+    In principle the bonds could break, which is a bit worrying. If they drift
+    within sight again then they will re-capture, but that is unlikely.
+*/
+const ptype bond_kappa=100; // Bond interaction is very strong
+const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
+
+ inline bool are_beads_bonded(uint32_t a, uint32_t b)
+{
+    return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
+}
+
 #if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
 const uint32_t emitperiod = 10;
 #endif
@@ -278,6 +294,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0);
         ptype ran = sqrt_dt*r*w_r*sigma_ij;
         force = force - ((r_ij / r_ij_dist) * ran);
+
+        if(are_beads_bonded(a->id, b->id)) {
+            force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
+        }
 
         return force;
     }
