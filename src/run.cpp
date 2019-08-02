@@ -121,6 +121,7 @@ int main(int argc, char *argv[]) {
         }
     };
 
+    uint32_t bonds = 0;
     auto bonded_world_3d=[&]()
     {
         uint32_t b_uid_bonded=0x80000000ul;
@@ -148,6 +149,7 @@ int main(int argc, char *argv[]) {
                     uni.add(b2.get());
                     added = true;
                     beads_added++;
+                    bonds++;
                 } else {
                     fprintf(stderr, "Failed to add %u\n", failures++);
                 }
@@ -183,6 +185,7 @@ int main(int argc, char *argv[]) {
 
     // uni.print_occupancy();
     printf("Number of beads in simulation: %u\n", beads_added);
+    printf("Number of bonds: %u\n", bonds);
 
     printf("running...\n");
     uni.run(printBeadNum, beads_added); // start the simulation
