@@ -261,12 +261,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
 
         //Conservative force: Equation 8.5 in the dl_meso manual
-        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/r_c));
-        force = (r_ij/r_ij_dist) * con;
+        ptype con = (a_ij * (ptype(1.0) - (r_ij_dist/r_c))) / r_ij_dist;
+        force = r_ij * con;
 
         // Drag force
-        ptype drag = w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef);
-        force = force + ((r_ij / (r_ij_dist_sq)) * drag);
+        ptype drag = (w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef)) / r_ij_dist_sq;
+        Vector3D<ptype> drag_force = (r_ij * drag);
+        force = force + drag_force;
 
         // get the pairwise random number
         //ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX)) * 0.5);
@@ -276,8 +277,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         // random force
         //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0);
-        ptype ran = sqrt_dt*r*w_r*sigma_ij;
-        force = force - ((r_ij / r_ij_dist) * ran);
+        ptype ran = (sqrt_dt*r*w_r*sigma_ij) / r_ij_dist;
+        Vector3D<ptype> rand_force = (r_ij * ran);
+        force = force - rand_force;
 
         return force;
     }
