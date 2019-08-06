@@ -1,5 +1,7 @@
 # Makefile for the testing of various components of the DPD simulation
 
+CPPFLAGS += -I ../inc
+
 DPD_CFLAGS= -w -std=c++11 
 
 DPD_INC=../inc
@@ -26,6 +28,8 @@ force_tests: force_tests.cpp $(DPD_INC)/fixed_ap.h $(TEST_OBJS)
 
 dpd_tests: dpd_tests.cpp $(DPD_INC)/dpd.h $(TEST_OBJS) 
 	g++ $(DPD_CFLAGS) -I $(DPD_INC) dpd_tests.cpp $(TEST_OBJS) -o dpd_tests -lm
+
+test_accelerator : ../src/accelerator.cpp ../src/utils.cpp
 
 clean:
 	rm -f fixed_ap_tests force_tests
