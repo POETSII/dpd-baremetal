@@ -174,7 +174,6 @@ struct DPDState {
     uint32_t upperCount;
     uint32_t wraps; // Number of times tinselCycleCountU has reset
 #endif
-    uint32_t migrations;
 
 };
 
@@ -323,12 +322,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
                     #else
                         return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                         s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
-                                                         s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                         s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
-                                                         s->bead_slot[ci].id, s->bead_slot[cj].id,
-                                                         s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
-                                                         A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                                                        s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                                        s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                        s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                                        s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                                        s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+                                                        A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
                         Vector3D<ptype> f;
                         f.set(r.x, r.y, r.z);
                     #endif
@@ -611,7 +610,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
 	        s->sentslot = s->bslot;
-            s->migrations++;
 	        if(s->migrateslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
@@ -739,7 +737,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
         msg->timestep = s->lost_beads;
-        msg->beads[0].id = s->migrations;
     #endif
 
     #ifdef TIMER

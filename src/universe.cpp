@@ -477,11 +477,9 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             cell_loc.x = msg.payload.from.x;
             cell_loc.y = msg.payload.from.y;
             cell_loc.z = msg.payload.from.z;
-            if (msg.payload.type = 0xAB) {
-                uint32_t wraps = (uint32_t) msg.payload.beads[0].pos.x();
-                uint32_t thread = get_thread_from_loc(cell_loc);
-                board_wrap[thread/1024] = wraps;
-            }
+            uint32_t wraps = (uint32_t) msg.payload.beads[0].pos.x();
+            uint32_t thread = get_thread_from_loc(cell_loc);
+            board_wrap[thread/1024] = wraps;
             uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
             PThreadId threadId = get_thread_from_loc(cell_loc);
