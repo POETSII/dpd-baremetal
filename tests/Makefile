@@ -34,4 +34,5 @@ test_accelerator: ../src/accelerator.cpp ../src/utils.cpp
 
 clean:
 	rm -f fixed_ap_tests force_tests
+	rm -f test_accelerator
 	rm -f *.o

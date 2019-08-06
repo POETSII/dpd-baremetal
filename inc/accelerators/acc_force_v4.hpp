@@ -48,11 +48,11 @@ return_message acc_force_v4(const update_message* m) {
     float vel_dot_x = r_ij_x * v_ij_x;
     float vel_dot_y = r_ij_y * v_ij_y;
     float vel_dot_z = r_ij_z * v_ij_z;
-    float vel_dot = vel_dot_x + vel_dot_y;
-    vel_dot = vel_dot + vel_dot_z;
+    float vel_dot_x_y = vel_dot_x + vel_dot_y;
+    float vel_dot = vel_dot_x_y + vel_dot_z;
     // float drag = w_d * vel_dot * (-1.0 * m->drag_coef);
-    float drag = w_d * vel_dot;
-    drag = drag * - m->drag_coef;
+    float drag_temp = w_d * vel_dot;
+    float drag = drag_temp * - m->drag_coef;
     float drag_div_dist_sqr = drag * inv_dist_sqr;
 
     float fx_d = r_ij_x * drag_div_dist_sqr;
@@ -62,10 +62,10 @@ return_message acc_force_v4(const update_message* m) {
     // get the pairwise random number
     // dt10's hash based random num gen
     // uint32_t pairwise_rand = (m->i_id ^ m->grand)*m->j_id + (m->j_id ^ m->grand)*m->i_id;
-    uint32_t pairwise_rand_a = m->i_id ^ m->grand;
-    pairwise_rand_a = pairwise_rand_a * m->j_id;
-    uint32_t pairwise_rand_b = m->j_id ^ m->grand;
-    pairwise_rand_b = pairwise_rand_b * m->i_id;
+    uint32_t pairwise_rand_a_temp = m->i_id ^ m->grand;
+    uint32_t pairwise_rand_a = pairwise_rand_a_temp * m->j_id;
+    uint32_t pairwise_rand_b_temp = m->j_id ^ m->grand;
+    uint32_t pairwise_rand_b = pairwise_rand_b_temp * m->i_id;
     uint32_t pairwise_rand = pairwise_rand_a + pairwise_rand_b;
 
     //fprintf(stderr, "  pairwise_rand = %08x, i_id=%08x, j_id=%08x\n", pairwise_rand, m->i_id, m->j_id);
@@ -83,8 +83,8 @@ return_message acc_force_v4(const update_message* m) {
     // random force
     // float ran = r * w_r * (m->sigma_ij * m->sqrt_dt); // TODO: Should sigma_ij*sqrt_dt be pre-calculated?
     float sigma_sqrt_dt = m->sigma_ij * m->sqrt_dt;
-    float ran = r * w_r;
-    ran = ran * sigma_sqrt_dt;
+    float ran_temp = r * w_r;
+    float ran = ran_temp * sigma_sqrt_dt;
     float ran_div_dist = - ran * inv_dist;
     float fx_r = r_ij_x * ran_div_dist;
     float fy_r = r_ij_y * ran_div_dist;
