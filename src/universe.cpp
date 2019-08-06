@@ -323,6 +323,9 @@ bool Universe<S>::space(const bead_t *in) {
     unit_pos_t y = floor(b.pos.y()/_unit_size);
     unit_pos_t z = floor(b.pos.z()/_unit_size);
     unit_t t = {x,y,z};
+    if (x > _size || x < 0 || y > _size || y < 0 || z > _size || z < 0) {
+        return false;
+    }
 
     // lookup the device
     PDeviceId b_su = _locToId[t];

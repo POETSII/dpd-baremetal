@@ -75,6 +75,9 @@ int main(int argc, char *argv[]) {
                 include_bonds = true;
             } else if (boost::contains(arg, "--print-number-of-beads")) {
                 printBeadNum = true;
+            } else {
+                std::cerr << "Unrecognised argument: " << arg << "\n";
+                return 1;
             }
         } else if (argv[i][0] < '9' && argv[i][0] > '0') {
             problem_size = std::stoi(argv[i]);
@@ -164,7 +167,7 @@ int main(int argc, char *argv[]) {
 
         uint32_t const bead_chain_numbers = 10;
 
-        for(int i=0; i<(0.4*4*N*N*N); i+=bead_chain_numbers) {
+        for(int i=0; i<(0.1*4*N*N*N); i+=bead_chain_numbers) {
             bool added = false;
             auto prev_bead = std::make_shared<bead_t>();
             prev_bead->id = b_uid_bonded++;
@@ -176,12 +179,10 @@ int main(int argc, char *argv[]) {
                     uni.add(prev_bead.get());
                     added = true;
                     beads_added++;
-                    std::cerr << prev_bead->id;
                 } else {
                 }
             }
             for (int j = 1; j < bead_chain_numbers; j++) {
-                std::cerr << " -> ";
                 bool added = false;
                 uint32_t bid_a=b_uid_bonded++;
                 while(!added) {
@@ -196,23 +197,15 @@ int main(int argc, char *argv[]) {
                         prev_bead = b1;
                         beads_added++;
                         bonds++;
-                        std::cerr << b1->id;
-                    } else {
-                        // fprintf(stderr, "Failed to add %u\n", failures++);
-                        if (failures >= 100) {
-                            std::cerr << "100 bonded bead adding failures\n";
-                            return 1;
-                        }
                     }
                 }
             }
-            std::cerr << "\n";
             b_uid_bonded++; // Create a break;
         }
 
 
         uint32_t b_uid = 0;
-        for(int i=0; i<(0.6*4*N*N*N); i++) {
+        for(int i=0; i<(0.9*4*N*N*N); i++) {
             bool added = false;
             while(!added) {
                 bead_t *b1 = new bead_t;
@@ -225,8 +218,6 @@ int main(int argc, char *argv[]) {
                     uni.add(b1);
                     added = true;
                     beads_added++;
-                } else {
-                    // fprintf(stderr, "Failed to add %u\n", failures++);
                 }
             }
         }
