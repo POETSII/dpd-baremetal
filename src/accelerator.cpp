@@ -1,6 +1,11 @@
 #include "accelerator.h"
 
-// Force update to be performed by an accelerator
+#ifndef TEST_ACCELERATOR_DT10
+#include "accelerators/acc_force_v4.hpp"
+#endif
+
+#ifdef TEST_ACCELERATOR_DT10
+//Force update to be performed by an accelerator
 return_message accelerator(update_message* m) {
 
     return_message force;
@@ -56,6 +61,9 @@ return_message accelerator(update_message* m) {
 
     return force;
 }
+#else
+    float sqrtf (float x) { return newt_sqrt(x); }
+#endif
 
 // Converts from non-accelerated force_update to accelerated version, then back. Allows for working with DPD
 return_message force_update(float i_pos_x, float i_pos_y, float i_pos_z, float j_pos_x, float j_pos_y, float j_pos_z,
@@ -109,7 +117,11 @@ return_message force_update(float i_pos_x, float i_pos_y, float i_pos_z, float j
     // Sqaure rtoot of timestep (0.02)
     m.sqrt_dt = 0.1414;
 
-    force = accelerator(&m);
+    #ifndef TEST_ACCELERATOR_DT10
+        force = acc_force_v4(&m);
+    #else
+        force = accelerator(&m);
+    #endif
 
     return force;
 }
