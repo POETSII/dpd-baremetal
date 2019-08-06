@@ -176,42 +176,37 @@ int main(int argc, char *argv[]) {
                     uni.add(prev_bead.get());
                     added = true;
                     beads_added++;
-                    std::cerr << "(" << prev_bead->pos.x() << ", " << prev_bead->pos.y() << ", " << prev_bead->pos.z() << ")\n";
-                    std::cerr << "ADDED FIRST BEAD\n";
+                    std::cerr << prev_bead->id;
                 } else {
-                    fprintf(stderr, "Failed to add first bead: %u\n", failures++);
-                    if (failures >= 100) {
-                        return 1;
-                    }
                 }
             }
             for (int j = 1; j < bead_chain_numbers; j++) {
+                std::cerr << " -> ";
                 bool added = false;
                 uint32_t bid_a=b_uid_bonded++;
-                // uint32_t bid_b=b_uid_bonded++;
                 while(!added) {
                     auto b1=std::make_shared<bead_t>();
                     b1->id = bid_a;
                     b1->type = 1;
                     b1->velo.set(0.0,0.0,0.0);
-                    b1->pos.set((rand() / (float)RAND_MAX * 0.2 + prev_bead.get()->pos.x()), (rand() / (float)RAND_MAX * 0.2 + prev_bead.get()->pos.y()), (rand() / (float)RAND_MAX * 0.2 + prev_bead.get()->pos.z()));
-                    std::cerr << "(" << b1->pos.x() << ", " << b1->pos.y() << ", " << b1->pos.z() << ")\n";
+                    b1->pos.set(((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.x(), ((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.y(), ((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.z());
                     if(uni.space(b1.get())) {
                         uni.add(b1.get());
                         added = true;
                         prev_bead = b1;
                         beads_added++;
                         bonds++;
-                        std::cerr << "ADDED BONDED BEAD\n";
-                        // std::cerr << prev_bead.get()->id << " -> " << b1.get()->id << "\n";
+                        std::cerr << b1->id;
                     } else {
-                        fprintf(stderr, "Failed to add %u\n", failures++);
+                        // fprintf(stderr, "Failed to add %u\n", failures++);
                         if (failures >= 100) {
+                            std::cerr << "100 bonded bead adding failures\n";
                             return 1;
                         }
                     }
                 }
             }
+            std::cerr << "\n";
             b_uid_bonded++; // Create a break;
         }
 
