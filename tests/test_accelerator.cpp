@@ -2,6 +2,7 @@
 #include "accelerators/acc_force_v1.hpp"
 #include "accelerators/acc_force_v2.hpp"
 #include "accelerators/acc_force_v3.hpp"
+#include "accelerators/acc_force_v4.hpp"
 
 #include <random>
 
@@ -15,7 +16,7 @@ update_message make_random_update_message(std::mt19937 &rng)
 {
 
     std::uniform_real_distribution<> udist;
-    
+
     auto next_float=[&](float low, float high)
     {
         return udist(rng)*(high-low)+low;
@@ -59,20 +60,20 @@ update_message make_random_update_message(std::mt19937 &rng)
      // they can move (1/dt)*dt = 1.
     next_sphere(res.i_vel_x, res.i_vel_y, res.i_vel_z, 1/dt);
     next_sphere(res.j_vel_x, res.j_vel_y, res.j_vel_z, 1/dt);
-    
+
     // ID of bead i
     res.i_id=next_uint32();
     // ID of bead j
     res.j_id=next_uint32();
     // Square of eculidian distance between beads
     res.r_ij_dist_sq=l2norm(res.i_pos_x-res.j_pos_x, res.i_pos_y-res.j_pos_y, res.i_pos_z-res.j_pos_z);
-    // Cutoff radius 
+    // Cutoff radius
     res.r_c=r_c; // 4 bytes
     // Interaction between bead type of i and bead type of j
     res.a_ij=next_float(1,100); // TODO: This range is based on the ranges used in dpd.h
     // Drag coefficient constant
     res.drag_coef = next_float(1,10); // TODO: No idea on the range of this
-    // Sigma constant used in random force 
+    // Sigma constant used in random force
     res.sigma_ij = next_float(10,200); // TODO: No idea on the range of this
     // Randomly generated number
     res.grand = next_uint32();
@@ -133,4 +134,5 @@ int main()
     compare("acc_force_v1:", 10000, accelerator, acc_force_v1);
     compare("acc_force_v2:", 10000, accelerator, acc_force_v2);
     compare("acc_force_v3:", 10000, accelerator, acc_force_v3);
+    compare("acc_force_v4:", 10000, accelerator, acc_force_v4);
 }
