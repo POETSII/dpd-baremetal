@@ -14,15 +14,20 @@
 
 int main() {
 
+#ifndef BOND_TESTING
+    std::string bead_file = "../tests/beads_in_18.csv";
     float problem_size = 18;
     int N = 18;
+#else
+    std::string bead_file = "../tests/beads_bonds_in_25.csv";
+    float problem_size = 25;
+    int N = 25;
+#endif
 
     printf("Testing the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
     Universe<ptype> uni(problem_size, N);
-
-    std::string bead_file = "../tests/beads_in_18.csv";
 
     std::cerr << "Universe setup -- loading beads from " << bead_file << "\n";
 
@@ -48,7 +53,7 @@ int main() {
         }
         // Create the bead
         bead_t* b1 = new bead_t;
-        b1->id = std::stoi(lines.at(0));
+        b1->id = std::stol(lines.at(0));
         b1->type = std::stoi(lines.at(1));
         b1->pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1->velo.set(0.0, 0.0, 0.0);
@@ -66,7 +71,11 @@ int main() {
     std::map<uint32_t, bead_t> expected_beads_map;
     std::map<uint32_t, unit_t> expected_cell_map;
     // Open expected bead file
+#ifndef BOND_TESTING
     std::string expected = "../tests/beads_out_18.csv";
+#else
+    std::string expected = "../tests/beads_bonds_out_25.csv";
+#endif
     std::ifstream expected_out(expected);
     // Reuse line from above
     // Loop through and add the beads to the expected output map
@@ -86,7 +95,7 @@ int main() {
         }
         // Create the bead
         bead_t b1;
-        b1.id = std::stoi(lines.at(0));
+        b1.id = std::stol(lines.at(0));
         b1.type = std::stoi(lines.at(1));
         b1.pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1.velo.set(0.0, 0.0, 0.0);
@@ -110,7 +119,7 @@ int main() {
 
     bool fail = false;
 
-    // FILE* newFile = fopen("../tests/beads_out_18_again.csv", "w");
+    FILE* newFile = fopen("../tests/beads_bonds_out_25.csv", "w");
 
     for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
         // Actual values
@@ -132,7 +141,7 @@ int main() {
         expected_cell.y = expected_cell_map[i->first].y;
         expected_cell.z = expected_cell_map[i->first].z;
 
-        // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
+        fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
 
         std::cerr << "ID: " << expected_id << "\n";
 
@@ -163,7 +172,7 @@ int main() {
 
     }
 
-    // fclose(newFile);
+    fclose(newFile);
 
     printf("TESTING HAS ");
     if (fail) {

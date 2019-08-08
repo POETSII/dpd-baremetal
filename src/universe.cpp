@@ -98,10 +98,10 @@ Universe<S>::Universe(S size, unsigned D) {
     _D = D;
     _unit_size = _size / S(D);
     _extern = new ExternalServer("_external.sock");
-    // _hostLink = new HostLink(2, 2); // 4 POETS boxes
-    _hostLink = new HostLink(); // 1 POETS Box
-    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
+    _hostLink = new HostLink(2, 2); // 4 POETS boxes
+    // _hostLink = new HostLink(); // 1 POETS Box
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
+    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -294,8 +294,8 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    // timerMap(_g, 2, 2); // 4 POETS Boxes
-    timerMap(_g, 1, 1); // 1 POETS Box
+    timerMap(_g, 2, 2); // 4 POETS Boxes
+    // timerMap(_g, 1, 1); // 1 POETS Box
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -551,15 +551,15 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
-        if (msg.payload.type == 0xAA) {
+       if (msg.payload.type == 0xAA) {
             finish++;
             if (finish >= (_D*_D*_D)) {
                 return result;
             }
         } else {
-            result[msg.payload.beads[0].id] = msg.payload;
+           result[msg.payload.beads[0].id] = msg.payload;
         }
-    }
+   }
 
     return result;
 }
