@@ -119,7 +119,7 @@ int main() {
 
     bool fail = false;
 
-    FILE* newFile = fopen("../tests/beads_bonds_out_25.csv", "w");
+    // FILE* newFile = fopen("../tests/beads_bonds_out_25.csv", "w");
 
     for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
         // Actual values
@@ -141,7 +141,7 @@ int main() {
         expected_cell.y = expected_cell_map[i->first].y;
         expected_cell.z = expected_cell_map[i->first].z;
 
-        fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
+        // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
 
         std::cerr << "ID: " << expected_id << "\n";
 
@@ -172,7 +172,7 @@ int main() {
 
     }
 
-    fclose(newFile);
+    // fclose(newFile);
 
     printf("TESTING HAS ");
     if (fail) {
