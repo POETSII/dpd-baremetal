@@ -142,6 +142,20 @@ test-accelerator: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
+# --------------- TIMING FOR FORCE UPDATE ---------------
+force-update-timing: DFLAGS=-DFORCE_UPDATE_TIMING_TEST
+force-update-timing: all
+
+# --------------- TIMING FOR PACKING MESSAGE FOR ACCELERATOR ---------------
+accelerator-timing: DFLAGS=-DACCELERATOR_TIMING_TEST -DACCELERATE
+accelerator-timing: DPD_OBJS=$(DPD_BIN)/accelerator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+accelerator-timing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(INC)/accelerators -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system\
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json

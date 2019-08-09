@@ -1,10 +1,10 @@
 #include "accelerator.h"
 
-#ifndef TEST_ACCELERATOR_DT10
+#if !defined(TEST_ACCELERATOR_DT10) && !defined(ACCELERATOR_TIMING_TEST)
 #include "accelerators/acc_force_v4.hpp"
 #endif
 
-#ifdef TEST_ACCELERATOR_DT10
+#if defined(TEST_ACCELERATOR_DT10) || defined(ACCELERATOR_TIMING_TEST)
 //Force update to be performed by an accelerator
 return_message accelerator(update_message* m) {
 
@@ -66,18 +66,18 @@ return_message accelerator(update_message* m) {
 #endif
 
 // Converts from non-accelerated force_update to accelerated version, then back. Allows for working with DPD
-return_message force_update(float i_pos_x, float i_pos_y, float i_pos_z, float j_pos_x, float j_pos_y, float j_pos_z,
+update_message force_update(float i_pos_x, float i_pos_y, float i_pos_z, float j_pos_x, float j_pos_y, float j_pos_z,
                             float i_vel_x, float i_vel_y, float i_vel_z, float j_vel_x, float j_vel_y, float j_vel_z,
                             uint32_t i_id, uint32_t j_id, float sq_dist, float r_c, float a_ij, uint32_t grand) {
 
-    return_message force;
-    force.x = 0;
-    force.y = 0;
-    force.z = 0;
+    // return_message force;
+    // force.x = 0;
+    // force.y = 0;
+    // force.z = 0;
 
-    if (sq_dist > (r_c * r_c)) {
-        return force;
-    }
+    // if (sq_dist > (r_c * r_c)) {
+    //     return force;
+    // }
 
     update_message m;
     // Position of bead i
@@ -117,11 +117,11 @@ return_message force_update(float i_pos_x, float i_pos_y, float i_pos_z, float j
     // Sqaure rtoot of timestep (0.02)
     m.sqrt_dt = 0.1414;
 
-    #ifndef TEST_ACCELERATOR_DT10
-        force = acc_force_v4(&m);
-    #else
-        force = accelerator(&m);
-    #endif
+    // #ifndef TEST_ACCELERATOR_DT10
+    //     force = acc_force_v4(&m);
+    // #else
+    //     force = accelerator(&m);
+    // #endif
 
-    return force;
+    return m;
 }

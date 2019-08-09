@@ -41,7 +41,7 @@
     #define START 3
 #endif
 
-#if defined(TESTING) || defined(TIMER) || defined(STATS)
+#if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST)
 #define TEST_LENGTH 1000
 #endif
 
@@ -117,6 +117,9 @@ struct DPDMessage {
 #endif
     unit_t from; // the unit that this message is from
     bead_t beads[1]; // the beads payload from this unit
+#if defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_TIMING_TEST)
+    uint64_t time;
+#endif
 };
 
 // the state of the DPD Device
@@ -158,7 +161,14 @@ struct DPDState {
     uint32_t upperCount;
     uint32_t wraps; // Number of times tinselCycleCountU has reset
 #endif
-    uint32_t migrations;
+
+#ifdef FORCE_UPDATE_TIMING_TEST
+    uint64_t force_update_timing;
+#endif
+
+#ifdef ACCELERATOR_TIMING_TEST
+    uint64_t accelerator_timing;
+#endif
 
 };
 
@@ -235,6 +245,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 #else
     Vector3D<ptype> force_update(bead_t *a, bead_t *b){
 #endif
+    #ifdef FORCE_UPDATE_TIMING_TEST
+        uint32_t timing_startU = tinselCycleCountU();
+        uint32_t timing_start = tinselCycleCount();
+    #endif
 
         ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
@@ -281,6 +295,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         Vector3D<ptype> rand_force = (r_ij * ran);
         force = force - rand_force;
 
+    #ifdef FORCE_UPDATE_TIMING_TEST
+        uint32_t timing_endU = tinselCycleCountU();
+        uint32_t timing_end = tinselCycleCount();
+        uint64_t start = (uint64_t) timing_startU << 32 | timing_start;
+        uint64_t end = (uint64_t) timing_endU << 32 | timing_end;
+        uint64_t timing_total = end - start;
+        s->force_update_timing += timing_total;
+    #endif
         return force;
     }
 #endif
@@ -304,16 +326,34 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     #ifndef ACCELERATE
                         Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
                     #else
-                        return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                         s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
-                                                         s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                         s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
-                                                         s->bead_slot[ci].id, s->bead_slot[cj].id,
-                                                         s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
-                                                         A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
-                        Vector3D<ptype> f;
-                        f.set(r.x, r.y, r.z);
-                    #endif
+                Vector3D<ptype> f;
+                float sq_dist = s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos);
+                if (sq_dist > (r_c * r_c)) {
+                    f.set(0.0, 0.0, 0.0);
+                } else {
+                #ifdef ACCELERATOR_TIMING_TEST
+                    uint32_t timing_startU = tinselCycleCountU();
+                    uint32_t timing_start = tinselCycleCount();
+                #endif
+                    update_message m = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                     s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                                     s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                     s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                                     s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                                     sq_dist, r_c, A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                #ifdef ACCELERATOR_TIMING_TEST
+                    uint32_t timing_endU = tinselCycleCountU();
+                    uint32_t timing_end = tinselCycleCount();
+                    uint64_t start = (uint64_t) timing_startU << 32 | timing_start;
+                    uint64_t end = (uint64_t) timing_endU << 32 | timing_end;
+                    uint64_t timing_total = end - start;
+                    s->accelerator_timing += timing_total;
+                #endif
+
+                    return_message r = accelerator(&m);
+                    f.set(r.x, r.y, r.z);
+                }
+                #endif
 
                         Vector3D<int32_t> x = f.floatToFixed();
                         s->force_slot[ci] = s->force_slot[ci] + x;
@@ -379,10 +419,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #if defined(TIMER) || defined(STATS)
+        #if defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
-            #ifndef STATS
+            #if !defined(STATS) && !defined(FORCE_UPDATE_TIMING_TEST) && !defined(ACCELERATOR_TIMING_TEST)
                 s->dpd_endU = tinselCycleCountU();
                 s->dpd_end  = tinselCycleCount();
             #endif
@@ -593,7 +633,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
 	        s->sentslot = s->bslot;
-            s->migrations++;
 	        if(s->migrateslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
@@ -674,15 +713,33 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             #ifndef ACCELERATE
                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
             #else
-                return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                 msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z(),
-                                                 s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                 msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z(),
-                                                 s->bead_slot[ci].id, msg->beads[0].id,
-                                                 s->bead_slot[ci].pos.sq_dist(msg->beads[0].pos),
-                                                 r_c, A[s->bead_slot[ci].type][msg->beads[0].type], s->grand);
                 Vector3D<ptype> f;
-                f.set(r.x, r.y, r.z);
+                float sq_dist = s->bead_slot[ci].pos.sq_dist(msg->beads[0].pos);
+                if (sq_dist > (r_c * r_c)) {
+                    f.set(0.0, 0.0, 0.0);
+                } else {
+                #ifdef ACCELERATOR_TIMING_TEST
+                    uint32_t timing_startU = tinselCycleCountU();
+                    uint32_t timing_start = tinselCycleCount();
+                #endif
+                    update_message m = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                     msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z(),
+                                                     s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                     msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z(),
+                                                     s->bead_slot[ci].id, msg->beads[0].id,
+                                                     sq_dist, r_c, A[s->bead_slot[ci].type][msg->beads[0].type], s->grand);
+                #ifdef ACCELERATOR_TIMING_TEST
+                    uint32_t timing_endU = tinselCycleCountU();
+                    uint32_t timing_end = tinselCycleCount();
+                    uint64_t start = (uint64_t) timing_startU << 32 | timing_start;
+                    uint64_t end = (uint64_t) timing_endU << 32 | timing_end;
+                    uint64_t timing_total = end - start;
+                    s->accelerator_timing += timing_total;
+                #endif
+
+                    return_message r = accelerator(&m);
+                    f.set(r.x, r.y, r.z);
+                }
             #endif
 
                 Vector3D<int32_t> x = f.floatToFixed();
@@ -721,7 +778,22 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
         msg->timestep = s->lost_beads;
-        msg->beads[0].id = s->migrations;
+    #endif
+
+    #ifdef FORCE_UPDATE_TIMING_TEST
+        msg->type = 0xBB;
+        msg->time = s->force_update_timing;
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
+    #endif
+
+    #ifdef ACCELERATOR_TIMING_TEST
+        msg->type = 0xBB;
+        msg->time = s->accelerator_timing;
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
     #endif
 
     #ifdef TIMER

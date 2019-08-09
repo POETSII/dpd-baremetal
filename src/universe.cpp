@@ -98,10 +98,10 @@ Universe<S>::Universe(S size, unsigned D) {
     _D = D;
     _unit_size = _size / S(D);
     _extern = new ExternalServer("_external.sock");
-    // _hostLink = new HostLink(2, 2); // 4 POETS boxes
-    _hostLink = new HostLink(); // 1 POETS Box
-    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
+    _hostLink = new HostLink(2, 2); // 4 POETS boxes
+    // _hostLink = new HostLink(); // 1 POETS Box
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
+    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -294,8 +294,8 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    // timerMap(_g, 2, 2); // 4 POETS Boxes
-    timerMap(_g, 1, 1); // 1 POETS Box
+    timerMap(_g, 2, 2); // 4 POETS Boxes
+    // timerMap(_g, 1, 1); // 1 POETS Box
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -423,6 +423,12 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     uint32_t stats_finished = 0;
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
+#elif defined(FORCE_UPDATE_TIMING_TEST)
+    uint32_t devices = 0;
+    std::map<unit_t, uint64_t> force_update_timing_map;
+#elif defined(ACCELERATOR_TIMING_TEST)
+    uint32_t devices = 0;
+    std::map<unit_t, uint64_t> accelerator_timing_map;
 #endif
 
     // enter the main loop
@@ -492,6 +498,54 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 printf("Lost beads = %u\n", lost_beads);
                 printf("migrations = %u\n", migrations);
                 printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+                return;
+            }
+        }
+    #elif defined(FORCE_UPDATE_TIMING_TEST)
+        if (msg.payload.type == 0xBB) {
+            uint64_t force_update_timing = msg.payload.time;
+            unit_t loc;
+            loc.x = msg.payload.from.x;
+            loc.y = msg.payload.from.y;
+            loc.z = msg.payload.from.z;
+            force_update_timing_map[loc] = force_update_timing;
+            devices++;
+            if (devices >= _D*_D*_D) {
+                uint64_t total = 0;
+                std::ostringstream oss;
+                oss << "../perf-results/force_update_timing_" << _D << ".csv";
+                std::string s = oss.str();
+                FILE* newFile = fopen(oss.str().c_str(), "w");
+                for(std::map<unit_t, uint64_t>::iterator i = force_update_timing_map.begin(); i!=force_update_timing_map.end(); ++i) {
+                    total += i->second;
+                    fprintf(newFile, "%u, %u, %u, %lu\n", i->first.x, i->first.y, i->first.z, i->second);
+                }
+                fclose(newFile);
+                std::cerr << "Average force update time = " <<  total / (_D*_D*_D) << "\n";
+                return;
+            }
+        }
+    #elif defined(ACCELERATOR_TIMING_TEST)
+        if (msg.payload.type == 0xBB) {
+            uint64_t accelerator_timing = msg.payload.time;
+            unit_t loc;
+            loc.x = msg.payload.from.x;
+            loc.y = msg.payload.from.y;
+            loc.z = msg.payload.from.z;
+            accelerator_timing_map[loc] = accelerator_timing;
+            devices++;
+            if (devices >= _D*_D*_D) {
+                uint64_t total = 0;
+                std::ostringstream oss;
+                oss << "../perf-results/accelerator_timing_" << _D << ".csv";
+                std::string s = oss.str();
+                FILE* newFile = fopen(oss.str().c_str(), "w");
+                for(std::map<unit_t, uint64_t>::iterator i = accelerator_timing_map.begin(); i!=accelerator_timing_map.end(); ++i) {
+                    total += i->second;
+                    fprintf(newFile, "%u, %u, %u, %lu\n", i->first.x, i->first.y, i->first.z, i->second);
+                }
+                fclose(newFile);
+                std::cerr << "Average accelerator message packing time = " <<  total / (_D*_D*_D) << "\n";
                 return;
             }
         }
