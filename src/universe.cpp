@@ -551,6 +551,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         uint32_t timestep = msg.payload.timestep;
         bead_id_t id = msg.payload.beads[0].id;
         Vector3D<float> pos = msg.payload.beads[0].pos;
+        pos.set(pos.x() + loc.x, pos.y() + loc.y, pos.z() + loc.z);
         force_update_variance_map[timestep][id] = pos;
         if (timestep == TEST_LENGTH - 1) {
             completedDevices.insert(loc);
@@ -576,6 +577,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         uint32_t timestep = msg.payload.timestep;
         bead_id_t id = msg.payload.beads[0].id;
         Vector3D<float> pos = msg.payload.beads[0].pos;
+        pos.set(pos.x() + loc.x, pos.y() + loc.y, pos.z() + loc.z);
         accelerator_variance_map[timestep][id] = pos;
         if (timestep == TEST_LENGTH - 1) {
             completedDevices.insert(loc);

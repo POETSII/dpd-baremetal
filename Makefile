@@ -163,7 +163,7 @@ accelerator-timing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OB
 force-update-variance-testing: DFLAGS=-DFORCE_UPDATE_VARIANCE_TEST
 force-update-variance-testing: run
 
-# --------------- VARIANCE DATA ACQUIRING FOR ACCELERATOR ---------------
+# --------------- VARIANCE DATA ACQUIRING FOR ACCELERATOR ----------------
 accelerator-variance-testing: DFLAGS=-DACCELERATOR_VARIANCE_TEST -DACCELERATE
 accelerator-variance-testing: DPD_OBJS=$(DPD_BIN)/accelerator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 accelerator-variance-testing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
@@ -172,6 +172,12 @@ accelerator-variance-testing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system\
+
+# --------------- VARAINCE ANALYSIS ---------------------- ---------------
+variance-analysis: $(DPD_INC)/Vector3D.hpp $(DPD_SRC)/Vector3D.cpp $(DPD_SRC)/bead_analysis.cpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 -I $(DPD_INC) -o $(DPD_BIN)/analysis $(DPD_SRC)/bead_analysis.cpp
+# 	mv analysis $(DPD_BIN)/
 
 .PHONY: clean
 clean:
