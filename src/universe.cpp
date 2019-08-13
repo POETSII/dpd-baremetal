@@ -9,6 +9,7 @@
 #define __UNIVERSE_IMPL
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
+#include <set>
 
 // helper functions for managing bead slots
 template<class S>
@@ -419,16 +420,18 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     std::map<unit_t, uint32_t> locToThread;
     uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
     uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
-#elif defined(STATS)
-    uint32_t stats_finished = 0;
-    uint32_t lost_beads = 0;
-    uint32_t migrations = 0;
 #elif defined(FORCE_UPDATE_TIMING_TEST)
     uint32_t devices = 0;
     std::map<unit_t, uint64_t> force_update_timing_map;
 #elif defined(ACCELERATOR_TIMING_TEST)
     uint32_t devices = 0;
     std::map<unit_t, uint64_t> accelerator_timing_map;
+#elif defined(FORCE_UPDATE_VARIANCE_TEST)
+    std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>> force_update_variance_map;
+    std::set<unit_t> completedDevices;
+#elif defined(ACCELERATOR_VARIANCE_TEST)
+    std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>> accelerator_variance_map;
+    std::set<unit_t> completedDevices;
 #endif
 
     // enter the main loop
@@ -458,6 +461,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             }
             uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
+            std::cerr << "S = " << s << " E = " << e << "\n";
             PThreadId threadId = get_thread_from_loc(cell_loc);
             dpd_start[cell_loc] = s;
             dpd_end[cell_loc] = e;
@@ -490,16 +494,9 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         }
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
-            stats_finished++;
-            lost_beads += msg.payload.timestep;
-            migrations += msg.payload.beads[0].id;
-            if (stats_finished >= _D*_D*_D) {
-                politeSaveStats(_hostLink, "stats.txt");
-                printf("Lost beads = %u\n", lost_beads);
-                printf("migrations = %u\n", migrations);
-                printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-                return;
-            }
+            politeSaveStats(_hostLink, "stats.txt");
+            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+            return;
         }
     #elif defined(FORCE_UPDATE_TIMING_TEST)
         if (msg.payload.type == 0xBB) {
@@ -546,6 +543,56 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 }
                 fclose(newFile);
                 std::cerr << "Average accelerator message packing time = " <<  total / (_D*_D*_D) << "\n";
+                return;
+            }
+        }
+    #elif defined(FORCE_UPDATE_VARIANCE_TEST)
+        unit_t loc = msg.payload.from;
+        uint32_t timestep = msg.payload.timestep;
+        bead_id_t id = msg.payload.beads[0].id;
+        Vector3D<float> pos = msg.payload.beads[0].pos;
+        force_update_variance_map[timestep][id] = pos;
+        if (timestep == TEST_LENGTH - 1) {
+            completedDevices.insert(loc);
+            if (completedDevices.size() >= (_D*_D*_D)) {
+                // Testing complete
+                std::ostringstream oss;
+                oss << "../perf-results/force_update_bead_positions_" << _D << ".csv";
+                FILE* beadFile = fopen(oss.str().c_str(), "w");
+                for(std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>>::iterator i = force_update_variance_map.begin(); i!=force_update_variance_map.end(); ++i) {
+                    fprintf(beadFile, "%u", i->first);
+                    for(std::map<bead_id_t, Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        fprintf(beadFile, ", %u, %1.10f, %1.10f, %1.10f", j->first, j->second.x(), j->second.y(), j->second.z());
+                    }
+                    fprintf(beadFile, "\n");
+                }
+                fclose(beadFile);
+                std::cerr << "Beads for each timestep have been stored in" << oss.str() << "\n";
+                return;
+            }
+        }
+    #elif defined(ACCELERATOR_VARIANCE_TEST)
+        unit_t loc = msg.payload.from;
+        uint32_t timestep = msg.payload.timestep;
+        bead_id_t id = msg.payload.beads[0].id;
+        Vector3D<float> pos = msg.payload.beads[0].pos;
+        accelerator_variance_map[timestep][id] = pos;
+        if (timestep == TEST_LENGTH - 1) {
+            completedDevices.insert(loc);
+            if (completedDevices.size() >= (_D*_D*_D)) {
+                // Testing complete
+                std::ostringstream oss;
+                oss << "../perf-results/accelerator_bead_positions_" << _D << ".csv";
+                FILE* beadFile = fopen(oss.str().c_str(), "w");
+                for(std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>>::iterator i = accelerator_variance_map.begin(); i!=accelerator_variance_map.end(); ++i) {
+                    fprintf(beadFile, "%u", i->first);
+                    for(std::map<bead_id_t, Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        fprintf(beadFile, ", %u, %1.10f, %1.10f, %1.10f", j->first, j->second.x(), j->second.y(), j->second.z());
+                    }
+                    fprintf(beadFile, "\n");
+                }
+                fclose(beadFile);
+                std::cerr << "Beads for each timestep have been stored in" << oss.str() << "\n";
                 return;
             }
         }

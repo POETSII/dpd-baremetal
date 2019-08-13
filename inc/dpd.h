@@ -33,7 +33,7 @@
 #define UPDATE 0
 #define MIGRATION 1
 
-#if !defined(TIMER) && !defined(STATS)
+#if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(TESTING) || defined(ACCELERATOR_VARIANCE_TEST)
 #define EMIT 2
 #endif
 
@@ -41,7 +41,7 @@
     #define START 3
 #endif
 
-#if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST)
+#if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
 #define TEST_LENGTH 1000
 #endif
 
@@ -63,8 +63,10 @@ const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
-#if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
+#ifdef EMIT_BEADS
 const uint32_t emitperiod = 10;
+#elif defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+const uint32_t emitperiod = 0;
 #endif
 
 // ---------------------------------------------------------------------------------------
@@ -141,14 +143,12 @@ struct DPDState {
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
+#if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
     uint32_t emitcnt; // a counter to kept track of updates between emitting the state
 #endif
     uint32_t timestep; // the current timestep that we are on
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
-
-    uint32_t lost_beads;
 
 #ifdef TIMER
     uint32_t board_startU;
@@ -175,11 +175,6 @@ struct DPDState {
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
-    inline void clear_seen(uint32_t* seen) {
-        for (int i = 0; i < 100; i++) {
-            seen[i] = 0;
-        }
-    }
     // ----------------- bead slots ---------------------------
     // helper functions for managing bead slots
     inline uint32_t clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
@@ -381,7 +376,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-    #if !defined(TESTING) && !defined(STATS)
+    #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
 		s->emitcnt = emitperiod;
     #endif
 		s->mode = UPDATE;
@@ -419,10 +414,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #if defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST)
+        #if defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
-            #if !defined(STATS) && !defined(FORCE_UPDATE_TIMING_TEST) && !defined(ACCELERATOR_TIMING_TEST)
+            #ifdef TIMER
                 s->dpd_endU = tinselCycleCountU();
                 s->dpd_end  = tinselCycleCount();
             #endif
@@ -536,23 +531,23 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we have just finished a particle migration step
         if(s->mode == MIGRATION) {
         	// do we want to export?
-        #if defined(TESTING)
+        #ifdef TESTING
             if (s->timestep >= TEST_LENGTH)
-        #elif !defined(TIMER) && !defined(STATS)
+        #elif defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
         	if(s->emitcnt >= emitperiod)
         #endif
-        #if !defined(TIMER) && !defined(STATS)
+        #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(TESTING) || defined(ACCELERATOR_VARIANCE_TEST)
             {
     	        s->mode = EMIT;
 	            if(s->bslot) {
     	            s->sentslot = s->bslot;
                     *readyToSend = HostPin;
     	        }
-            #if !defined(TESTING) && !defined(STATS)
+            #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
     	        s->emitcnt = 0;
             #endif
             } else {
-            #if !defined(TESTING) && !defined(STATS)
+            #ifdef EMIT_BEADS
     	        s->emitcnt++;
             #endif
     	        s->mode = UPDATE;
@@ -573,13 +568,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         // we have just finished emitting the state to the host
-    #if !defined(TIMER) && !defined(STATS)
+    #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
 	    if(s->mode == EMIT) {
-        #if defined(TESTING) || defined(STATS)
-            if (s->timestep >= TEST_LENGTH) {
-                return false;
-            }
-        #endif
             // move into the update mode
 	        s->mode = UPDATE;
 	        s->sentslot = s->bslot;
@@ -642,7 +632,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
 	    // we are emitting our state to the host
-    #if !defined(TIMER) && !defined(STATS)
+    #if defined(EMIT_BEADS) || defined(TESTING) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
@@ -758,7 +748,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            // looks like we are getting a new addition to our family
 	            uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
                 if (ci == 0xFFFFFFFF) {
-                    s->lost_beads++;
                 } else {
                     s->bslot = set_slot(s->bslot, ci);
     	            s->sentslot = s->bslot;
@@ -777,7 +766,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->lost_beads;
     #endif
 
     #ifdef FORCE_UPDATE_TIMING_TEST

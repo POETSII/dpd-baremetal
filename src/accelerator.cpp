@@ -62,6 +62,7 @@ return_message accelerator(update_message* m) {
     return force;
 }
 #else
+    return_message accelerator(update_message* m) { return acc_force_v4(m); }
     float sqrtf (float x) { return newt_sqrt(x); }
 #endif
 

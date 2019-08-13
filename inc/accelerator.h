@@ -53,10 +53,10 @@ typedef struct return_message {
     float z;
 } return_message;
 
-#if defined(TEST_ACCELERATOR_DT10) || defined(ACCELERATOR_TIMING_TEST)
+// #if defined(TEST_ACCELERATOR_DT10) || defined(ACCELERATOR_TIMING_TEST)
 // // Force update to be performed by an accelerator
 return_message accelerator(update_message* m);
-#endif
+// #endif
 
 // Converts from non-accelerated force_update to accelerated version, then back. Allows for working with DPD
 update_message force_update(float i_pos_x, float i_pos_y, float i_pos_z, float j_pos_x, float j_pos_y, float j_pos_z,
