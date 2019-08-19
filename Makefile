@@ -179,6 +179,20 @@ variance-analysis: $(DPD_INC)/Vector3D.hpp $(DPD_SRC)/Vector3D.cpp $(DPD_SRC)/be
 	g++ -O2 -std=c++11 -I $(DPD_INC) -o $(DPD_BIN)/analysis $(DPD_SRC)/bead_analysis.cpp
 # 	mv analysis $(DPD_BIN)/
 
+# --------------- FORCE_UPDATE VELOCITY DATA ------------------------------
+force-update-velocity-testing: DFLAGS=-DFORCE_UPDATE_VELOCITY_TEST
+force-update-velocity-testing: run
+
+# --------------- ACCELERATOR VELOCITY DATA ------------------------------
+accelerator-velocity-testing: DFLAGS=-DACCELERATOR_VELOCITY_TEST -DACCELERATE
+accelerator-velocity-testing: DPD_OBJS=$(DPD_BIN)/accelerator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+accelerator-velocity-testing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(INC)/accelerators -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system\
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json

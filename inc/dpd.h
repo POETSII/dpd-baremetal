@@ -33,7 +33,7 @@
 #define UPDATE 0
 #define MIGRATION 1
 
-#if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(TESTING) || defined(ACCELERATOR_VARIANCE_TEST)
+#if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(TESTING) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
 #define EMIT 2
 #endif
 
@@ -41,8 +41,8 @@
     #define START 3
 #endif
 
-#if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
-#define TEST_LENGTH 1000
+#if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
+#define TEST_LENGTH 100000
 #endif
 
 typedef float ptype;
@@ -65,7 +65,7 @@ const ptype p_mass = 1.0; // the mass of all beads (not currently configurable p
 
 #ifdef EMIT_BEADS
 const uint32_t emitperiod = 10;
-#elif defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+#elif defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
 const uint32_t emitperiod = 0;
 #endif
 
@@ -143,7 +143,7 @@ struct DPDState {
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+#if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
     uint32_t emitcnt; // a counter to kept track of updates between emitting the state
 #endif
     uint32_t timestep; // the current timestep that we are on
@@ -376,7 +376,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-    #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+    #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
 		s->emitcnt = emitperiod;
     #endif
 		s->mode = UPDATE;
@@ -414,7 +414,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #if defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+        #if defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
             #ifdef TIMER
@@ -533,17 +533,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         	// do we want to export?
         #ifdef TESTING
             if (s->timestep >= TEST_LENGTH)
-        #elif defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+        #elif defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
         	if(s->emitcnt >= emitperiod)
         #endif
-        #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(TESTING) || defined(ACCELERATOR_VARIANCE_TEST)
+        #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(TESTING) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
             {
     	        s->mode = EMIT;
 	            if(s->bslot) {
     	            s->sentslot = s->bslot;
                     *readyToSend = HostPin;
     	        }
-            #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+            #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
     	        s->emitcnt = 0;
             #endif
             } else {
@@ -568,7 +568,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         // we have just finished emitting the state to the host
-    #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+    #if defined(EMIT_BEADS) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
 	    if(s->mode == EMIT) {
             // move into the update mode
 	        s->mode = UPDATE;
@@ -632,7 +632,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
 	    // we are emitting our state to the host
-    #if defined(EMIT_BEADS) || defined(TESTING) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST)
+    #if defined(EMIT_BEADS) || defined(TESTING) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);

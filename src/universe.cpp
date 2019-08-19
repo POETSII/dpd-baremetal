@@ -432,6 +432,12 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 #elif defined(ACCELERATOR_VARIANCE_TEST)
     std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>> accelerator_variance_map;
     std::set<unit_t> completedDevices;
+#elif defined(FORCE_UPDATE_VELOCITY_TEST)
+    std::map<uint32_t, std::vector<Vector3D<float>>> force_update_velocity_map;
+    std::set<unit_t> completedDevices;
+#elif defined(ACCELERATOR_VELOCITY_TEST)
+    std::map<uint32_t, std::vector<Vector3D<float>>> accelerator_velocity_map;
+    std::set<unit_t> completedDevices;
 #endif
 
     // enter the main loop
@@ -595,6 +601,58 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 }
                 fclose(beadFile);
                 std::cerr << "Beads for each timestep have been stored in" << oss.str() << "\n";
+                return;
+            }
+        }
+    #elif defined(FORCE_UPDATE_VELOCITY_TEST)
+        unit_t loc = msg.payload.from;
+        uint32_t timestep = msg.payload.timestep;
+        Vector3D<float> vel = msg.payload.beads[0].velo;
+        force_update_velocity_map[timestep].push_back(vel);
+        if (timestep == TEST_LENGTH - 1) {
+            completedDevices.insert(loc);
+            if (completedDevices.size() >= (_D*_D*_D)) {
+                // Testing complete
+                std::ostringstream oss;
+                oss << "../perf-results/force_update_velocites_" << _D << ".csv";
+                FILE* beadFile = fopen(oss.str().c_str(), "w");
+                for(std::map<uint32_t, std::vector<Vector3D<float>>>::iterator i = force_update_velocity_map.begin(); i!=force_update_velocity_map.end(); ++i) {
+                    fprintf(beadFile, "%u, ", i->first);
+                    double accumulator = 0.0;
+                    for(std::vector<Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        accumulator = accumulator + j->mag();
+                    }
+                    accumulator = accumulator / i->second.size();
+                    fprintf(beadFile, "%f\n", accumulator);
+                }
+                fclose(beadFile);
+                std::cerr << "Velocity magnitutes for each timestep have been stored in " << oss.str() << "\n";
+                return;
+            }
+        }
+    #elif defined(ACCELERATOR_VELOCITY_TEST)
+        unit_t loc = msg.payload.from;
+        uint32_t timestep = msg.payload.timestep;
+        Vector3D<float> vel = msg.payload.beads[0].velo;
+        accelerator_velocity_map[timestep].push_back(vel);
+        if (timestep == TEST_LENGTH - 1) {
+            completedDevices.insert(loc);
+            if (completedDevices.size() >= (_D*_D*_D)) {
+                // Testing complete
+                std::ostringstream oss;
+                oss << "../perf-results/accelerator_velocites_" << _D << ".csv";
+                FILE* beadFile = fopen(oss.str().c_str(), "w");
+                for(std::map<uint32_t, std::vector<Vector3D<float>>>::iterator i = accelerator_velocity_map.begin(); i!=accelerator_velocity_map.end(); ++i) {
+                    fprintf(beadFile, "%u, ", i->first);
+                    double accumulator = 0.0;
+                    for(std::vector<Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        accumulator = accumulator + j->mag();
+                    }
+                    accumulator = accumulator / i->second.size();
+                    fprintf(beadFile, "%f\n", accumulator);
+                }
+                fclose(beadFile);
+                std::cerr << "Velocity magnitutes for each timestep have been stored in " << oss.str() << "\n";
                 return;
             }
         }
