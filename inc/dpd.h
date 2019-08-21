@@ -42,7 +42,7 @@
 #endif
 
 #if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_VARIANCE_TEST) || defined(ACCELERATOR_VARIANCE_TEST) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
-#define TEST_LENGTH 100000
+#define TEST_LENGTH 1000
 #endif
 
 typedef float ptype;

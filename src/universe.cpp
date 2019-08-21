@@ -642,6 +642,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 std::ostringstream oss;
                 oss << "../perf-results/accelerator_velocites_" << _D << ".csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
+                fprintf(beadFile, "Timestep, Average Bead Velocity (ABV), Temperature (KbT = ABV/3)\n");
                 for(std::map<uint32_t, std::vector<Vector3D<float>>>::iterator i = accelerator_velocity_map.begin(); i!=accelerator_velocity_map.end(); ++i) {
                     fprintf(beadFile, "%u, ", i->first);
                     double accumulator = 0.0;
@@ -649,7 +650,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                         accumulator = accumulator + j->mag();
                     }
                     accumulator = accumulator / i->second.size();
-                    fprintf(beadFile, "%f\n", accumulator);
+                    double temperature = accumulator/3;
+                    fprintf(beadFile, "%f, %f\n", accumulator, temperature);
                 }
                 fclose(beadFile);
                 std::cerr << "Velocity magnitutes for each timestep have been stored in " << oss.str() << "\n";
