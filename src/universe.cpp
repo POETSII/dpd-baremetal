@@ -623,10 +623,11 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                         accumulator = accumulator + j->mag();
                     }
                     accumulator = accumulator / i->second.size();
-                    fprintf(beadFile, "%f\n", accumulator);
+                    double temperature = accumulator/3;
+                    fprintf(beadFile, "%f, %f\n", accumulator, temperature);
                 }
                 fclose(beadFile);
-                std::cerr << "Velocity magnitutes for each timestep have been stored in " << oss.str() << "\n";
+                std::cerr << "Velocity magnitudes for each timestep have been stored in " << oss.str() << "\n";
                 return;
             }
         }
@@ -654,7 +655,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                     fprintf(beadFile, "%f, %f\n", accumulator, temperature);
                 }
                 fclose(beadFile);
-                std::cerr << "Velocity magnitutes for each timestep have been stored in " << oss.str() << "\n";
+                std::cerr << "Velocity magnitudes for each timestep have been stored in " << oss.str() << "\n";
                 return;
             }
         }
