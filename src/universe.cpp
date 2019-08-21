@@ -99,10 +99,10 @@ Universe<S>::Universe(S size, unsigned D) {
     _D = D;
     _unit_size = _size / S(D);
     _extern = new ExternalServer("_external.sock");
-    _hostLink = new HostLink(2, 2); // 4 POETS boxes
-    // _hostLink = new HostLink(); // 1 POETS Box
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
-    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
+    // _hostLink = new HostLink(2, 2); // 4 POETS boxes
+    _hostLink = new HostLink(); // 1 POETS Box
+    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -295,8 +295,8 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g, 2, 2); // 4 POETS Boxes
-    // timerMap(_g, 1, 1); // 1 POETS Box
+    // timerMap(_g, 2, 2); // 4 POETS Boxes
+    timerMap(_g, 1, 1); // 1 POETS Box
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -427,17 +427,19 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     uint32_t devices = 0;
     std::map<unit_t, uint64_t> accelerator_timing_map;
 #elif defined(FORCE_UPDATE_VARIANCE_TEST)
-    std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>> force_update_variance_map;
+    std::map<uint32_t, std::map<bead_id_t, bead_t>> force_update_variance_map;
     std::set<unit_t> completedDevices;
 #elif defined(ACCELERATOR_VARIANCE_TEST)
-    std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>> accelerator_variance_map;
+    std::map<uint32_t, std::map<bead_id_t, bead_t>> accelerator_variance_map;
     std::set<unit_t> completedDevices;
 #elif defined(FORCE_UPDATE_VELOCITY_TEST)
-    std::map<uint32_t, std::vector<Vector3D<float>>> force_update_velocity_map;
+    std::map<uint32_t, std::map<uint32_t, bead_t>> force_update_velocity_map;
     std::set<unit_t> completedDevices;
+    uint32_t max_id = 0;
 #elif defined(ACCELERATOR_VELOCITY_TEST)
-    std::map<uint32_t, std::vector<Vector3D<float>>> accelerator_velocity_map;
+    std::map<uint32_t, std::map<uint32_t, bead_t>> accelerator_velocity_map;
     std::set<unit_t> completedDevices;
+    uint32_t max_id = 0;
 #endif
 
     // enter the main loop
@@ -556,9 +558,9 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
         bead_id_t id = msg.payload.beads[0].id;
-        Vector3D<float> pos = msg.payload.beads[0].pos;
-        pos.set(pos.x() + loc.x, pos.y() + loc.y, pos.z() + loc.z);
-        force_update_variance_map[timestep][id] = pos;
+        bead_t bead = msg.payload.beads[0];
+        bead.pos.set(bead.pos.x() + loc.x, bead.pos.y() + loc.y, bead.pos.z() + loc.z);
+        force_update_variance_map[timestep][id] = bead;
         if (timestep == TEST_LENGTH - 1) {
             completedDevices.insert(loc);
             if (completedDevices.size() >= (_D*_D*_D)) {
@@ -566,10 +568,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 std::ostringstream oss;
                 oss << "../perf-results/force_update_bead_positions_" << _D << ".csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
-                for(std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>>::iterator i = force_update_variance_map.begin(); i!=force_update_variance_map.end(); ++i) {
+                for(std::map<uint32_t, std::map<bead_id_t, bead_t>>::iterator i = force_update_variance_map.begin(); i!=force_update_variance_map.end(); ++i) {
                     fprintf(beadFile, "%u", i->first);
-                    for(std::map<bead_id_t, Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
-                        fprintf(beadFile, ", %u, %1.10f, %1.10f, %1.10f", j->first, j->second.x(), j->second.y(), j->second.z());
+                    for(std::map<bead_id_t, bead_t>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        fprintf(beadFile, ", %u, %u, %1.10f, %1.10f, %1.10f", j->first, j->second.type, j->second.pos.x(), j->second.pos.y(), j->second.pos.z());
                     }
                     fprintf(beadFile, "\n");
                 }
@@ -608,7 +610,9 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
         Vector3D<float> vel = msg.payload.beads[0].velo;
-        force_update_velocity_map[timestep].push_back(vel);
+        force_update_velocity_map[timestep][msg.payload.beads[0].id] = msg.payload.beads[0];
+        if (msg.payload.beads[0].id > max_id)
+            max_id = msg.payload.beads[0].id;
         if (timestep == TEST_LENGTH - 1) {
             completedDevices.insert(loc);
             if (completedDevices.size() >= (_D*_D*_D)) {
@@ -616,15 +620,57 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 std::ostringstream oss;
                 oss << "../perf-results/force_update_velocites_" << _D << ".csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
-                for(std::map<uint32_t, std::vector<Vector3D<float>>>::iterator i = force_update_velocity_map.begin(); i!=force_update_velocity_map.end(); ++i) {
+                fprintf(beadFile, "Timestep, Average Bead Velocity (ABV), Temperature (KbT = ABV/3), Pressure\n");
+                for(std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = force_update_velocity_map.begin(); i!=force_update_velocity_map.end(); ++i) {
                     fprintf(beadFile, "%u, ", i->first);
                     double accumulator = 0.0;
-                    for(std::vector<Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
-                        accumulator = accumulator + j->mag();
+                    for(std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        accumulator = accumulator + j->second.velo.mag();
                     }
+                    // Average magnitude of velocity
                     accumulator = accumulator / i->second.size();
+                    // Temperature
                     double temperature = accumulator/3;
-                    fprintf(beadFile, "%f, %f\n", accumulator, temperature);
+
+                    // Calculate pressure
+                    double pressure_accumulator = 0.0;
+                    for (int a = 0; a < max_id; a++) {
+                    // For all beads, check with all other beads with a larger ID
+                        double this_bead_accumulator = 0.0;
+                        bead_t beadA;
+                        if (i->second.find(a) != i->second.end())
+                            beadA = i->second.at(a);
+                        else
+                            continue;
+
+                        for (int b = a + 1; b < max_id; b++) {
+                            bead_t beadB;
+                            if (i->second.find(b) != i->second.end())
+                                beadB = i->second.at(b);
+                            else
+                                continue;
+
+                            Vector3D<float> r_ab = beadA.pos - beadB.pos;
+                            float a_ij = A[beadA.type][beadB.type];
+                            float r_ij_dist = beadA.pos.dist(beadB.pos);
+                            float con = 0.0;
+                            Vector3D<float> f_c_ab = {0.0, 0.0, 0.0};
+                            if (r_ij_dist < 1.0) {
+                                con = (a_ij * (ptype(1.0) - (r_ij_dist/r_c))) / r_ij_dist;
+                                f_c_ab = r_ab * con;
+                            }
+                            double dot_prod = r_ab.dot(f_c_ab);
+                            this_bead_accumulator += dot_prod;
+                        }
+                        pressure_accumulator += this_bead_accumulator;
+                    }
+                    // Average this
+                    pressure_accumulator /= i->second.size();
+                    // Divide by 3 * Volume
+                    pressure_accumulator /= 3 * (_D*_D*_D);
+                    // Add (number density * temperature)
+                    pressure_accumulator += 4 * temperature;
+                    fprintf(beadFile, "%f, %f, %f\n", accumulator, temperature, pressure_accumulator);
                 }
                 fclose(beadFile);
                 std::cerr << "Velocity magnitudes for each timestep have been stored in " << oss.str() << "\n";
@@ -635,7 +681,9 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
         Vector3D<float> vel = msg.payload.beads[0].velo;
-        accelerator_velocity_map[timestep].push_back(vel);
+        accelerator_velocity_map[timestep][msg.payload.beads[0].id] = msg.payload.beads[0];
+        if (msg.payload.beads[0].id > max_id)
+            max_id = msg.payload.beads[0].id;
         if (timestep == TEST_LENGTH - 1) {
             completedDevices.insert(loc);
             if (completedDevices.size() >= (_D*_D*_D)) {
@@ -643,16 +691,57 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 std::ostringstream oss;
                 oss << "../perf-results/accelerator_velocites_" << _D << ".csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
-                fprintf(beadFile, "Timestep, Average Bead Velocity (ABV), Temperature (KbT = ABV/3)\n");
-                for(std::map<uint32_t, std::vector<Vector3D<float>>>::iterator i = accelerator_velocity_map.begin(); i!=accelerator_velocity_map.end(); ++i) {
+                fprintf(beadFile, "Timestep, Average Bead Velocity (ABV), Temperature (KbT = ABV/3), Pressure\n");
+                for(std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = accelerator_velocity_map.begin(); i!=accelerator_velocity_map.end(); ++i) {
                     fprintf(beadFile, "%u, ", i->first);
                     double accumulator = 0.0;
-                    for(std::vector<Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
-                        accumulator = accumulator + j->mag();
+                    for(std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        accumulator = accumulator + j->second.velo.mag();
                     }
+                    // Average magnitude of velocity
                     accumulator = accumulator / i->second.size();
+                    // Temperature
                     double temperature = accumulator/3;
-                    fprintf(beadFile, "%f, %f\n", accumulator, temperature);
+
+                    // Calculate pressure
+                    double pressure_accumulator = 0.0;
+                    for (int a = 0; a < max_id; a++) {
+                    // For all beads, check with all other beads with a larger ID
+                        double this_bead_accumulator = 0.0;
+                        bead_t beadA;
+                        if (i->second.find(a) != i->second.end())
+                            beadA = i->second.at(a);
+                        else
+                            continue;
+
+                        for (int b = a + 1; b < max_id; b++) {
+                            bead_t beadB;
+                            if (i->second.find(b) != i->second.end())
+                                beadB = i->second.at(b);
+                            else
+                                continue;
+
+                            Vector3D<float> r_ab = beadA.pos - beadB.pos;
+                            float a_ij = A[beadA.type][beadB.type];
+                            float r_ij_dist = beadA.pos.dist(beadB.pos);
+                            float con = 0.0;
+                            Vector3D<float> f_c_ab = {0.0, 0.0, 0.0};
+                            if (r_ij_dist < 1.0) {
+                                con = (a_ij * (ptype(1.0) - (r_ij_dist/r_c))) / r_ij_dist;
+                                f_c_ab = r_ab * con;
+                            }
+                            double dot_prod = r_ab.dot(f_c_ab);
+                            this_bead_accumulator += dot_prod;
+                        }
+                        pressure_accumulator += this_bead_accumulator;
+                    }
+                    // Average this
+                    pressure_accumulator /= i->second.size();
+                    // Divide by 3 * Volume
+                    pressure_accumulator /= 3 * (_D*_D*_D);
+                    // Add (number density * temperature)
+                    pressure_accumulator += 4 * temperature;
+                    fprintf(beadFile, "%f, %f, %f\n", accumulator, temperature, pressure_accumulator);
                 }
                 fclose(beadFile);
                 std::cerr << "Velocity magnitudes for each timestep have been stored in " << oss.str() << "\n";
