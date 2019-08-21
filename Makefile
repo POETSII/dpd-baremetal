@@ -160,13 +160,13 @@ accelerator-timing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OB
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system\
 
 # --------------- VARIANCE DATA ACQUIRING FOR FORCE UPDATE ---------------
-force-update-variance-testing: DFLAGS=-DFORCE_UPDATE_VARIANCE_TEST
-force-update-variance-testing: run
+force-update-pos-output: DFLAGS=-DFORCE_UPDATE_POS_OUTPUT
+force-update-pos-output: run
 
 # --------------- VARIANCE DATA ACQUIRING FOR ACCELERATOR ----------------
-accelerator-variance-testing: DFLAGS=-DACCELERATOR_VARIANCE_TEST -DACCELERATE
-accelerator-variance-testing: DPD_OBJS=$(DPD_BIN)/accelerator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-accelerator-variance-testing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+accelerator-pos-output: DFLAGS=-DACCELERATOR_POS_OUTPUT -DACCELERATE
+accelerator-pos-output: DPD_OBJS=$(DPD_BIN)/accelerator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+accelerator-pos-output: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(INC)/accelerators -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
@@ -174,9 +174,9 @@ accelerator-variance-testing: $(DPD_BIN)/accelerator.o $(INC)/config.h $(HL)/*.o
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system\
 
 # --------------- VARAINCE ANALYSIS ---------------------- ---------------
-variance-analysis: $(DPD_INC)/Vector3D.hpp $(DPD_SRC)/Vector3D.cpp $(DPD_SRC)/bead_analysis.cpp
+variance-analysis: $(DPD_INC)/Vector3D.hpp $(DPD_SRC)/Vector3D.cpp $(DPD_SRC)/variance_analysis.cpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 -I $(DPD_INC) -o $(DPD_BIN)/analysis $(DPD_SRC)/bead_analysis.cpp
+	g++ -O2 -std=c++11 -I $(DPD_INC) -o $(DPD_BIN)/analysis $(DPD_SRC)/variance_analysis.cpp
 # 	mv analysis $(DPD_BIN)/
 
 # --------------- FORCE_UPDATE VELOCITY DATA ------------------------------

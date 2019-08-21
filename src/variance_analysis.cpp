@@ -41,12 +41,13 @@ int main() {
         }
         // Get timestep
         uint32_t timestep = std::stoi(lines.at(0));
-        for (uint32_t i = 1; i < lines.size(); i += 4) {
+        for (uint32_t i = 1; i < lines.size(); i += 5) {
             // Get bead id
             uint32_t id = std::stoi(lines.at(i));
+            // Bead type is at i + 1, not used for this analysis
             // Get bead position
             Vector3D<float> pos;
-            pos.set(std::stof(lines.at(i + 1)), std::stof(lines.at(i + 2)), std::stof(lines.at(i + 3)));
+            pos.set(std::stof(lines.at(i + 2)), std::stof(lines.at(i + 3)), std::stof(lines.at(i + 4)));
             force_update_map[timestep][id] = pos;
         }
     }
@@ -76,12 +77,13 @@ int main() {
         }
         // Get timestep
         uint32_t timestep = std::stoi(lines.at(0));
-        for (uint32_t i = 1; i < lines.size(); i += 4) {
+        for (uint32_t i = 1; i < lines.size(); i += 5) {
             // Get bead id
             uint32_t id = std::stoi(lines.at(i));
+            // Bead type is at i + 1, not used for this analysis
             // Get bead position
             Vector3D<float> pos;
-            pos.set(std::stof(lines.at(i + 1)), std::stof(lines.at(i + 2)), std::stof(lines.at(i + 3)));
+            pos.set(std::stof(lines.at(i + 2)), std::stof(lines.at(i + 3)), std::stof(lines.at(i + 4)));
             accelerator_map[timestep][id] = pos;
 
             Vector3D<float> force_update_pos = force_update_map[timestep][id];

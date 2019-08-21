@@ -426,10 +426,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 #elif defined(ACCELERATOR_TIMING_TEST)
     uint32_t devices = 0;
     std::map<unit_t, uint64_t> accelerator_timing_map;
-#elif defined(FORCE_UPDATE_VARIANCE_TEST)
+#elif defined(FORCE_UPDATE_POS_OUTPUT)
     std::map<uint32_t, std::map<bead_id_t, bead_t>> force_update_variance_map;
     std::set<unit_t> completedDevices;
-#elif defined(ACCELERATOR_VARIANCE_TEST)
+#elif defined(ACCELERATOR_POS_OUTPUT)
     std::map<uint32_t, std::map<bead_id_t, bead_t>> accelerator_variance_map;
     std::set<unit_t> completedDevices;
 #elif defined(FORCE_UPDATE_VELOCITY_TEST)
@@ -554,7 +554,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 return;
             }
         }
-    #elif defined(FORCE_UPDATE_VARIANCE_TEST)
+    #elif defined(FORCE_UPDATE_POS_OUTPUT)
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
         bead_id_t id = msg.payload.beads[0].id;
@@ -580,13 +580,13 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 return;
             }
         }
-    #elif defined(ACCELERATOR_VARIANCE_TEST)
+    #elif defined(ACCELERATOR_POS_OUTPUT)
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
         bead_id_t id = msg.payload.beads[0].id;
-        Vector3D<float> pos = msg.payload.beads[0].pos;
-        pos.set(pos.x() + loc.x, pos.y() + loc.y, pos.z() + loc.z);
-        accelerator_variance_map[timestep][id] = pos;
+        bead_t bead = msg.payload.beads[0];
+        bead.pos.set(bead.pos.x() + loc.x, bead.pos.y() + loc.y, bead.pos.z() + loc.z);
+        accelerator_variance_map[timestep][id] = bead;
         if (timestep == TEST_LENGTH - 1) {
             completedDevices.insert(loc);
             if (completedDevices.size() >= (_D*_D*_D)) {
@@ -594,10 +594,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
                 std::ostringstream oss;
                 oss << "../perf-results/accelerator_bead_positions_" << _D << ".csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
-                for(std::map<uint32_t, std::map<bead_id_t, Vector3D<float>>>::iterator i = accelerator_variance_map.begin(); i!=accelerator_variance_map.end(); ++i) {
+                for(std::map<uint32_t, std::map<bead_id_t, bead_t>>::iterator i = accelerator_variance_map.begin(); i!=accelerator_variance_map.end(); ++i) {
                     fprintf(beadFile, "%u", i->first);
-                    for(std::map<bead_id_t, Vector3D<float>>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
-                        fprintf(beadFile, ", %u, %1.10f, %1.10f, %1.10f", j->first, j->second.x(), j->second.y(), j->second.z());
+                    for(std::map<bead_id_t, bead_t>::iterator j = i->second.begin(); j!=i->second.end(); ++j) {
+                        fprintf(beadFile, ", %u, %u, %1.10f, %1.10f, %1.10f", j->first, j->second.type, j->second.pos.x(), j->second.pos.y(), j->second.pos.z());
                     }
                     fprintf(beadFile, "\n");
                 }
