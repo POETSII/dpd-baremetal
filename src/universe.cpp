@@ -428,17 +428,17 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     std::map<unit_t, uint64_t> accelerator_timing_map;
 #elif defined(FORCE_UPDATE_POS_OUTPUT)
     std::map<uint32_t, std::map<bead_id_t, bead_t>> force_update_variance_map;
-    std::set<unit_t> completedDevices;
+    uint32_t completedBeads = 0;
 #elif defined(ACCELERATOR_POS_OUTPUT)
     std::map<uint32_t, std::map<bead_id_t, bead_t>> accelerator_variance_map;
-    std::set<unit_t> completedDevices;
+    uint32_t completedBeads = 0;
 #elif defined(FORCE_UPDATE_VELOCITY_TEST)
     std::map<uint32_t, std::map<uint32_t, bead_t>> force_update_velocity_map;
-    std::set<unit_t> completedDevices;
+    uint32_t completedBeads = 0;
     uint32_t max_id = 0;
 #elif defined(ACCELERATOR_VELOCITY_TEST)
     std::map<uint32_t, std::map<uint32_t, bead_t>> accelerator_velocity_map;
-    std::set<unit_t> completedDevices;
+    uint32_t completedBeads = 0;
     uint32_t max_id = 0;
 #endif
 
@@ -562,8 +562,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         bead.pos.set(bead.pos.x() + loc.x, bead.pos.y() + loc.y, bead.pos.z() + loc.z);
         force_update_variance_map[timestep][id] = bead;
         if (timestep == TEST_LENGTH - 1) {
-            completedDevices.insert(loc);
-            if (completedDevices.size() >= (_D*_D*_D)) {
+            completedBeads++;
+            if (completedBeads >= beadNum) {
                 // Testing complete
                 std::ostringstream oss;
                 oss << "../perf-results/force_update_bead_positions_" << _D << ".csv";
@@ -588,8 +588,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         bead.pos.set(bead.pos.x() + loc.x, bead.pos.y() + loc.y, bead.pos.z() + loc.z);
         accelerator_variance_map[timestep][id] = bead;
         if (timestep == TEST_LENGTH - 1) {
-            completedDevices.insert(loc);
-            if (completedDevices.size() >= (_D*_D*_D)) {
+            completedBeads++;
+            if (completedBeads >= beadNum) {
                 // Testing complete
                 std::ostringstream oss;
                 oss << "../perf-results/accelerator_bead_positions_" << _D << ".csv";
@@ -614,8 +614,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         if (msg.payload.beads[0].id > max_id)
             max_id = msg.payload.beads[0].id;
         if (timestep == TEST_LENGTH - 1) {
-            completedDevices.insert(loc);
-            if (completedDevices.size() >= (_D*_D*_D)) {
+            completedBeads++;
+            if (completedBeads >= beadNum) {
                 // Testing complete
                 std::ostringstream oss;
                 oss << "../perf-results/force_update_velocites_" << _D << ".csv";
@@ -685,8 +685,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         if (msg.payload.beads[0].id > max_id)
             max_id = msg.payload.beads[0].id;
         if (timestep == TEST_LENGTH - 1) {
-            completedDevices.insert(loc);
-            if (completedDevices.size() >= (_D*_D*_D)) {
+            completedBeads++;
+            if (completedBeads >= beadNum) {
                 // Testing complete
                 std::ostringstream oss;
                 oss << "../perf-results/accelerator_velocites_" << _D << ".csv";

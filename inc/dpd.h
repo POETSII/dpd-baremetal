@@ -56,9 +56,14 @@ const ptype r_c(1.0);
 const ptype sq_r_c(r_c * r_c);
 
 // interaction matrix
+#ifndef HALF_HALF
 const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
                          {ptype(75.0), ptype(25.0), ptype(50.0)},
                          {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
+#else
+const ptype A[2][2] = {  {ptype(25.0), ptype(25.0)},
+                         {ptype(25.0), ptype(25.0)}};
+#endif
 
 const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
