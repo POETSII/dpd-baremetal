@@ -429,9 +429,11 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 #elif defined(FORCE_UPDATE_POS_OUTPUT)
     std::map<uint32_t, std::map<bead_id_t, bead_t>> force_update_variance_map;
     uint32_t completedBeads = 0;
+    uint32_t currentTimestep = -1;
 #elif defined(ACCELERATOR_POS_OUTPUT)
     std::map<uint32_t, std::map<bead_id_t, bead_t>> accelerator_variance_map;
     uint32_t completedBeads = 0;
+    uint32_t currentTimestep = -1;
 #elif defined(FORCE_UPDATE_VELOCITY_TEST)
     std::map<uint32_t, std::map<uint32_t, bead_t>> force_update_velocity_map;
     uint32_t completedBeads = 0;
@@ -557,6 +559,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     #elif defined(FORCE_UPDATE_POS_OUTPUT)
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
+        if (timestep != currentTimestep) {
+            std::cerr << "Timestep " << timestep << "\n";
+            currentTimestep = timestep;
+        }
         bead_id_t id = msg.payload.beads[0].id;
         bead_t bead = msg.payload.beads[0];
         bead.pos.set(bead.pos.x() + loc.x, bead.pos.y() + loc.y, bead.pos.z() + loc.z);
@@ -566,7 +572,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             if (completedBeads >= beadNum) {
                 // Testing complete
                 std::ostringstream oss;
-                oss << "../perf-results/force_update_bead_positions_" << _D << ".csv";
+                oss << "../perf-results/force_update_bead_positions_length_" << _D << "_" << TEST_LENGTH << "_timesteps.csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
                 for(std::map<uint32_t, std::map<bead_id_t, bead_t>>::iterator i = force_update_variance_map.begin(); i!=force_update_variance_map.end(); ++i) {
                     fprintf(beadFile, "%u", i->first);
@@ -583,6 +589,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     #elif defined(ACCELERATOR_POS_OUTPUT)
         unit_t loc = msg.payload.from;
         uint32_t timestep = msg.payload.timestep;
+        if (timestep != currentTimestep) {
+            std::cerr << "Timestep " << timestep << "\n";
+            currentTimestep = timestep;
+        }
         bead_id_t id = msg.payload.beads[0].id;
         bead_t bead = msg.payload.beads[0];
         bead.pos.set(bead.pos.x() + loc.x, bead.pos.y() + loc.y, bead.pos.z() + loc.z);
@@ -592,7 +602,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             if (completedBeads >= beadNum) {
                 // Testing complete
                 std::ostringstream oss;
-                oss << "../perf-results/accelerator_bead_positions_" << _D << ".csv";
+                oss << "../perf-results/accelerator_bead_positions_length_" << _D << "_" << TEST_LENGTH << "_timesteps.csv";
                 FILE* beadFile = fopen(oss.str().c_str(), "w");
                 for(std::map<uint32_t, std::map<bead_id_t, bead_t>>::iterator i = accelerator_variance_map.begin(); i!=accelerator_variance_map.end(); ++i) {
                     fprintf(beadFile, "%u", i->first);

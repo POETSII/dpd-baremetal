@@ -79,14 +79,32 @@ std::tuple<Vector3D<float>,Vector3D<float>> correctPositions(unit_t unit, unit_t
         j_pos.z(j.z() + uni_len);
     }
 
-    // std::cerr << "Unit: (" << unit.x << ", " << unit.y << ", " << unit.z << ")\n";
-    // std::cerr << "Neig: (" << neighbour.x << ", " << neighbour.y << ", " << neighbour.z << ")\n";
-    // std::cerr << "i: (" << i.x() << ", " << i.y() << ", " << i.z() << ")\n";
-    // std::cerr << "j: (" << j.x() << ", " << j.y() << ", " << j.z() << ")\n";
+    if (!(i_pos.x() < uni_len + 1 && i_pos.y() < uni_len + 1 && i_pos.z() < uni_len + 1)) {
+        std::cerr << "unit  = (" << unit.x << ", " << unit.y << ", " << unit.z << ")\n";
+        std::cerr << "i.pos = (" << i.x() << ", " << i.y() << ", " << i.z() << ")\n";
+        std::cerr << "i_pos = (" << i_pos.x() << ", " << i_pos.y() << ", " << i_pos.z() << ")\n";
+    }
+    if (!(i_pos.x() >= 0 && i_pos.y() >= 0 && i_pos.z() >= 0)) {
+        std::cerr << "unit  = (" << unit.x << ", " << unit.y << ", " << unit.z << ")\n";
+        std::cerr << "i.pos = (" << i.x() << ", " << i.y() << ", " << i.z() << ")\n";
+        std::cerr << "i_pos = (" << i_pos.x() << ", " << i_pos.y() << ", " << i_pos.z() << ")\n";
+    }
+    if (!(j_pos.x() < uni_len + 1 && j_pos.y() < uni_len + 1 && j_pos.z() < uni_len + 1)) {
+        std::cerr << "unit  = (" << unit.x << ", " << unit.y << ", " << unit.z << ")\n";
+        std::cerr << "neighbour  = (" << neighbour.x << ", " << neighbour.y << ", " << neighbour.z << ")\n";
+        std::cerr << "j.pos = (" << j.x() << ", " << j.y() << ", " << j.z() << ")\n";
+        std::cerr << "j_pos = (" << j_pos.x() << ", " << j_pos.y() << ", " << j_pos.z() << ")\n";
+    }
+    if (!(j_pos.x() >= 0 && j_pos.y() >= 0 && j_pos.z() >= 0)) {
+        std::cerr << "unit  = (" << unit.x << ", " << unit.y << ", " << unit.z << ")\n";
+        std::cerr << "neighbour  = (" << neighbour.x << ", " << neighbour.y << ", " << neighbour.z << ")\n";
+        std::cerr << "j.pos = (" << j.x() << ", " << j.y() << ", " << j.z() << ")\n";
+        std::cerr << "j_pos = (" << j_pos.x() << ", " << j_pos.y() << ", " << j_pos.z() << ")\n";
+    }
 
-    assert(i_pos.x() < uni_len + 1 && i_pos.y() < uni_len + 1 && i_pos.z() < uni_len + 1);
+    assert(i_pos.x() <= uni_len + 1 && i_pos.y() <= uni_len + 1 && i_pos.z() <= uni_len + 1);
     assert(i_pos.x() >= 0 && i_pos.y() >= 0 && i_pos.z() >= 0);
-    assert(j_pos.x() < uni_len + 1 && j_pos.y() < uni_len + 1 && j_pos.z() < uni_len + 1);
+    assert(j_pos.x() <= uni_len + 1 && j_pos.y() <= uni_len + 1 && j_pos.z() <= uni_len + 1); // <= deals with rounding errors.
     assert(j_pos.x() >= 0 && j_pos.y() >= 0 && j_pos.z() >= 0);
 
     return std::make_tuple(i_pos, j_pos);
@@ -117,6 +135,7 @@ std::vector<std::set<uint32_t>> eraseFromBlobMap(uint32_t timestep, std::set<uin
 
 void mergeBlobs(uint32_t i, std::set<uint32_t> blob, uint32_t timestep) {
     std::set<uint32_t> main_blob = getBlob(timestep, i);
+    std::set<uint32_t> original_blob = main_blob;
     for (std::set<uint32_t>::iterator bead = blob.begin(); bead != blob.end(); ++bead) {
         std::set<uint32_t> bead_blob = getBlob(timestep, *bead);
         if (bead_blob == main_blob) {
@@ -127,12 +146,15 @@ void mergeBlobs(uint32_t i, std::set<uint32_t> blob, uint32_t timestep) {
             // std::cerr << "Adding " << *b << " to main_blob\n";
             main_blob.insert(*b);
         }
-        // std::cerr << "main_blob.size() after: " << main_blob.size() << "\n";
         // std::cerr << "blob_map[timestep].size() before: " << blob_map[timestep].size() << "\n";
         blob_map[timestep] = eraseFromBlobMap(timestep, bead_blob);
         // std::cerr << "blob_map[timestep].size() after: " << blob_map[timestep].size() << "\n";
     }
-    blob_map[timestep] = eraseFromBlobMap(timestep, main_blob);
+    // std::cerr << "Before = " << blob_map[timestep].size() << "\n";
+    blob_map[timestep] = eraseFromBlobMap(timestep, original_blob);
+    // std::cerr << "After  = " << blob_map[timestep].size() << "\n";
+    // std::cin.get();
+    // std::cerr << main_blob.size() << "\n";
     blob_map[timestep].push_back(main_blob);
     // std::cerr << "main_blob.size() = " << main_blob.size() << " and getBlob(timestep, i).size() = " << getBlob(timestep, i).size() << "\n";
 }
@@ -155,10 +177,12 @@ int main(int argc, char *argv[]) {
     std::string line;
 
     std::ostringstream oss;
-    if (!accelerate)
+    if (!accelerate) {
         oss << "../perf-results/force_update_bead_positions_" << uni_len << ".csv";
-    else
+    }
+    else {
         oss << "../perf-results/accelerator_bead_positions_" << uni_len << ".csv";
+    }
 
     std::cerr << "Loading beads from " << oss.str().c_str() << "\n";
     std::ifstream beads(oss.str().c_str());
@@ -224,7 +248,7 @@ int main(int argc, char *argv[]) {
 
     // For each timestep
     // for (std::map<uint32_t, std::map<unit_t, std::vector<bead_t>>>::iterator outer_map_it = bead_map.begin(); outer_map_it != bead_map.end(); ++outer_map_it) {
-    for (uint32_t timestep = 0; timestep < 100; timestep++) {
+    for (uint32_t timestep = 0; timestep < 1000; timestep++) {
         std::cerr << "Timestep = " << timestep << "\n";
         // uint32_t timestep = outer_map_it->first;
         // std::map<unit_t, std::vector<bead_t>> universe = outer_map_it->second;
@@ -313,15 +337,51 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // for (std::map<uint32_t, std::vector<std::set<uint32_t>>>::iterator i = blob_map.begin(); i != blob_map.end(); ++i) {
+    //     std::cerr << "Timestep " << i->first << "\n";
+    //     std::cerr << i->second.size() << " blobs\n";
+    //     uint32_t beads_in_blobs = 0;
+    //     for (std::vector<std::set<uint32_t>>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
+    //         beads_in_blobs += j->size();
+    //     }
+    //     std::cerr << beads_in_blobs << " beads in blobs\n";
+    // }
+
+    // FILE* f = fopen("../perf-results/half_half_blob_analysis.csv", "w+");
+    FILE* f = fopen("../perf-results/accelerator_blob_analysis.csv", "w+");
+    uint32_t max_num_blobs = 0;
+    // for (std::map<uint32_t, std::vector<std::set<uint32_t>>>::iterator i = blob_map.begin(); i != blob_map.end(); ++i) {
+    //     if (i->second.size() > max_num_blobs) {
+    //         max_num_blobs = i->second.size();
+    //     }
+    // }
+    // fprintf(f, "Timestep, Number of blobs, Total number of beads in blobs, Blob numbers...");#
+    fprintf(f, "Timestep, Number of blobs, Total number of beads in blobs, Average blob size\n");
+    // for (uint32_t i = 0; i < max_num_blobs; i++) {
+    //     fprintf(f, ", ");
+    // }
+    // fprintf(f, "Average number of beads in blobs\n");
     for (std::map<uint32_t, std::vector<std::set<uint32_t>>>::iterator i = blob_map.begin(); i != blob_map.end(); ++i) {
-        std::cerr << "Timestep " << i->first << "\n";
-        std::cerr << i->second.size() << " blobs\n";
+        fprintf(f, "%u, %u, ", i->first, i->second.size());
+        std::vector<uint32_t> blob_sizes;
         uint32_t beads_in_blobs = 0;
         for (std::vector<std::set<uint32_t>>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
             beads_in_blobs += j->size();
+            blob_sizes.push_back(j->size());
         }
-        std::cerr << beads_in_blobs << " beads in blobs\n";
+        fprintf(f, "%u", beads_in_blobs);
+        // uint32_t blobs_printed = 0;
+        // for (std::vector<uint32_t>::iterator k = blob_sizes.begin(); k != blob_sizes.end(); ++k) {
+        //     fprintf(f, ", %u", *k);
+        //     blobs_printed++;
+        // }
+        // for (uint32_t i = blobs_printed; i < max_num_blobs; i++) {
+        //     fprintf(f, ", ");
+        // }
+        float avg = (float)beads_in_blobs / i->second.size();
+        fprintf(f, ", %f\n", avg);
     }
+    fclose(f);
 
     return 0;
 }
