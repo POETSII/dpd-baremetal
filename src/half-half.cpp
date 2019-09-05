@@ -64,7 +64,9 @@ int main(int argc, char *argv[]) {
 
     printf("Universe setup -- adding beads\n");
 
-    int total_beads = N*N*N * 4;
+    const int density = 1;
+
+    int total_beads = N*N*N * density;
     int w1 = 0.5 * total_beads;
     int w2 = 0.5 * total_beads;
 

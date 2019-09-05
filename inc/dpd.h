@@ -42,7 +42,7 @@
 #endif
 
 #if defined(TESTING) || defined(TIMER) || defined(STATS) || defined(FORCE_UPDATE_TIMING_TEST) || defined(ACCELERATOR_TIMING_TEST) || defined(FORCE_UPDATE_POS_OUTPUT) || defined(ACCELERATOR_POS_OUTPUT) || defined(FORCE_UPDATE_VELOCITY_TEST) || defined(ACCELERATOR_VELOCITY_TEST)
-#define TEST_LENGTH 1000
+#define TEST_LENGTH 10000
 #endif
 
 typedef float ptype;
@@ -267,8 +267,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         // Vector3D<ptype> v_j = b->velo;
         // Vector3D<ptype> v_ij = v_i - v_j;
         Vector3D<ptype> v_ij = a->velo - b->velo;
+
+    #ifdef HALF_HALF
+        const ptype drag_coef(4.5); // the drag coefficient
+        const ptype sigma_ij(160.0);
+    #else
         const ptype drag_coef(4.5); // the drag coefficient
         const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
+    #endif
         const ptype sqrt_dt(0.1414); // sqrt(0.02)
 
         // switching function

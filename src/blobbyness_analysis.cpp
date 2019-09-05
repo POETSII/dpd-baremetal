@@ -178,10 +178,12 @@ int main(int argc, char *argv[]) {
 
     std::ostringstream oss;
     if (!accelerate) {
-        oss << "../perf-results/force_update_bead_positions_" << uni_len << ".csv";
+        // oss << "../perf-results/force_update_bead_positions_" << uni_len << ".csv";
+        oss << "../perf-results/force_update_bead_positions_length_10_10000_timesteps.csv";
     }
     else {
-        oss << "../perf-results/accelerator_bead_positions_" << uni_len << ".csv";
+        // oss << "../perf-results/accelerator_bead_positions_" << uni_len << ".csv";
+        oss << "../perf-results/accelerator_bead_positions_length_10_10000_timesteps.csv";
     }
 
     std::cerr << "Loading beads from " << oss.str().c_str() << "\n";
@@ -248,7 +250,7 @@ int main(int argc, char *argv[]) {
 
     // For each timestep
     // for (std::map<uint32_t, std::map<unit_t, std::vector<bead_t>>>::iterator outer_map_it = bead_map.begin(); outer_map_it != bead_map.end(); ++outer_map_it) {
-    for (uint32_t timestep = 0; timestep < 1000; timestep++) {
+    for (uint32_t timestep = 0; timestep < 10000; timestep++) {
         std::cerr << "Timestep = " << timestep << "\n";
         // uint32_t timestep = outer_map_it->first;
         // std::map<unit_t, std::vector<bead_t>> universe = outer_map_it->second;
@@ -332,7 +334,9 @@ int main(int argc, char *argv[]) {
                 // std::cerr << i->id << " was in a blob. Adding this to the map.\n";
                 // std::cin.get();
                 // std::cerr << "Merging blobs\n";
-                mergeBlobs(i->id, current_blob, timestep);
+                if (current_blob.size() > 1) {
+                    mergeBlobs(i->id, current_blob, timestep);
+                }
             }
         }
     }
