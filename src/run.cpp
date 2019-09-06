@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
                 std::cerr << "Unrecognised argument: " << arg << "\n";
                 return 1;
             }
-        } else if (argv[i][0] < '9' && argv[i][0] > '0') {
+        } else if (argv[i][0] <= '9' && argv[i][0] >= '0') {
             problem_size = std::stoi(argv[i]);
             N = std::stoi(argv[i]);
         }
