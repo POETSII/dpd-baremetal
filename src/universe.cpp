@@ -97,11 +97,11 @@ Universe<S>::Universe(S size, unsigned D) {
     _size = size;
     _D = D;
     _unit_size = _size / S(D);
+#ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
-    _hostLink = new HostLink(2, 2); // 4 POETS boxes
-    // _hostLink = new HostLink(); // 1 POETS Box
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(2, 2); // 4 POETS boxes
-    // _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>; // 1 POETS Box
+#endif
+    _hostLink = new HostLink(TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS boxes
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS boxes
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -294,8 +294,7 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g, 2, 2); // 4 POETS Boxes
-    // timerMap(_g, 1, 1); // 1 POETS Box
+    timerMap(_g, TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS Boxes
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {

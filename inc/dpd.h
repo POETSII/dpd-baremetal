@@ -33,7 +33,7 @@
 #define UPDATE 0
 #define MIGRATION 1
 
-#if !defined(TIMER) && !defined(STATS)
+#if defined(VISUALISE) || defined(TESTING)
 #define EMIT 2
 #endif
 
@@ -79,7 +79,7 @@ const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
     return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
 }
 
-#if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
+#ifdef VISUALISE
 const uint32_t emitperiod = 10;
 #endif
 
@@ -154,7 +154,7 @@ struct DPDState {
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#if !defined(TIMER) && !defined(TESTING) && !defined(STATS)
+#ifdef VISUALISE
     uint32_t emitcnt; // a counter to kept track of updates between emitting the state
 #endif
     uint32_t timestep; // the current timestep that we are on
@@ -358,7 +358,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-    #if !defined(TESTING) && !defined(STATS)
+    #ifdef VISUALISE
 		s->emitcnt = emitperiod;
     #endif
 		s->mode = UPDATE;
@@ -513,31 +513,37 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    // we have just finished a particle migration step
         if(s->mode == MIGRATION) {
         	// do we want to export?
-        #if defined(TESTING)
-            if (s->timestep >= TEST_LENGTH)
-        #elif !defined(TIMER) && !defined(STATS)
-        	if(s->emitcnt >= emitperiod)
-        #endif
-        #if !defined(TIMER) && !defined(STATS)
-            {
-    	        s->mode = EMIT;
-	            if(s->bslot) {
-    	            s->sentslot = s->bslot;
+        #ifdef VISUALISE
+            if(s->emitcnt >= emitperiod) {
+                s->mode = EMIT;
+                if(s->bslot) {
+                    s->sentslot = s->bslot;
                     *readyToSend = HostPin;
-    	        }
-            #if !defined(TESTING) && !defined(STATS)
-    	        s->emitcnt = 0;
-            #endif
+                }
+                s->emitcnt = 0;
             } else {
-            #if !defined(TESTING) && !defined(STATS)
-    	        s->emitcnt++;
-            #endif
-    	        s->mode = UPDATE;
-    	        if(get_num_beads(s->bslot) > 0){
-    	            s->sentslot = s->bslot;
+                s->emitcnt++;
+                s->mode = UPDATE;
+                if(get_num_beads(s->bslot) > 0){
+                    s->sentslot = s->bslot;
                     *readyToSend = Pin(0);
-    	        }
-	        }
+                }
+            }
+            return true;
+        #elif defined(TESTING)
+            if (s->timestep >= TEST_LENGTH) {
+                s->mode = EMIT;
+                if(s->bslot) {
+                    s->sentslot = s->bslot;
+                    *readyToSend = HostPin;
+                }
+            } else {
+                s->mode = UPDATE;
+                if(get_num_beads(s->bslot) > 0){
+                    s->sentslot = s->bslot;
+                    *readyToSend = Pin(0);
+                }
+            }
             return true;
         #else
             s->mode = UPDATE;
@@ -547,25 +553,25 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
             return true;
         #endif
+
 	    }
 
         // we have just finished emitting the state to the host
-    #if !defined(TIMER) && !defined(STATS)
-	    if(s->mode == EMIT) {
-        #if defined(TESTING) || defined(STATS)
-            if (s->timestep >= TEST_LENGTH) {
-                return false;
-            }
-        #endif
-            // move into the update mode
-	        s->mode = UPDATE;
-	        s->sentslot = s->bslot;
-	        if(get_num_beads(s->bslot) > 0){
+    #ifdef VISUALISE
+        if (s->mode == EMIT) {
+            s->mode = UPDATE;
+            s->sentslot = s->bslot;
+            if(get_num_beads(s->bslot) > 0){
                 *readyToSend = Pin(0);
-	        }
-	        return true;
-	    }
+            }
+            return true;
+        }
+    #elif defined(TESTING) || defined(STATS)
+        if (s->timestep >= TEST_LENGTH) {
+            return false;
+        }
     #endif
+
         return false;
 	}
 
@@ -619,7 +625,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
 	    // we are emitting our state to the host
-    #if !defined(TIMER) && !defined(STATS)
+    #if defined(VISUALISE) || defined(TESTING)
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
@@ -632,7 +638,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
 	        msg->beads[0].id = s->bead_slot[ci].id;
 	        msg->beads[0].type = s->bead_slot[ci].type;
-
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
 	        if(s->sentslot != 0) {
