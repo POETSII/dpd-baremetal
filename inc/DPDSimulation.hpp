@@ -118,6 +118,13 @@ typedef struct Stiff_bond_type {
     float preferred_angle;
 } Stiff_bond_type;
 
+typedef struct Polymer {
+    std::string name;
+    float fraction;
+    std::string structure_string;
+    // TODO: structure parsed in some way
+} Polymer;
+
 class DPDSimulation {
     private:
         std::string _title;
@@ -129,8 +136,13 @@ class DPDSimulation {
         std::vector<std::vector<float>> _dissipative_parameters;
         std::vector<Bond_type> _bond_types;
         std::vector<Stiff_bond_type> _stiff_bond_types;
+        std::vector<Polymer> _polymers;
 
     public:
+        // Useful function to parse the structure string of a polymer
+        void parsePolymerStructure(std::string s);
+
+        // Setters and getters
         void setTitle(std::string title);
         std::string getTitle();
 
@@ -157,6 +169,9 @@ class DPDSimulation {
 
         void addStiffBondType(Stiff_bond_type stiffBondType);
         std::vector<Stiff_bond_type> getStiffBondTypes();
+
+        void addPolymer(Polymer p);
+        std::vector<Polymer> getPolymers();
 };
 
 #include "../src/DPDSimulation.cpp"

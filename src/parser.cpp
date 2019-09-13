@@ -238,6 +238,11 @@ bool beadTypes() {
     }
 }
 
+// Bond types are optional, but any number can be declared.
+// They specify what two types of beads can be connected by a bond, and
+// parameters which are used in the calculations.
+// Polymers are used to determine the numbers and structures of polymers (made up of many bonds).
+// These just specify the values used in the calculations of those structures.
 bool bondTypes() {
     std::string bond = *i;
     if (boost::starts_with(bond, "Bond ")) {
@@ -295,6 +300,10 @@ bool bondTypes() {
     }
 }
 
+// Stiff bonds use different calculations, based on the angle between a pair of bonds
+// (hence the BondPair identifier). Again, the structure of polymers is done with the
+// Polymer identifier, this simply provides the values used in calculations on bonds
+// within the described polymer structures
 bool stiffBondTypes() {
     std::string bond = *i;
     if (boost::starts_with(bond, "BondPair")) {
@@ -353,6 +362,92 @@ bool stiffBondTypes() {
         }
     } else {
         return false;
+    }
+}
+
+std::string tidyString(std::string s) {
+    std::string r;
+    bool first;
+    for (int i = 0; i < s.size(); i++) {
+        if (s[i] != ' ') {
+            r += s[i];
+            first = false;
+        } else {
+            if (!first) {
+                r+= s[i];
+                first = true;
+            }
+        }
+    }
+    boost::trim(r);
+    return r;
+}
+
+// Polymers indicates the structure of bonded beads, if they are actually bonded.
+// When beads are to be left unbonded, this can be done simply with " ( W ) " for example.
+// Note, this still uses the "whitespace-speech mark-whitespace" to being and terminate the string.
+// Particularly complex bonds are not yet implemented (as of 13/09/2019), but they will be parsed
+// (in a separate function) for now, so something can be done with them in the future.
+// (Assuming parsing these isn't incredibly difficult)
+bool polymers() {
+    std::string polymer = *i;
+    float fractionTotal = 0.0;
+    if (boost::starts_with(polymer, "Polymer")) {
+        while (boost::starts_with(polymer, "Polymer")) {
+            polymer = tidyString(polymer);
+            // Clear "Polymer" identifier
+            polymer = polymer.substr(7, polymer.size() - 7);
+            boost::trim(polymer);
+            // Get polymer name
+            std::stringstream sp(polymer);
+            std::string p;
+            if (!std::getline(sp, p, ' ')) {
+                printf("ERROR: Expected a polymer name, fraction (< 1) and a structure of the polymer.\n");
+                exit(1);
+            }
+            std::string polymerName = p;
+            polymer = polymer.substr(polymerName.size(), polymer.size() - polymerName.size()); // Remove it from the string so structure is easier to grab
+            boost::trim(polymer);
+            // Get fraction of total beads that this polymer is to be
+            if (!std::getline(sp, p, ' ')) {
+                printf("ERROR: Expected a polymer name, fraction (< 1) and a structure of the polymer.\n");
+                exit(1);
+            }
+            float polymerFraction = std::stof(p);
+            fractionTotal += polymerFraction;
+            polymer = polymer.substr(p.size(), polymer.size() - p.size());
+            boost::trim(polymer);
+            // Get structure of polymer
+            if (!(boost::starts_with(polymer, "\" ") && boost::ends_with(polymer, " \""))){
+                printf("ERROR: Polymer string must be started and ended with \" (whitespace-speech mark-whitespace)\n");
+                exit(1);
+            }
+            std::string structure = polymer.substr(2, polymer.size() - 4);
+            // Create polymer object and add to sim
+            Polymer poly;
+            poly.name = polymerName;
+            poly.fraction = polymerFraction;
+            poly.structure_string = structure;
+            sim.addPolymer(poly);
+            // Get next possible polymer - will return if not a polymer
+            i = getNextLine();
+            polymer = *i;
+        }
+        if (fractionTotal > 1) {
+            printf("ERROR: Total of fractions for beads is greater than 1. Total = %1.10f\n", fractionTotal);
+            exit(1);
+        }
+        std::vector<Polymer> polymers = sim.getPolymers();
+        for (std::vector<Polymer>::iterator p = polymers.begin(); p != polymers.end(); ++p) {
+            std::cout << "Polymer: " << "\n";
+            std::cout << "name      = " << p->name << "\n";
+            std::cout << "fraction  = " << p->fraction << "\n";
+            std::cout << "structure = " << p->structure_string << "\n\n";
+        }
+        return false;
+    } else {
+        printf("ERROR: At least one type of polymer must be defined, along with fraction of total beads that are this polymer, and its structure.\n");
+        exit(1);
     }
 }
 

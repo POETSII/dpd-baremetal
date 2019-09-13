@@ -103,3 +103,11 @@ void DPDSimulation::addStiffBondType(Stiff_bond_type stiffBondType) {
 std::vector<Stiff_bond_type> DPDSimulation::getStiffBondTypes() {
     return _stiff_bond_types;
 }
+
+void DPDSimulation::addPolymer(Polymer p) {
+    _polymers.push_back(p);
+}
+
+std::vector<Polymer> DPDSimulation::getPolymers() {
+    return _polymers;
+}
