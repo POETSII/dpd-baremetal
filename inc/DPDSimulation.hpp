@@ -1,4 +1,11 @@
 #include <stdio.h>
+#include <map>
+
+// Initial state enum
+#define RANDOM 0
+#define RESTART 1
+#define LAMELLA 2
+#define COMPOSITELAMELLA 3
 
 typedef struct Date {
     uint8_t day;
@@ -84,10 +91,44 @@ typedef struct Date {
     }
 } Date;
 
+typedef uint8_t initial_state;
+
+typedef char bead_type_id;
+
+typedef uint8_t bead_type_enum;
+
+typedef struct Bead_type {
+    float radius;
+    bead_type_enum type;
+    float fraction;
+} Bead_type;
+
+typedef struct Bond_type {
+    bead_type_id bead1;
+    bead_type_id bead2;
+    float hookean_constant;
+    float spring_length;
+} Bond_type;
+
+typedef struct Stiff_bond_type {
+    bead_type_id bead1;
+    bead_type_id bead2;
+    bead_type_id bead3;
+    float bending_constant;
+    float preferred_angle;
+} Stiff_bond_type;
+
 class DPDSimulation {
     private:
         std::string _title;
         Date _date;
+        std::string _comment;
+        initial_state _state;
+        std::map<bead_type_id, Bead_type> _bead_types;
+        std::vector<std::vector<float>> _conservative_parameters;
+        std::vector<std::vector<float>> _dissipative_parameters;
+        std::vector<Bond_type> _bond_types;
+        std::vector<Stiff_bond_type> _stiff_bond_types;
 
     public:
         void setTitle(std::string title);
@@ -95,6 +136,27 @@ class DPDSimulation {
 
         bool setDate(Date date);
         Date getDate();
+
+        void setComment(std::string comment);
+        std::string getComment();
+
+        void setInitialState(initial_state state);
+        initial_state getInitialState();
+
+        void addBeadType(bead_type_id id, Bead_type beadType);
+        std::map<bead_type_id, Bead_type> getBeadTypes();
+
+        void addConservativeParameters(std::vector<float> conservativeParameter);
+        std::vector<std::vector<float>> getConservativeParameters();
+
+        void addDissipativeParameters(std::vector<float> dissipativeParameter);
+        std::vector<std::vector<float>> getDissipativeParameters();
+
+        void addBondType(Bond_type bondType);
+        std::vector<Bond_type> getBondTypes();
+
+        void addStiffBondType(Stiff_bond_type stiffBondType);
+        std::vector<Stiff_bond_type> getStiffBondTypes();
 };
 
 #include "../src/DPDSimulation.cpp"
