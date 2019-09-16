@@ -1,12 +1,6 @@
 #include <stdio.h>
 #include <map>
 
-// Initial state enum
-#define RANDOM 0
-#define RESTART 1
-#define LAMELLA 2
-#define COMPOSITELAMELLA 3
-
 typedef struct Date {
     uint8_t day;
     uint8_t month;
@@ -91,7 +85,7 @@ typedef struct Date {
     }
 } Date;
 
-typedef uint8_t initial_state;
+typedef enum { RANDOM, RESTART, LAMELLA, COMPOSITELAMELLA } initial_state;
 
 typedef char bead_type_id;
 
@@ -118,10 +112,18 @@ typedef struct Stiff_bond_type {
     float preferred_angle;
 } Stiff_bond_type;
 
+typedef enum { BEAD, CHAIN, BRANCH, LOOP } polymer_type;
+
+typedef struct Polymer_structure {
+    polymer_type type;
+    std::vector<Polymer_structure> elements;
+} Polymer_structure;
+
 typedef struct Polymer {
     std::string name;
     float fraction;
     std::string structure_string;
+    Polymer_structure structure;
     // TODO: structure parsed in some way
 } Polymer;
 
@@ -140,7 +142,7 @@ class DPDSimulation {
 
     public:
         // Useful function to parse the structure string of a polymer
-        void parsePolymerStructure(std::string s);
+        std::tuple<Polymer_structure, int> parsePolymerStructure(std::string s, int start);
 
         // Setters and getters
         void setTitle(std::string title);

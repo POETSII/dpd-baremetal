@@ -1,4 +1,39 @@
 
+std::tuple<Polymer_structure, int> parsePolymerStructure(std::string s, int start) {
+    Polymer_structure p;
+    for (int c = start; c < s.size(); c++) {
+        switch(s[c]) {
+            case '(': {
+                std::tuple<Polymer_structure, int> r = parsePolymerStructure(s, c+1);
+                c = std::get<1>(r);
+                break;
+            }
+            // Ignore whitespace
+            case ' ': {
+                break;
+            }
+
+            case ')': {
+                return std::make_tuple(p, c);
+            }
+
+            case '*': {
+                Polymer_structure newStructure;
+                newStructure.type = BRANCH;
+                std::tuple<Polymer_structure, int> r = parsePolymerStructure(s, c+1);
+                Polymer_structure returnStructure = std::get<0>(r);
+                if (returnStructure.type == BEAD) {
+                    newStructure.elements.insert(newStructure.elements.end(), returnStructure.elements);
+                } else if (returnStructure.type) {
+                    newStructure.elements = returnStructure.elements;
+                }
+                p.elements.insert(p.elements.end(), newStructure);
+                break;
+            }
+        }
+    }
+}
+
 void DPDSimulation::setTitle(std::string title) {
     _title = title;
 }
