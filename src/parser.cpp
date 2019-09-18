@@ -167,7 +167,10 @@ bool beadTypes() {
             beadId = beadId.substr(4, beadId.size() - 4);
             boost::trim(beadId);
             if (beadId.size() > 1) {
-                printf("ERROR: Identifier for a bead type must be 1 aplhabetic character. \"%s\"\n", beadId.c_str());
+                printf("ERROR: Identifier for a bead type must be 1 alphabetic character. \"%s\"\n", beadId.c_str());
+                exit(1);
+            } else if (!((beadId[0] >= 'A' && beadId[0] <= 'Z') || (beadId[0] >= 'a' && beadId[0] <= 'z'))) {
+                printf("ERROR: Identified for a bead type must be 1 alphabetic character. \"%s\"\n", beadId.c_str());
                 exit(1);
             }
             bead_type_id bead_id = beadId[0];

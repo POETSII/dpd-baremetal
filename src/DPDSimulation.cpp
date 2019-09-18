@@ -1,34 +1,57 @@
 
-std::tuple<Polymer_structure, int> parsePolymerStructure(std::string s, int start) {
-    Polymer_structure p;
-    for (int c = start; c < s.size(); c++) {
-        switch(s[c]) {
-            case '(': {
-                std::tuple<Polymer_structure, int> r = parsePolymerStructure(s, c+1);
-                c = std::get<1>(r);
-                break;
-            }
-            // Ignore whitespace
-            case ' ': {
-                break;
-            }
+std::vector<Polymer_structure> DPDSimulation::combinePolymers(std::vector<Polymer_structure> a, std::vector<Polymer_structure> b) {
+    for (std::vector<Polymer_structure>::iterator i = b.begin(); i != b.end(); ++i) {
+        a.push_back(*i);
+    }
+    return a;
+}
 
-            case ')': {
+std::tuple<Polymer_structure, int> DPDSimulation::parsePolymerStructure(std::string s, int start, int loopNum) {
+    Polymer_structure p;
+    bool expectingLoopNum = false;
+    int newLoop = 0, repeatNum = 0;
+    std::string loopNumStr;
+    std::string repeatNumStr;
+    for (int c = start; c < s.size(); c++) {
+        if (s[c] == '(') { // Open of new sub-structure
+            std::tuple<Polymer_structure, int> r = parsePolymerStructure(s, c+1);
+            c = std::get<1>(r);
+        } else if (s[c] == ' ') { // Whitespace could be ignored or might be important
+            if (expectingLoopNum) {
+                int num = std::stoi(loopNumStr);
+                if (loopNum == num) { // The loop is complete, can return this now
+                    p.type = LOOP;
+                } else { // Its a new loop
+                    newLoop = num;
+                }
+            } else if (repeatNumStr != "") {
+                repeatNum = std::stoi(repeatNumStr);
+            }
+        } else if (s[c] == ')') { // End of sub-structure return the parse polymer
+            if (newLoop > 0) {
+                return parsePolymerStructure(s, c+1, newLoop);
+            } else {
                 return std::make_tuple(p, c);
             }
-
-            case '*': {
-                Polymer_structure newStructure;
-                newStructure.type = BRANCH;
-                std::tuple<Polymer_structure, int> r = parsePolymerStructure(s, c+1);
-                Polymer_structure returnStructure = std::get<0>(r);
-                if (returnStructure.type == BEAD) {
-                    newStructure.elements.insert(newStructure.elements.end(), returnStructure.elements);
-                } else if (returnStructure.type) {
-                    newStructure.elements = returnStructure.elements;
-                }
-                p.elements.insert(p.elements.end(), newStructure);
-                break;
+        } else if (s[c] == '*']) { // Indicates a branch
+            Polymer_structure newStructure;
+            newStructure.type = BRANCH;
+            std::tuple<Polymer_structure, int> r = parsePolymerStructure(s, c+1);
+            Polymer_structure returnStructure = std::get<0>(r);
+            c = std::get<1>(r) + 1;
+            if (returnStructure.type == BEAD) {
+                newStructure.elements = combinePolymers(newStructure.elements, returnStructure.elements);
+            } else if (returnStructure.type) {
+                newStructure.elements = returnStructure.elements;
+            }
+            p.elements.insert(p.elements.end(), newStructure);
+        } else if (s[c] == '/') { // Indicates the start or end of a loop
+            expectingLoopNum = true;
+        } else if (s[c] >= '0' && s[c] <= '9') { // Number for loop or something?
+            if (expectingLoopNum) {
+                loopNumStr += s[c];
+            } else {
+                repeatNumStr += s[c];
             }
         }
     }

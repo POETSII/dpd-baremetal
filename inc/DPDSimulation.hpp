@@ -141,6 +141,9 @@ class DPDSimulation {
         std::vector<Polymer> _polymers;
 
     public:
+        // Using vectors so just making it easier to combine polymers
+        std::vector<Polymer_structure> combinePolymers(std::vector<Polymer_structure> a, std::vector<Polymer_structure> b);
+
         // Useful function to parse the structure string of a polymer
         std::tuple<Polymer_structure, int> parsePolymerStructure(std::string s, int start);
 
