@@ -44,12 +44,12 @@ bool title() {
             sim.setTitle(title);
             return true;
         } else {
-            printf("ERROR: Strings must be started and terminated with \" \" \" (Whitespace, inverted comma, whitespace).\n");
-            printf("The title string has been ignored\n");
+            fprintf(stderr, "ERROR: Strings must be started and terminated with \" \" \" (Whitespace, inverted comma, whitespace).\n");
+            fprintf(stderr, "The title string has been ignored\n");
             return true;
         }
     } else {
-        printf("No title is provided. Continuing to parse without\n");
+        fprintf(stderr, "No title is provided. Continuing to parse without\n");
         return false;
     }
 }
@@ -71,8 +71,8 @@ bool date() {
             dates.push_back(s);
         }
         if (dates.size() < 3 || dates.size() > 3) {
-            printf("ERROR: The date format has not been recognised. It must be in the form \"DD/MM/YY\".\n");
-            printf("The date will be ignored.\n");
+            fprintf(stderr, "ERROR: The date format has not been recognised. It must be in the form \"DD/MM/YY\".\n");
+            fprintf(stderr, "The date will be ignored.\n");
             return true;
         }
         Date d;
@@ -81,11 +81,11 @@ bool date() {
         d.year = std::stoi(dates.at(2));
         bool valid = sim.setDate(d);
         if (!valid) {
-            printf("ERROR: The date is being ignored\n");
+            fprintf(stderr, "ERROR: The date is being ignored\n");
         }
         return true;
     } else {
-        printf("No date is provided. Continuing to parse without\n");
+        fprintf(stderr, "No date is provided. Continuing to parse without\n");
         return false;
     }
 }
@@ -116,7 +116,7 @@ bool comment() {
             return true;
         }
     } else {
-        printf("No comment is provided. Continuing to parse without\n");
+        fprintf(stderr, "No comment is provided. Continuing to parse without\n");
         return false;
     }
 }
@@ -139,15 +139,15 @@ bool initialState() {
         } else if (state == "compositelamella") {
             initState = COMPOSITELAMELLA;
         } else {
-            printf("ERROR: Unrecognised initial state \"%s\". Options are: \n", state.c_str());
-            printf("random, restart, lamella or compositelamella\n");
+            fprintf(stderr, "ERROR: Unrecognised initial state \"%s\". Options are: \n", state.c_str());
+            fprintf(stderr, "random, restart, lamella or compositelamella\n");
             exit(1);
         }
         sim.setInitialState(initState);
         return true;
     } else {
-        printf("ERROR: No initial state given. This is required. Options are: \n");
-        printf("random, restart, lamella or compositelamella\n");
+        fprintf(stderr, "ERROR: No initial state given. This is required. Options are: \n");
+        fprintf(stderr, "random, restart, lamella or compositelamella\n");
         exit(1);
     }
 }
@@ -167,10 +167,10 @@ bool beadTypes() {
             beadId = beadId.substr(4, beadId.size() - 4);
             boost::trim(beadId);
             if (beadId.size() > 1) {
-                printf("ERROR: Identifier for a bead type must be 1 alphabetic character. \"%s\"\n", beadId.c_str());
+                fprintf(stderr, "ERROR: Identifier for a bead type must be 1 alphabetic character. \"%s\"\n", beadId.c_str());
                 exit(1);
             } else if (!((beadId[0] >= 'A' && beadId[0] <= 'Z') || (beadId[0] >= 'a' && beadId[0] <= 'z'))) {
-                printf("ERROR: Identified for a bead type must be 1 alphabetic character. \"%s\"\n", beadId.c_str());
+                fprintf(stderr, "ERROR: Identified for a bead type must be 1 alphabetic character. \"%s\"\n", beadId.c_str());
                 exit(1);
             }
             bead_type_id bead_id = beadId[0];
@@ -178,7 +178,7 @@ bool beadTypes() {
             i = std::next(i);
             std::string rad = *i;
             if (rad == "") {
-                printf("ERROR: No radius of bead type %s given. This must be provided.\n", beadId.c_str());
+                fprintf(stderr, "ERROR: No radius of bead type %s given. This must be provided.\n", beadId.c_str());
                 exit(1);
             }
             boost::trim(rad);
@@ -188,7 +188,7 @@ bool beadTypes() {
             std::string con = *i;
             boost::trim(con);
             if (con == "") {
-                printf("ERROR: No conservative parameters of bead type %s given. This must be provided.\n", beadId.c_str());
+                fprintf(stderr, "ERROR: No conservative parameters of bead type %s given. This must be provided.\n", beadId.c_str());
                 exit(1);
             }
             std::stringstream ss(con);
@@ -199,7 +199,7 @@ bool beadTypes() {
                 conservativeParameters.push_back(conservative);
             }
             if (conservativeParameters.size() < (beadTypeNum + 1)) {
-                printf("ERROR: Bead type %s has not been given enough conservative parameters\n. Expected %u, have %lu.\n", beadId.c_str(), (beadTypeNum + 1), conservativeParameters.size());
+                fprintf(stderr, "ERROR: Bead type %s has not been given enough conservative parameters\n. Expected %u, have %lu.\n", beadId.c_str(), (beadTypeNum + 1), conservativeParameters.size());
                 exit(1);
             }
             // Dissipative paramerters
@@ -207,7 +207,7 @@ bool beadTypes() {
             std::string dis = *i;
             boost::trim(dis);
             if (dis == "") {
-                printf("ERROR: No dissipative parameters of bead type %s given. This must be provided.\n", beadId.c_str());
+                fprintf(stderr, "ERROR: No dissipative parameters of bead type %s given. This must be provided.\n", beadId.c_str());
                 exit(1);
             }
             std::stringstream sd(dis);
@@ -218,7 +218,7 @@ bool beadTypes() {
                 dissipativeParameters.push_back(dissipative);
             }
             if (dissipativeParameters.size() < (beadTypeNum + 1)) {
-                printf("ERROR: Bead type %s has not been given enough dissipative parameters\n. Expected %u, have %lu.\n", beadId.c_str(), (beadTypeNum + 1), dissipativeParameters.size());
+                fprintf(stderr, "ERROR: Bead type %s has not been given enough dissipative parameters\n. Expected %u, have %lu.\n", beadId.c_str(), (beadTypeNum + 1), dissipativeParameters.size());
                 exit(1);
             }
             // Add to sim class
@@ -235,8 +235,8 @@ bool beadTypes() {
         }
         return false;
     } else {
-        printf("ERROR: No bead types have been given. Found \"%s\".\n", beadId.c_str());
-        printf("A DPD simulation is not really anything without beads.\n");
+        fprintf(stderr, "ERROR: No bead types have been given. Found \"%s\".\n", beadId.c_str());
+        fprintf(stderr, "A DPD simulation is not really anything without beads.\n");
         exit(1);
     }
 }
@@ -254,8 +254,8 @@ bool bondTypes() {
             bond = bond.substr(4, bond.size() - 4);
             boost::trim(bond);
             if (bond[1] != ' ') {
-                printf("ERROR: Given bead for bond is identified by more than one character.\n");
-                printf("Only one character is allowed for identifying bead types\n");
+                fprintf(stderr, "ERROR: Given bead for bond is identified by more than one character.\n");
+                fprintf(stderr, "Only one character is allowed for identifying bead types\n");
                 exit(1);
             }
             bead_type_id bead1 = bond[0];
@@ -263,8 +263,8 @@ bool bondTypes() {
             bond = bond.substr(1, bond.size() - 1);
             boost::trim(bond);
             if (bond[1] != ' ') {
-                printf("ERROR: Given bead for bond is identified by more than one character.\n");
-                printf("Only one character is allowed for identifying bead types\n");
+                fprintf(stderr, "ERROR: Given bead for bond is identified by more than one character.\n");
+                fprintf(stderr, "Only one character is allowed for identifying bead types\n");
                 exit(1);
             }
             bead_type_id bead2 = bond[0];
@@ -274,15 +274,15 @@ bool bondTypes() {
             std::stringstream sb(bond);
             std::string b;
             if (!std::getline(sb, b, ' ')) {
-                printf("ERROR: Expected both a hookean spring constant and an unstretched length of the spring.\n");
-                printf("This is for the bond with types %c and %c", bead1, bead2);
+                fprintf(stderr, "ERROR: Expected both a hookean spring constant and an unstretched length of the spring.\n");
+                fprintf(stderr, "This is for the bond with types %c and %c", bead1, bead2);
                 exit(1);
             }
             float hookean_constant = std::stof(b);
             // Get unstretched length of spring
             if (!std::getline(sb, b, ' ')) {
-                printf("ERROR: Expected both a hookean spring constant and an unstretched length of the spring.\n");
-                printf("This is for the bond with types %c and %c", bead1, bead2);
+                fprintf(stderr, "ERROR: Expected both a hookean spring constant and an unstretched length of the spring.\n");
+                fprintf(stderr, "This is for the bond with types %c and %c", bead1, bead2);
                 exit(1);
             }
             float spring_length = std::stof(b);
@@ -310,15 +310,15 @@ bool bondTypes() {
 bool stiffBondTypes() {
     std::string bond = *i;
     if (boost::starts_with(bond, "BondPair")) {
-        printf("WARNING: Stiff bond types (BondPair) are not yet implemented.\n");
-        printf("Stiff bond types will still be parsed and stored.\n");
+        fprintf(stderr, "WARNING: Stiff bond types (BondPair) are not yet implemented.\n");
+        fprintf(stderr, "Stiff bond types will still be parsed and stored.\n");
         while (boost::starts_with(bond, "BondPair")) {
             bond = bond.substr(8, bond.size() - 8);
             boost::trim(bond);
             // Get first bead type for bond pair
             if (bond[1] != ' ') {
-                printf("ERROR: Given bead for stiff bond is identified by more than one character.\n");
-                printf("Only one character is allowed for identifying bead types\n");
+                fprintf(stderr, "ERROR: Given bead for stiff bond is identified by more than one character.\n");
+                fprintf(stderr, "Only one character is allowed for identifying bead types\n");
                 exit(1);
             }
             bead_type_id bead1 = bond[0];
@@ -326,8 +326,8 @@ bool stiffBondTypes() {
             boost::trim(bond);
             // Get second bead type for bond pair
             if (bond[1] != ' ') {
-                printf("ERROR: Given bead for stiff bond is identified by more than one character.\n");
-                printf("Only one character is allowed for identifying bead types\n");
+                fprintf(stderr, "ERROR: Given bead for stiff bond is identified by more than one character.\n");
+                fprintf(stderr, "Only one character is allowed for identifying bead types\n");
                 exit(1);
             }
             bead_type_id bead2 = bond[0];
@@ -335,8 +335,8 @@ bool stiffBondTypes() {
             boost::trim(bond);
             // Get third bead type for bond pair
             if (bond[1] != ' ') {
-                printf("ERROR: Given bead for stiff bond is identified by more than one character.\n");
-                printf("Only one character is allowed for identifying bead types\n");
+                fprintf(stderr, "ERROR: Given bead for stiff bond is identified by more than one character.\n");
+                fprintf(stderr, "Only one character is allowed for identifying bead types\n");
                 exit(1);
             }
             bead_type_id bead3 = bond[0];
@@ -346,15 +346,15 @@ bool stiffBondTypes() {
             std::stringstream sb(bond);
             std::string b;
             if (!std::getline(sb, b, ' ')) {
-                printf("ERROR: Expected both a bending constant and a preferred angle of the bonds.\n");
-                printf("This is for the stiff bond with types %c, %c and %c", bead1, bead2, bead3);
+                fprintf(stderr, "ERROR: Expected both a bending constant and a preferred angle of the bonds.\n");
+                fprintf(stderr, "This is for the stiff bond with types %c, %c and %c", bead1, bead2, bead3);
                 exit(1);
             }
             float bending_constant = std::stof(b);
             // Get preferred angle for stiff bond
             if (!std::getline(sb, b, ' ')) {
-                printf("ERROR: Expected both a bending constant and a preferred angle of the bonds.\n");
-                printf("This is for the stiff bond with types %c, %c and %c", bead1, bead2, bead3);
+                fprintf(stderr, "ERROR: Expected both a bending constant and a preferred angle of the bonds.\n");
+                fprintf(stderr, "This is for the stiff bond with types %c, %c and %c", bead1, bead2, bead3);
                 exit(1);
             }
             float preferred_angle = std::stof(b);
@@ -405,7 +405,7 @@ bool polymers() {
             std::stringstream sp(polymer);
             std::string p;
             if (!std::getline(sp, p, ' ')) {
-                printf("ERROR: Expected a polymer name, fraction (< 1) and a structure of the polymer.\n");
+                fprintf(stderr, "ERROR: Expected a polymer name, fraction (< 1) and a structure of the polymer.\n");
                 exit(1);
             }
             std::string polymerName = p;
@@ -413,7 +413,7 @@ bool polymers() {
             boost::trim(polymer);
             // Get fraction of total beads that this polymer is to be
             if (!std::getline(sp, p, ' ')) {
-                printf("ERROR: Expected a polymer name, fraction (< 1) and a structure of the polymer.\n");
+                fprintf(stderr, "ERROR: Expected a polymer name, fraction (< 1) and a structure of the polymer.\n");
                 exit(1);
             }
             float polymerFraction = std::stof(p);
@@ -422,7 +422,7 @@ bool polymers() {
             boost::trim(polymer);
             // Get structure of polymer
             if (!(boost::starts_with(polymer, "\" ") && boost::ends_with(polymer, " \""))){
-                printf("ERROR: Polymer string must be started and ended with \" (whitespace-speech mark-whitespace)\n");
+                fprintf(stderr, "ERROR: Polymer string must be started and ended with \" (whitespace-speech mark-whitespace)\n");
                 exit(1);
             }
             std::string structure = polymer.substr(2, polymer.size() - 4);
@@ -439,21 +439,12 @@ bool polymers() {
             polymer = *i;
         }
         if (fractionTotal > 1) {
-            printf("ERROR: Total of fractions for beads is greater than 1. Total = %1.10f\n", fractionTotal);
+            fprintf(stderr, "ERROR: Total of fractions for beads is greater than 1. Total = %1.10f\n", fractionTotal);
             exit(1);
-        }
-        std::vector<Polymer> polymers = sim.getPolymers();
-        for (std::vector<Polymer>::iterator p = polymers.begin(); p != polymers.end(); ++p) {
-            std::cout << "Polymer: " << "\n";
-            std::cout << "name      = " << p->name << "\n";
-            std::cout << "fraction  = " << p->fraction << "\n";
-            std::cout << "structure = " << p->structure_string << "\n\n";
-            printPolymerStructure(p->structure);
-            std::cout << "\n";
         }
         return false;
     } else {
-        printf("ERROR: At least one type of polymer must be defined, along with fraction of total beads that are this polymer, and its structure.\n");
+        fprintf(stderr, "ERROR: At least one type of polymer must be defined, along with fraction of total beads that are this polymer, and its structure.\n");
         exit(1);
     }
 }
@@ -461,10 +452,10 @@ bool polymers() {
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
-        printf("Not enough arguments. Please provide an input filepath\n");
+        fprintf(stderr, "Not enough arguments. Please provide an input filepath\n");
         return 1;
     } else if (argc > 2) {
-        printf("Too many arguments. Please provide an input filepath ONLY\n");
+        fprintf(stderr, "Too many arguments. Please provide an input filepath ONLY\n");
         return 1;
     }
 
@@ -487,7 +478,7 @@ int main(int argc, char *argv[]) {
 
     // First line must contain "dpd" only.
     if (*i != "dpd") {
-        printf("First line of input file is not \"dpd\". This is required and will not parse correctly otherwise\n");
+        fprintf(stderr, "First line of input file is not \"dpd\". This is required and will not parse correctly otherwise\n");
         return 1;
     }
 
