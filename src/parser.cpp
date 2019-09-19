@@ -431,6 +431,8 @@ bool polymers() {
             poly.name = polymerName;
             poly.fraction = polymerFraction;
             poly.structure_string = structure;
+            std::tuple<Polymer_structure, int> x = sim.parsePolymerStructure(structure, 1);
+            poly.structure = std::get<0>(x);
             sim.addPolymer(poly);
             // Get next possible polymer - will return if not a polymer
             i = getNextLine();
@@ -446,6 +448,8 @@ bool polymers() {
             std::cout << "name      = " << p->name << "\n";
             std::cout << "fraction  = " << p->fraction << "\n";
             std::cout << "structure = " << p->structure_string << "\n\n";
+            printPolymerStructure(p->structure);
+            std::cout << "\n";
         }
         return false;
     } else {

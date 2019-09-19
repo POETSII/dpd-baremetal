@@ -112,11 +112,13 @@ typedef struct Stiff_bond_type {
     float preferred_angle;
 } Stiff_bond_type;
 
-typedef enum { BEAD, CHAIN, BRANCH, LOOP } polymer_type;
+typedef enum { CHAIN, BEAD, BRANCH, LOOP } polymer_type;
 
 typedef struct Polymer_structure {
     polymer_type type;
     std::vector<Polymer_structure> elements;
+    int loopNum;
+    bead_type_id bead_type;
 } Polymer_structure;
 
 typedef struct Polymer {
