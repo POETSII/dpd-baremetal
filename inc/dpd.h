@@ -195,7 +195,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
     inline bool is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
+#ifdef TIMER
+    __attribute__((noinline)) uint32_t get_next_slot(uint32_t slotlist){
+#else
     inline uint32_t get_next_slot(uint32_t slotlist){
+#endif
         uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++) {
             if(slotlist & mask){
