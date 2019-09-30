@@ -129,6 +129,18 @@ typedef struct Polymer {
     // TODO: structure parsed in some way
 } Polymer;
 
+typedef struct Volume {
+    float x;
+    float y;
+    float z;
+} Volume;
+
+typedef struct Cell {
+    float x;
+    float y;
+    float z;
+} Cell;
+
 class DPDSimulation {
     private:
         std::string _title;
@@ -141,6 +153,16 @@ class DPDSimulation {
         std::vector<Bond_type> _bond_types;
         std::vector<Stiff_bond_type> _stiff_bond_types;
         std::vector<Polymer> _polymers;
+        Volume _volume;
+        Cell _cell;
+        float _density;
+        float _temp;
+        int32_t _RNGSeed;
+        float _lambda;
+        float _step;
+        uint32_t _time;
+        uint32_t _samplePeriod;
+        uint32_t _analysisPeriod;
 
     public:
         // Using vectors so just making it easier to combine polymers
@@ -179,6 +201,36 @@ class DPDSimulation {
 
         void addPolymer(Polymer p);
         std::vector<Polymer> getPolymers();
+
+        void setVolume(Volume volume);
+        Volume getVolume();
+
+        void setCell(Cell cell);
+        Cell getCell();
+
+        void setDensity(float density);
+        float getDensity();
+
+        void setTemp(float temp);
+        float getTemp();
+
+        void setRNGSeed(int32_t rngSeed);
+        int32_t getRNGSeed();
+
+        void setLambda(float lambda);
+        float getLambda();
+
+        void setStep(float step);
+        float getStep();
+
+        void setTime(uint32_t time);
+        uint32_t getTime();
+
+        void setSamplePeriod(uint32_t samplePeriod);
+        uint32_t getSamplePeriod();
+
+        void setAnalysisPeriod(uint32_t analysisPeriod);
+        uint32_t getAnalysisPeriod();
 };
 
 #include "../src/DPDSimulation.cpp"

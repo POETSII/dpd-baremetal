@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 #include <vector>
 #include "../inc/DPDSimulation.hpp"
+#include <random>
 
 // Stores each line of the input file for easier reading
 std::vector<std::string> lines;
@@ -20,6 +21,8 @@ std::vector<std::string> lines;
 std::vector<std::string>::iterator i;
 // Class to hold parameters for the simulation
 DPDSimulation sim;
+// Bool to reduce parsing errors based on anaylsis/sampling
+bool analysisErrored = false;
 
 // Empty lines are used to separate sections of parameters and can be ignored
 std::vector<std::string>::iterator getNextLine() {
@@ -449,6 +452,262 @@ bool polymers() {
     }
 }
 
+bool box() {
+    std::string box = *i;
+    if (boost::starts_with(box, "Box")) {
+        box = box.substr(3, box.size() - 3);
+        boost::trim(box);
+        std::stringstream bs(box);
+        std::string b;
+        Volume volume;
+        if (!std::getline(bs, b, ' ')) {
+            fprintf(stderr, "ERROR: Expecting the X dimension of the box\n");
+            exit(1);
+        }
+        volume.x = std::stof(b);
+        if (volume.x < 3) {
+            fprintf(stderr, "ERROR: X dimension is too small. Must be 3 or larger");
+            exit(1);
+        }
+        b = "";
+        while (b == " " || b == "") {
+            if (!std::getline(bs, b, ' ')) {
+                fprintf(stderr, "ERROR: Expecting the Y dimension of the box\n");
+                exit(1);
+            }
+        }
+        volume.y = std::stof(b);
+        if (volume.y < 3) {
+            fprintf(stderr, "ERROR: Y dimension is too small. Must be 3 or larger");
+            exit(1);
+        }
+        b = "";
+        while (b == " " || b == "") {
+            if (!std::getline(bs, b, ' ')) {
+                fprintf(stderr, "ERROR: Expecting the Y dimension of the box\n");
+                exit(1);
+            }
+        }
+        volume.z = std::stof(b);
+        if (volume.z < 3) {
+            fprintf(stderr, "ERROR: Z dimension is too small. Must be 3 or larger");
+            exit(1);
+        }
+        sim.setVolume(volume);
+        // Cell dimensions (Must be set at 1 1 1)
+        b = "";
+        bool fail = false;
+        Cell cell;
+        while (b == " " || b == "") {
+            if (!std::getline(bs, b, ' ')) {
+                fprintf(stderr, "WARNING: No cell dimensions given, assuming 1 1 1\n");
+                fail = true;
+                break;
+            }
+        }
+        if (fail) {
+            cell = {1, 1, 1};
+            sim.setCell(cell);
+            return true;
+        }
+        cell.x = std::stof(b);
+        b = "";
+        while (b == " " || b == "") {
+            if (!std::getline(bs, b, ' ')) {
+                fprintf(stderr, "WARNING: No cell dimensions given, assuming 1 1 1\n");
+                fail = true;
+                break;
+            }
+        }
+        if (fail) {
+            cell = {1, 1, 1};
+            sim.setCell(cell);
+            return true;
+        }
+        cell.y = std::stof(b);
+        b = "";
+        while (b == " " || b == "") {
+            if (!std::getline(bs, b, ' ')) {
+                fprintf(stderr, "WARNING: No cell dimensions given, assuming 1 1 1\n");
+                fail = true;
+                break;
+            }
+        }
+        if (fail) {
+            cell = {1, 1, 1};
+            sim.setCell(cell);
+            return true;
+        }
+        cell.z = std::stof(b);
+        if (cell.x != 1 || cell.y != 1 || cell.z != 1) {
+            fprintf(stderr, "ERROR: All cell dimensions must be equal to 1.\n");
+            fprintf(stderr, "Cells with larger or smaller dimensions are not yet implemented\n");
+            exit(1);
+        }
+        sim.setCell(cell);
+        Volume v = sim.getVolume();
+        Cell c = sim.getCell();
+        return true;
+    } else {
+        fprintf(stderr, "ERROR: The box dimensions must be defined, or it a simulation cannot be run\n");
+        exit(1);
+    }
+    return false;
+}
+
+bool density() {
+    std::string den = *i;
+    if (boost::starts_with(den, "Density")) {
+        den = den.substr(7, den.size() - 7);
+        boost::trim(den);
+        float density = std::stof(den);
+        sim.setDensity(density);
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No density was given, so assuming a density of 1\n");
+        sim.setDensity(1);
+        return false;
+    }
+}
+
+bool temperature() {
+    std::string temp = *i;
+    if (boost::starts_with(temp, "Temp")) {
+        temp = temp.substr(4, temp.size() - 4);
+        boost::trim(temp);
+        float temperature = std::stof(temp);
+        if (temperature != 1) {
+            fprintf(stderr, "WARNING: A temperature of %f was given. This value should be 1. Continuing with given temperature\n", temperature);
+        }
+        sim.setTemp(temperature);
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No temperature was given, so assuming a temperature of 1\n");
+        sim.setTemp(1);
+        return false;
+    }
+}
+
+bool rngSeed() {
+    std::string seed = *i;
+    if (boost::starts_with(seed, "RNGSeed")) {
+        seed = seed.substr(7, seed.size() - 7);
+        boost::trim(seed);
+        int32_t rngSeed = std::stof(seed);
+        sim.setRNGSeed(rngSeed);
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No RNG seed was given. Randomly generating one. (Not ideal)\n");
+        sim.setRNGSeed(rand());
+        return false;
+    }
+}
+
+bool lambda() {
+    std::string lam = *i;
+    if (boost::starts_with(lam, "Lambda")) {
+        lam = lam.substr(6, lam.size() - 6);
+        boost::trim(lam);
+        float lambda = std::stof(lam);
+        if (lambda != 0.5) {
+            fprintf(stderr, "WARNING: Lambda was given at %f. It is best to keep this at 0.5. Setting this to 0.5 now.\n", lambda);
+            lambda = 0.5;
+        }
+        sim.setLambda(lambda);
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No Lambda has been given. Setting this to 0.5 and continuing.\n");
+        sim.setLambda(0.5);
+        return false;
+    }
+}
+
+bool step() {
+    std::string s = *i;
+    if (boost::starts_with(s, "Step")) {
+        s = s.substr(4, s.size() - 4);
+        boost::trim(s);
+        float step = std::stof(s);
+        sim.setStep(step);
+        return true;
+    } else {
+        fprintf(stderr, "ERROR: No step value given. This is needed. Reccomended: 0.02\n");
+        exit(0);
+    }
+}
+
+bool time() {
+    std::string t = *i;
+    if (boost::starts_with(t, "Time")) {
+        t = t.substr(4, t.size() - 4);
+        boost::trim(t);
+        uint32_t time = std::stoul(t);
+        if (time == 0) {
+            fprintf(stderr, "INFO: Max time is set to 0, so this simulation will run indefinitely.\n");
+        }
+        sim.setTime(time);
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No Time value is given, so this simulation will run indefinitely.\n");
+        return false;
+    }
+}
+
+bool samplePeriod() {
+    std::string sample = *i;
+    if (boost::starts_with(sample, "SamplePeriod")) {
+        sample = sample.substr(12, sample.size() - 12);
+        boost::trim(sample);
+        uint32_t samplePeriod = std::stoul(sample);
+        bool sampling = true;
+        if (samplePeriod == 0) {
+            fprintf(stderr, "INFO: Sample period is set to 0. No samples of the simulation will be taken.\n");
+            sampling = false;
+        }
+        uint32_t time = sim.getTime();
+        if (samplePeriod > time) {
+            fprintf(stderr, "INFO: Sample period is larger than the maximum timestep. No samples of the simulation will be taken.\n");
+            sampling = false;
+        }
+        sim.setSamplePeriod(samplePeriod);
+        if (sampling && !analysisErrored) {
+            fprintf(stderr, "WARNING: Samples of analysis period are not yet implemented.\n");
+            analysisErrored = true;
+        }
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No Sample period value is given. No samples of the simulation will be taken.\n");
+        return false;
+    }
+}
+
+bool analysisPeriod() {
+    std::string analysis = *i;
+    if (boost::starts_with(analysis, "AnalysisPeriod")) {
+        analysis = analysis.substr(14, analysis.size() - 14);
+        boost::trim(analysis);
+        uint32_t analysisPeriod = std::stoul(analysis);
+        bool analysing = true;
+        if (analysisPeriod == 0) {
+            fprintf(stderr, "INFO: Analysis period is set to 0. No analysis of the simulation will be performed.\n");
+            analysing = false;
+        }
+        uint32_t time = sim.getTime();
+        if (analysisPeriod > time) {
+            fprintf(stderr, "INFO: Analysis period is larger than the maximum timestep. No analysis of the simulation will be performed.\n");
+            analysing = false;
+        }
+        sim.setAnalysisPeriod(analysisPeriod);
+        if (analysing && !analysisErrored) {
+            fprintf(stderr, "WARNING: Samples of analysis period are not yet implemented.\n");
+        }
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: No analysis period value is given. No analysis of the simulation will be performed.\n");
+        return false;
+    }
+}
+
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
@@ -531,5 +790,64 @@ int main(int argc, char *argv[]) {
     }
 
     needToGetNextLine = polymers();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = box();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = density();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = temperature();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = rngSeed();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = lambda();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = step();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = time();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = samplePeriod();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = analysisPeriod();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
     std::cout << *i << "\n";
 }

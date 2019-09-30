@@ -221,3 +221,83 @@ void DPDSimulation::addPolymer(Polymer p) {
 std::vector<Polymer> DPDSimulation::getPolymers() {
     return _polymers;
 }
+
+void DPDSimulation::setVolume(Volume volume) {
+    _volume = volume;
+}
+
+Volume DPDSimulation::getVolume() {
+    return _volume;
+}
+
+void DPDSimulation::setCell(Cell cell) {
+    _cell = cell;
+}
+
+Cell DPDSimulation::getCell() {
+    return _cell;
+}
+
+void DPDSimulation::setDensity(float density) {
+    _density = density;
+}
+
+float DPDSimulation::getDensity() {
+    return _density;
+}
+
+void DPDSimulation::setTemp(float temp) {
+    _temp = temp;
+}
+
+float DPDSimulation::getTemp() {
+    return _temp;
+}
+
+void DPDSimulation::setRNGSeed(int32_t rngSeed) {
+    _RNGSeed = rngSeed;
+}
+
+int32_t DPDSimulation::getRNGSeed() {
+    return _RNGSeed;
+}
+
+void DPDSimulation::setLambda(float lambda) {
+    _lambda = lambda;
+}
+
+float DPDSimulation::getLambda() {
+    return _lambda;
+}
+
+void DPDSimulation::setStep(float step) {
+    _step = step;
+}
+
+float DPDSimulation::getStep() {
+    return _step;
+}
+
+void DPDSimulation::setTime(uint32_t time) {
+    _time = time;
+}
+
+uint32_t DPDSimulation::getTime() {
+    return _time;
+}
+
+void DPDSimulation::setSamplePeriod(uint32_t samplePeriod) {
+    _samplePeriod = samplePeriod;
+}
+
+uint32_t DPDSimulation::getSamplePeriod() {
+    return _samplePeriod;
+}
+
+void DPDSimulation::setAnalysisPeriod(uint32_t analysisPeriod) {
+    _analysisPeriod = analysisPeriod;
+}
+
+uint32_t DPDSimulation::getAnalysisPeriod() {
+    return _analysisPeriod;
+}
