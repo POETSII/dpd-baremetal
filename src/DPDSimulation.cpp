@@ -301,3 +301,27 @@ void DPDSimulation::setAnalysisPeriod(uint32_t analysisPeriod) {
 uint32_t DPDSimulation::getAnalysisPeriod() {
     return _analysisPeriod;
 }
+
+void DPDSimulation::setDensityPeriod(uint32_t densityPeriod) {
+    _densityPeriod = densityPeriod;
+}
+
+uint32_t DPDSimulation::getDensityPeriod() {
+    return _densityPeriod;
+}
+
+void DPDSimulation::setDisplayPeriod(uint32_t displayPeriod) {
+    _displayPeriod = displayPeriod;
+}
+
+uint32_t DPDSimulation::getDisplayPeriod() {
+    return _displayPeriod;
+}
+
+void DPDSimulation::setRestartPeriod(uint32_t restartPeriod) {
+    _restartPeriod = restartPeriod;
+}
+
+uint32_t DPDSimulation::getRestartPeriod() {
+    return _restartPeriod;
+}

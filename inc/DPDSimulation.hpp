@@ -163,6 +163,9 @@ class DPDSimulation {
         uint32_t _time;
         uint32_t _samplePeriod;
         uint32_t _analysisPeriod;
+        uint32_t _densityPeriod;
+        uint32_t _displayPeriod;
+        uint32_t _restartPeriod;
 
     public:
         // Using vectors so just making it easier to combine polymers
@@ -231,6 +234,15 @@ class DPDSimulation {
 
         void setAnalysisPeriod(uint32_t analysisPeriod);
         uint32_t getAnalysisPeriod();
+
+        void setDensityPeriod(uint32_t densityPeriod);
+        uint32_t getDensityPeriod();
+
+        void setDisplayPeriod(uint32_t displayPeriod);
+        uint32_t getDisplayPeriod();
+
+        void setRestartPeriod(uint32_t restartPeriod);
+        uint32_t getRestartPeriod();
 };
 
 #include "../src/DPDSimulation.cpp"

@@ -665,7 +665,7 @@ bool samplePeriod() {
             sampling = false;
         }
         uint32_t time = sim.getTime();
-        if (samplePeriod > time) {
+        if (samplePeriod > time && time != 0) {
             fprintf(stderr, "INFO: Sample period is larger than the maximum timestep. No samples of the simulation will be taken.\n");
             sampling = false;
         }
@@ -693,7 +693,7 @@ bool analysisPeriod() {
             analysing = false;
         }
         uint32_t time = sim.getTime();
-        if (analysisPeriod > time) {
+        if (analysisPeriod > time && time != 0) {
             fprintf(stderr, "INFO: Analysis period is larger than the maximum timestep. No analysis of the simulation will be performed.\n");
             analysing = false;
         }
@@ -704,6 +704,70 @@ bool analysisPeriod() {
         return true;
     } else {
         fprintf(stderr, "WARNING: No analysis period value is given. No analysis of the simulation will be performed.\n");
+        return false;
+    }
+}
+
+bool densityPeriod() {
+    std::string density = *i;
+    if (boost::starts_with(density, "DensityPeriod")) {
+        density = density.substr(13, density.size() - 13);
+        boost::trim(density);
+        uint32_t densityPeriod = std::stoul(density);
+        uint32_t time = sim.getTime();
+        if (densityPeriod != time) {
+            fprintf(stderr, "WARNING: Density period must be equal to to the Time. Setting this to the time.\n");
+            densityPeriod = time;
+        }
+        sim.setDensityPeriod(densityPeriod);
+        return true;
+    } else {
+        // Density period wants to be ignored anyway, so no problem if it's not included
+        return false;
+    }
+}
+
+bool displayPeriod() {
+    std::string d = *i;
+    if (boost::starts_with(d, "DisplayPeriod")) {
+        d = d.substr(13, d.size() - 13);
+        boost::trim(d);
+        uint32_t displayPeriod = std::stoul(d);
+        uint32_t time = sim.getTime();
+        if (displayPeriod > time && time != 0) {
+            fprintf(stderr, "INFO: Display period is greater than the max timestep. No display information will be output.\n");
+            displayPeriod = time;
+        }
+        if (displayPeriod == 0) {
+            fprintf(stderr, "INFO: Display period is 0. No display information will be output.\n");
+        }
+        sim.setDisplayPeriod(displayPeriod);
+        return true;
+    } else {
+        fprintf(stderr, "No display period is given. No display information will be output.\n");
+        return false;
+    }
+}
+
+bool restartPeriod() {
+    std::string d = *i;
+    if (boost::starts_with(d, "RestartPeriod")) {
+        d = d.substr(13, d.size() - 13);
+        boost::trim(d);
+        uint32_t restartPeriod = std::stoul(d);
+        uint32_t time = sim.getTime();
+        if (restartPeriod > time && time != 0) {
+            fprintf(stderr, "INFO: Restart period is greater than the max timestep. No restart states will be saved.\n");
+            restartPeriod = time;
+        }
+        if (restartPeriod == 0) {
+            fprintf(stderr, "INFO: Restart period is 0. No restart states will be saved.\n");
+        }
+        sim.setRestartPeriod(restartPeriod);
+        fprintf(stderr, "WARNING: Restart states are not yet implemented.\n");
+        return true;
+    } else {
+        fprintf(stderr, "No Restart period is given. No restart states will be saved.\n");
         return false;
     }
 }
@@ -844,6 +908,24 @@ int main(int argc, char *argv[]) {
     }
 
     needToGetNextLine = analysisPeriod();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = densityPeriod();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = displayPeriod();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = restartPeriod();
 
     if (needToGetNextLine) {
         i = getNextLine();
