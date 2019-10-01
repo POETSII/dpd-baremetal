@@ -12,7 +12,7 @@ bool isTimer(PDeviceId* timers, uint32_t numtimers, PDeviceId t) {
 void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numPBoxesX, uint32_t numPBoxesY) {
     uint32_t numBoardsX = 3 * numPBoxesX;
     uint32_t numBoardsY = 2 * numPBoxesY;
-    uint32_t numBoards = numBoardsX * numBoardsY;
+    uint32_t numBoards = (numPBoxesX * TinselMeshXLenWithinBox) * (numPBoxesY * TinselMeshYLenWithinBox);
 
     uint32_t timerNum = 0;
     PDeviceId timerIds[numBoards];
