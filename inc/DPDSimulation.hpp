@@ -141,6 +141,21 @@ typedef struct Cell {
     float z;
 } Cell;
 
+typedef struct Grid {
+    float x;
+    float y;
+    float z;
+} Grid;
+
+typedef struct Analysis {
+    std::vector<std::string> analysis_params;
+} Analysis;
+
+typedef struct Command {
+    std::string command_name;
+    std::string args;
+} Command;
+
 class DPDSimulation {
     private:
         std::string _title;
@@ -166,6 +181,9 @@ class DPDSimulation {
         uint32_t _densityPeriod;
         uint32_t _displayPeriod;
         uint32_t _restartPeriod;
+        Grid _grid;
+        Analysis _analysis;
+        std::vector<Command> _commands;
 
     public:
         // Using vectors so just making it easier to combine polymers
@@ -243,6 +261,15 @@ class DPDSimulation {
 
         void setRestartPeriod(uint32_t restartPeriod);
         uint32_t getRestartPeriod();
+
+        void setGrid(Grid grid);
+        Grid getGrid();
+
+        void setAnalysis(Analysis analysis);
+        Analysis getAnalysis();
+
+        void addCommand(Command command);
+        std::vector<Command> getCommands();
 };
 
 #include "../src/DPDSimulation.cpp"

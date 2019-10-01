@@ -484,7 +484,7 @@ bool box() {
         b = "";
         while (b == " " || b == "") {
             if (!std::getline(bs, b, ' ')) {
-                fprintf(stderr, "ERROR: Expecting the Y dimension of the box\n");
+                fprintf(stderr, "ERROR: Expecting the Z dimension of the box\n");
                 exit(1);
             }
         }
@@ -767,9 +767,122 @@ bool restartPeriod() {
         fprintf(stderr, "WARNING: Restart states are not yet implemented.\n");
         return true;
     } else {
-        fprintf(stderr, "No Restart period is given. No restart states will be saved.\n");
+        fprintf(stderr, "No Restart period is not given. No restart states will be saved.\n");
         return false;
     }
+}
+
+bool grid() {
+    std::string g = *i;
+    if (boost::starts_with(g, "Grid")) {
+        g = g.substr(4, g.size() - 4);
+        boost::trim(g);
+        std::stringstream bg(g);
+        std::string s;
+        Grid grid;
+        if (!std::getline(bg, s, ' ')) {
+            fprintf(stderr, "WARNING: Expecting the X dimension of the grid.\n");
+            fprintf(stderr, "The grid option is for analysis, which is not fully implemented and thus will be set to 1 1 1\n");
+            grid = {1, 1, 1};
+            sim.setGrid(grid);
+            return true;
+        }
+        grid.x = std::stoul(s);
+        if (grid.x != 1) {
+            fprintf(stderr, "WARNING: X dimension is not 1. Grid is used for analysis and is not fully implemented.\n");
+            fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
+            grid.x = 1;
+        }
+        s = "";
+        while (s == " " || s == "") {
+            if (!std::getline(bg, s, ' ')) {
+                fprintf(stderr, "WARNING: Expecting the Y dimension of the grid.\n");
+                fprintf(stderr, "The grid option is for analysis, which is not fully implemented and thus will be set to 1 1 1\n");
+                grid = {1, 1, 1};
+                sim.setGrid(grid);
+                return true;
+            }
+        }
+        grid.y = std::stoul(s);
+        if (grid.y != 1) {
+            fprintf(stderr, "WARNING: Y dimension is not 1. Grid is used for analysis and is not fully implemented.\n");
+            fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
+            grid.y = 1;
+        }
+        s = "";
+        while (s == " " || s == "") {
+            if (!std::getline(bg, s, ' ')) {
+                fprintf(stderr, "WARNING: Expecting the Z dimension of the grid.\n");
+                fprintf(stderr, "The grid option is for analysis, which is not fully implemented and thus will be set to 1 1 1\n");
+                grid = {1, 1, 1};
+                sim.setGrid(grid);
+                return true;
+            }
+        }
+        grid.z = std::stoul(s);
+        if (grid.z != 1) {
+            fprintf(stderr, "WARNING: Z dimension is not 1. Grid is used for analysis and is not fully implemented.\n");
+            fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
+            grid.z = 1;
+        }
+        sim.setGrid(grid);
+        fprintf(stderr, "WARNING: Grid is used for analysis and is not fully implemented.\n");
+        return true;
+    } else {
+        fprintf(stderr, "WARNING: The grid is not defined. This is used for analysis, which is not fully implemented.\n");
+        fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
+        return false;
+    }
+    return false;
+}
+
+bool analysis() {
+    std::string a = *i;
+    if (boost::starts_with(a, "Analysis")) {
+        fprintf(stderr, "WARNING: Analysis is not implemented. This will be parsed but ignored.\n");
+        i = std::next(i);
+        a = *i;
+        boost::trim(a);
+        Analysis analysis;
+        while (a != "") {
+            analysis.analysis_params.push_back(a);
+            // Try next line
+            i = std::next(i);
+            a = *i;
+            boost::trim(a);
+        }
+        sim.setAnalysis(analysis);
+        return true;
+    }
+    return false;
+}
+
+bool commands() {
+    std::string c = *i;
+    if (boost::starts_with(c, "Command")) {
+        fprintf(stderr, "WARNING: Commands are not implemented. Commands will be parsed but ignored.\n");
+        while (boost::starts_with(c, "Command")) {
+            c = c.substr(7, c.size() - 7);
+            boost::trim(c);
+            int x = 0;
+            std::string s;
+            while(c[x] != ' ') {
+                s += c[x];
+                x++;
+            }
+            Command command;
+            command.command_name = s;
+            c = c.substr(x, c.size() - x);
+            boost::trim(c);
+            command.args = c;
+            sim.addCommand(command);
+            // Try next line
+            i = std::next(i);
+            c = *i;
+        }
+        return true;
+    }
+    return false;
 }
 
 int main(int argc, char *argv[]) {
@@ -931,5 +1044,28 @@ int main(int argc, char *argv[]) {
         i = getNextLine();
     }
 
-    std::cout << *i << "\n";
+    needToGetNextLine = grid();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = analysis();
+
+    if (needToGetNextLine) {
+        i = getNextLine();
+    }
+
+    needToGetNextLine = commands();
+
+    // File should now be ended. Check this
+    while (i != lines.end()) {
+        std::string s = *i;
+        boost::trim(s);
+        if (s != "") {
+            fprintf(stderr, "ERROR: Expected End of File. Unrecognised option in the input file.\n");
+            exit(1);
+        }
+        i = std::next(i);
+    }
 }

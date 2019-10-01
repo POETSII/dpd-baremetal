@@ -325,3 +325,27 @@ void DPDSimulation::setRestartPeriod(uint32_t restartPeriod) {
 uint32_t DPDSimulation::getRestartPeriod() {
     return _restartPeriod;
 }
+
+void DPDSimulation::setGrid(Grid grid) {
+    _grid = grid;
+}
+
+Grid DPDSimulation::getGrid() {
+    return _grid;
+}
+
+void DPDSimulation::setAnalysis(Analysis analysis) {
+    _analysis = analysis;
+}
+
+Analysis DPDSimulation::getAnalysis() {
+    return _analysis;
+}
+
+void DPDSimulation::addCommand(Command command) {
+    _commands.push_back(command);
+}
+
+std::vector<Command> DPDSimulation::getCommands() {
+    return _commands;
+}
