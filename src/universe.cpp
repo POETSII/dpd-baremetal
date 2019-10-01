@@ -100,8 +100,10 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
-    _hostLink = new HostLink(TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS boxes
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS boxes
+    _boxesX = TinselBoxMeshXLen;
+    _boxesY = TinselBoxMeshYLen;
+    _hostLink = new HostLink(_boxesX, _boxesY);
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -290,11 +292,11 @@ Universe<S>::Universe(S size, unsigned D) {
     }
     // all the edges have been connected
 
-    // _g->mapVerticesToDRAM = true;
+    _g->mapVerticesToDRAM = true;
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g, TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS Boxes
+    timerMap(_g, _boxesX, _boxesY); // All Boxes
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -442,6 +444,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     _hostLink->boot("code.v", "data.v");
     gettimeofday(&_start, NULL);
     _hostLink->go();
+    std::cout << "Started\n";
+    uint32_t numBoards = (_boxesX * TinselMeshXLenWithinBox) * (_boxesY * TinselMeshYLenWithinBox);
 
 #ifdef TIMER
     uint32_t devices = 0;
@@ -458,7 +462,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
 #endif
-
+    int32_t timestep = 0;
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
@@ -466,6 +470,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;
+            // std::cout << "Timer get = " << timers << " num boards = " << numBoards << "\n";
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
             unit_t timer_loc;
             timer_loc.x = msg.payload.from.x;
@@ -475,6 +480,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             board_start[(uint32_t)timer_thread/1024] = t;
         } else if (msg.payload.type == 0xAA || msg.payload.type == 0xAC) {
             devices++;
+            // std::cout << "Finish get = " << devices << " num devices = " << (_D*_D*_D) << "\n";
             unit_t cell_loc;
             cell_loc.x = msg.payload.from.x;
             cell_loc.y = msg.payload.from.y;
@@ -489,7 +495,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             dpd_end[cell_loc] = e;
             locToThread[cell_loc] = threadId;
         }
-        if (devices >= (_D*_D*_D) && timers >= 6) {
+        if (devices >= (_D*_D*_D) && timers >= numBoards) {
             for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
                 uint32_t threadId = locToThread[i->first];
                 uint32_t board = (uint32_t) threadId/1024;
@@ -528,11 +534,18 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             }
         }
     #else
-        pts_to_extern_t eMsg;
-        eMsg.timestep = msg.payload.timestep;
-        eMsg.from = msg.payload.from;
-        eMsg.bead = msg.payload.beads[0];
-        _extern->send(&eMsg);
+        // pts_to_extern_t eMsg;
+        // eMsg.timestep = msg.payload.timestep;
+        // eMsg.from = msg.payload.from;
+        // eMsg.bead = msg.payload.beads[0];
+        // _extern->send(&eMsg);
+        if (msg.payload.timestep != timestep) {
+            timestep = msg.payload.timestep;
+            if (timestep > 1000) {
+                exit(0);
+            }
+            std::cout << "Timestep " << timestep << "\n";
+        }
     #endif
     }
 }

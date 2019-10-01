@@ -68,6 +68,9 @@ class Universe {
 
 	// measuring performance
 	struct timeval _start, _finish, _diff;
+
+    // Box mesh dimensions
+    uint32_t _boxesX, _boxesY;
 };
 
 #include "../src/universe.cpp"
