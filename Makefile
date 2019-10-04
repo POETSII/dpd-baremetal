@@ -140,6 +140,24 @@ test-bonds: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
+
+# ------------- FILE PARSING AND RUNNING ---------------
+$(DPD_BIN)/DPDSimulation.o: $(DPD_SRC)/DPDSimulation.cpp $(DPD_INC)/DPDSimulation.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/DPDSimulation.o $(DPD_SRC)/DPDSimulation.cpp
+
+$(DPD_BIN)/parser.o: $(DPD_SRC)/parser.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(DPD_INC) -c -o $(DPD_BIN)/parser.o $(DPD_SRC)/parser.cpp
+
+$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS) $(DPD_BIN)/parser.o $(DPD_BIN)/DPDSimulation.o
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+
+parse: $(DPD_BIN)/parserRun
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json

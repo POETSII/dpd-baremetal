@@ -12,8 +12,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string.hpp>
 #include <vector>
-#include "../inc/DPDSimulation.hpp"
+#include "DPDSimulation.hpp"
 #include <random>
+#include <sstream>
 
 // Stores each line of the input file for easier reading
 std::vector<std::string> lines;
@@ -198,8 +199,10 @@ bool beadTypes() {
             std::string c;
             std::vector<float> conservativeParameters;
             while (std::getline(ss, c, ' ')) {
-                float conservative = std::stof(c);
-                conservativeParameters.push_back(conservative);
+                if (c != "") {
+                    float conservative = std::stof(c);
+                    conservativeParameters.push_back(conservative);
+                }
             }
             if (conservativeParameters.size() < (beadTypeNum + 1)) {
                 fprintf(stderr, "ERROR: Bead type %s has not been given enough conservative parameters\n. Expected %u, have %lu.\n", beadId.c_str(), (beadTypeNum + 1), conservativeParameters.size());
@@ -217,8 +220,10 @@ bool beadTypes() {
             std::string d;
             std::vector<float> dissipativeParameters;
             while (std::getline(sd, d, ' ')) {
-                float dissipative = std::stof(d);
-                dissipativeParameters.push_back(dissipative);
+                if (d != "") {
+                    float dissipative = std::stof(d);
+                    dissipativeParameters.push_back(dissipative);
+                }
             }
             if (dissipativeParameters.size() < (beadTypeNum + 1)) {
                 fprintf(stderr, "ERROR: Bead type %s has not been given enough dissipative parameters\n. Expected %u, have %lu.\n", beadId.c_str(), (beadTypeNum + 1), dissipativeParameters.size());
@@ -885,18 +890,7 @@ bool commands() {
     return false;
 }
 
-int main(int argc, char *argv[]) {
-
-    if (argc < 2) {
-        fprintf(stderr, "Not enough arguments. Please provide an input filepath\n");
-        return 1;
-    } else if (argc > 2) {
-        fprintf(stderr, "Too many arguments. Please provide an input filepath ONLY\n");
-        return 1;
-    }
-
-    std::string filepath;
-    filepath = argv[1];
+DPDSimulation parse(std::string filepath) {
 
     // Input file stream to read the input file one line at a time
     std::ifstream inputFile(filepath);
@@ -915,7 +909,7 @@ int main(int argc, char *argv[]) {
     // First line must contain "dpd" only.
     if (*i != "dpd") {
         fprintf(stderr, "First line of input file is not \"dpd\". This is required and will not parse correctly otherwise\n");
-        return 1;
+        exit(1);
     }
 
     i = getNextLine();
@@ -1068,4 +1062,6 @@ int main(int argc, char *argv[]) {
         }
         i = std::next(i);
     }
+
+    return sim;
 }
