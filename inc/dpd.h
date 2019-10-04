@@ -80,7 +80,7 @@ const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
 }
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 10;
+const uint32_t emitperiod = 0;
 #endif
 
 // ---------------------------------------------------------------------------------------
@@ -191,7 +191,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
     inline bool is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
+#ifdef TIMER
+    __attribute__((noinline)) uint32_t get_next_slot(uint32_t slotlist){
+#else
     inline uint32_t get_next_slot(uint32_t slotlist){
+#endif
         uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++) {
             if(slotlist & mask){
@@ -678,30 +682,35 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge) {
         if(s->mode == UPDATE) {
+            bead_t b;
+            b.id = msg->beads[0].id;
+            b.type = msg->beads[0].type;
+            b.pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+            b.velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
 	        // from the device locaton get the adjustments to the bead positions
             int x_rel = period_bound_adj(msg->from.x - s->loc.x);
             int y_rel = period_bound_adj(msg->from.y - s->loc.y);
             int z_rel = period_bound_adj(msg->from.z - s->loc.z);
 
 	        // relative position for this particle to this device
-	        msg->beads[0].pos.x(msg->beads[0].pos.x() + ptype(x_rel)*s->unit_size);
-	        msg->beads[0].pos.y(msg->beads[0].pos.y() + ptype(y_rel)*s->unit_size);
-	        msg->beads[0].pos.z(msg->beads[0].pos.z() + ptype(z_rel)*s->unit_size);
+	        b.pos.x(b.pos.x() + ptype(x_rel));
+	        b.pos.y(b.pos.y() + ptype(y_rel));
+	        b.pos.z(b.pos.z() + ptype(z_rel));
 
             // loop through the occupied bead slots -- update force
 	        uint32_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
             #ifndef ACCELERATE
-                Vector3D<ptype> f = force_update(&s->bead_slot[ci], &msg->beads[0]);
+                Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
             #else
                 return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                 msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z(),
+                                                 b.pos.x(), b.pos.y(), b.pos.z(),
                                                  s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                 msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z(),
-                                                 s->bead_slot[ci].id, msg->beads[0].id,
-                                                 s->bead_slot[ci].pos.sq_dist(msg->beads[0].pos),
-                                                 r_c, A[s->bead_slot[ci].type][msg->beads[0].type], s->grand);
+                                                 b.velo.x(), b.velo.y(), b.velo.z(),
+                                                 s->bead_slot[ci].id, b.id,
+                                                 s->bead_slot[ci].pos.sq_dist(b.pos),
+                                                 r_c, A[s->bead_slot[ci].type][b.type], s->grand);
                 Vector3D<ptype> f;
                 f.set(r.x, r.y, r.z);
             #endif
@@ -741,7 +750,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->lost_beads;
     #endif
 
     #ifdef TIMER
