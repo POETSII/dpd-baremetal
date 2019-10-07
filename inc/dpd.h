@@ -175,10 +175,6 @@ struct DPDState {
     uint32_t wraps; // Number of times tinselCycleCountU has reset
 #endif
 
-    uint32_t x_mig;
-    uint32_t y_mig;
-    uint32_t z_mig;
-
 };
 
 // DPD Device code
@@ -352,9 +348,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-        s->x_mig = 0;
-        s->y_mig = 0;
-        s->z_mig = 0;
     #ifdef TIMER
         s->mode = START;
         if (s->timer)
@@ -448,7 +441,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
                 //    migration in the x dim
                 if(s->bead_slot[ci].pos.x() >= s->unit_size){
-                    s->x_mig++;
                     migrating = true;
                     if(s->loc.x == (s->N-1)){
                         d_loc.x = 0;
@@ -457,7 +449,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     }
                     s->bead_slot[ci].pos.x(s->bead_slot[ci].pos.x() - s->unit_size); // make it relative to the dest
                 } else if (s->bead_slot[ci].pos.x() < ptype(0.0)) {
-                    s->x_mig++;
                     migrating = true;
                     if(s->loc.x == 0) {
                         d_loc.x = s->N - 1;
@@ -472,7 +463,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            //    migration in the y dim
 	            if(s->bead_slot[ci].pos.y() >= s->unit_size){
 		            migrating = true;
-                    s->y_mig++;
 		            if(s->loc.y == (s->N-1)){
                         d_loc.y = 0;
 		            } else {
@@ -481,7 +471,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     		        s->bead_slot[ci].pos.y(s->bead_slot[ci].pos.y() - s->unit_size); // make it relative to the dest
 	            } else if (s->bead_slot[ci].pos.y() < ptype(0.0)) {
                     migrating = true;
-                    s->y_mig++;
 		            if(s->loc.y == 0) {
 			            d_loc.y = s->N - 1;
     		        } else {
@@ -495,7 +484,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	        //    migration in the z dim
     	        if(s->bead_slot[ci].pos.z() >= s->unit_size){
     		        migrating = true;
-                    s->z_mig++;
     		        if(s->loc.z == (s->N-1)){
                         d_loc.z = 0;
     		        } else {
@@ -504,7 +492,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		            s->bead_slot[ci].pos.z(s->bead_slot[ci].pos.z() - s->unit_size); // make it relative to the dest
 	            } else if (s->bead_slot[ci].pos.z() < ptype(0.0)) {
                     migrating = true;
-                    s->z_mig++;
 		            if(s->loc.z == 0) {
 			            d_loc.z = s->N - 1;
 		            } else {
@@ -763,9 +750,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->x_mig;
-        msg->beads[0].id = s->y_mig;
-        msg->beads[0].type = s->z_mig;
     #endif
 
     #ifdef TIMER
