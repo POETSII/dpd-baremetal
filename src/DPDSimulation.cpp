@@ -227,19 +227,19 @@ std::vector<Polymer> DPDSimulation::getPolymers() {
     return _polymers;
 }
 
-void DPDSimulation::setVolume(Volume volume) {
+void DPDSimulation::setVolume(Vector3D<float> volume) {
     _volume = volume;
 }
 
-Volume DPDSimulation::getVolume() {
+Vector3D<float> DPDSimulation::getVolume() {
     return _volume;
 }
 
-void DPDSimulation::setCell(Cell cell) {
+void DPDSimulation::setCell(Vector3D<float> cell) {
     _cell = cell;
 }
 
-Cell DPDSimulation::getCell() {
+Vector3D<float> DPDSimulation::getCell() {
     return _cell;
 }
 
@@ -331,11 +331,11 @@ uint32_t DPDSimulation::getRestartPeriod() {
     return _restartPeriod;
 }
 
-void DPDSimulation::setGrid(Grid grid) {
+void DPDSimulation::setGrid(Vector3D<float> grid) {
     _grid = grid;
 }
 
-Grid DPDSimulation::getGrid() {
+Vector3D<float> DPDSimulation::getGrid() {
     return _grid;
 }
 

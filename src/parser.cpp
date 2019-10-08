@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 #include <vector>
 #include "DPDSimulation.hpp"
+#include "Vector3D.hpp"
 #include <random>
 #include <sstream>
 
@@ -464,13 +465,13 @@ bool box() {
         boost::trim(box);
         std::stringstream bs(box);
         std::string b;
-        Volume volume;
+        Vector3D<float> volume;
         if (!std::getline(bs, b, ' ')) {
             fprintf(stderr, "ERROR: Expecting the X dimension of the box\n");
             exit(1);
         }
-        volume.x = std::stof(b);
-        if (volume.x < 3) {
+        volume.x(std::stof(b));
+        if (volume.x() < 3) {
             fprintf(stderr, "ERROR: X dimension is too small. Must be 3 or larger");
             exit(1);
         }
@@ -481,8 +482,8 @@ bool box() {
                 exit(1);
             }
         }
-        volume.y = std::stof(b);
-        if (volume.y < 3) {
+        volume.y(std::stof(b));
+        if (volume.y() < 3) {
             fprintf(stderr, "ERROR: Y dimension is too small. Must be 3 or larger");
             exit(1);
         }
@@ -493,8 +494,8 @@ bool box() {
                 exit(1);
             }
         }
-        volume.z = std::stof(b);
-        if (volume.z < 3) {
+        volume.z(std::stof(b));
+        if (volume.z() < 3) {
             fprintf(stderr, "ERROR: Z dimension is too small. Must be 3 or larger");
             exit(1);
         }
@@ -502,7 +503,7 @@ bool box() {
         // Cell dimensions (Must be set at 1 1 1)
         b = "";
         bool fail = false;
-        Cell cell;
+        Vector3D<float> cell;
         while (b == " " || b == "") {
             if (!std::getline(bs, b, ' ')) {
                 fprintf(stderr, "WARNING: No cell dimensions given, assuming 1 1 1\n");
@@ -511,11 +512,11 @@ bool box() {
             }
         }
         if (fail) {
-            cell = {1, 1, 1};
+            cell.set(1, 1, 1);
             sim.setCell(cell);
             return true;
         }
-        cell.x = std::stof(b);
+        cell.x(std::stof(b));
         b = "";
         while (b == " " || b == "") {
             if (!std::getline(bs, b, ' ')) {
@@ -525,11 +526,11 @@ bool box() {
             }
         }
         if (fail) {
-            cell = {1, 1, 1};
+            cell.set(1, 1, 1);
             sim.setCell(cell);
             return true;
         }
-        cell.y = std::stof(b);
+        cell.y(std::stof(b));
         b = "";
         while (b == " " || b == "") {
             if (!std::getline(bs, b, ' ')) {
@@ -539,19 +540,17 @@ bool box() {
             }
         }
         if (fail) {
-            cell = {1, 1, 1};
+            cell.set(1, 1, 1);
             sim.setCell(cell);
             return true;
         }
-        cell.z = std::stof(b);
-        if (cell.x != 1 || cell.y != 1 || cell.z != 1) {
+        cell.z(std::stof(b));
+        if (cell.x() != 1 || cell.y() != 1 || cell.z() != 1) {
             fprintf(stderr, "ERROR: All cell dimensions must be equal to 1.\n");
             fprintf(stderr, "Cells with larger or smaller dimensions are not yet implemented\n");
             exit(1);
         }
         sim.setCell(cell);
-        Volume v = sim.getVolume();
-        Cell c = sim.getCell();
         return true;
     } else {
         fprintf(stderr, "ERROR: The box dimensions must be defined, or it a simulation cannot be run\n");
@@ -784,51 +783,51 @@ bool grid() {
         boost::trim(g);
         std::stringstream bg(g);
         std::string s;
-        Grid grid;
+        Vector3D<float> grid;
         if (!std::getline(bg, s, ' ')) {
             fprintf(stderr, "WARNING: Expecting the X dimension of the grid.\n");
             fprintf(stderr, "The grid option is for analysis, which is not fully implemented and thus will be set to 1 1 1\n");
-            grid = {1, 1, 1};
+            grid.set(1, 1, 1);
             sim.setGrid(grid);
             return true;
         }
-        grid.x = std::stoul(s);
-        if (grid.x != 1) {
+        grid.x(std::stoul(s));
+        if (grid.x() != 1) {
             fprintf(stderr, "WARNING: X dimension is not 1. Grid is used for analysis and is not fully implemented.\n");
             fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
-            grid.x = 1;
+            grid.x(1);
         }
         s = "";
         while (s == " " || s == "") {
             if (!std::getline(bg, s, ' ')) {
                 fprintf(stderr, "WARNING: Expecting the Y dimension of the grid.\n");
                 fprintf(stderr, "The grid option is for analysis, which is not fully implemented and thus will be set to 1 1 1\n");
-                grid = {1, 1, 1};
+                grid.set(1, 1, 1);
                 sim.setGrid(grid);
                 return true;
             }
         }
-        grid.y = std::stoul(s);
-        if (grid.y != 1) {
+        grid.y(std::stoul(s));
+        if (grid.y() != 1) {
             fprintf(stderr, "WARNING: Y dimension is not 1. Grid is used for analysis and is not fully implemented.\n");
             fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
-            grid.y = 1;
+            grid.y(1);
         }
         s = "";
         while (s == " " || s == "") {
             if (!std::getline(bg, s, ' ')) {
                 fprintf(stderr, "WARNING: Expecting the Z dimension of the grid.\n");
                 fprintf(stderr, "The grid option is for analysis, which is not fully implemented and thus will be set to 1 1 1\n");
-                grid = {1, 1, 1};
+                grid.set(1, 1, 1);
                 sim.setGrid(grid);
                 return true;
             }
         }
-        grid.z = std::stoul(s);
-        if (grid.z != 1) {
+        grid.z(std::stoul(s));
+        if (grid.z() != 1) {
             fprintf(stderr, "WARNING: Z dimension is not 1. Grid is used for analysis and is not fully implemented.\n");
             fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
-            grid.z = 1;
+            grid.z(1);
         }
         sim.setGrid(grid);
         fprintf(stderr, "WARNING: Grid is used for analysis and is not fully implemented.\n");
@@ -836,6 +835,9 @@ bool grid() {
     } else {
         fprintf(stderr, "WARNING: The grid is not defined. This is used for analysis, which is not fully implemented.\n");
         fprintf(stderr, "For now the grid will be forced to 1 1 1.\n");
+        Vector3D<float> grid;
+        grid.set(1, 1, 1);
+        sim.setGrid(grid);
         return false;
     }
     return false;

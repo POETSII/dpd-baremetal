@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include "Vector3D.hpp"
 
 typedef struct Date {
     uint8_t day;
@@ -135,24 +136,6 @@ typedef struct Polymer {
     // TODO: structure parsed in some way
 } Polymer;
 
-typedef struct Volume {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
-} Volume;
-
-typedef struct Cell {
-    float x;
-    float y;
-    float z;
-} Cell;
-
-typedef struct Grid {
-    float x;
-    float y;
-    float z;
-} Grid;
-
 typedef struct Analysis {
     std::vector<std::string> analysis_params;
 } Analysis;
@@ -174,8 +157,8 @@ class DPDSimulation {
         std::vector<Bond_type> _bond_types;
         std::vector<Stiff_bond_type> _stiff_bond_types;
         std::vector<Polymer> _polymers;
-        Volume _volume;
-        Cell _cell;
+        Vector3D<float> _volume;
+        Vector3D<float> _cell;
         float _density;
         float _temp;
         int32_t _RNGSeed;
@@ -187,7 +170,7 @@ class DPDSimulation {
         uint32_t _densityPeriod;
         uint32_t _displayPeriod;
         uint32_t _restartPeriod;
-        Grid _grid;
+        Vector3D<float> _grid;
         Analysis _analysis;
         std::vector<Command> _commands;
 
@@ -229,11 +212,11 @@ class DPDSimulation {
         void addPolymer(Polymer p);
         std::vector<Polymer> getPolymers();
 
-        void setVolume(Volume volume);
-        Volume getVolume();
+        void setVolume(Vector3D<float> volume);
+        Vector3D<float> getVolume();
 
-        void setCell(Cell cell);
-        Cell getCell();
+        void setCell(Vector3D<float> cell);
+        Vector3D<float> getCell();
 
         void setDensity(float density);
         float getDensity();
@@ -268,8 +251,8 @@ class DPDSimulation {
         void setRestartPeriod(uint32_t restartPeriod);
         uint32_t getRestartPeriod();
 
-        void setGrid(Grid grid);
-        Grid getGrid();
+        void setGrid(Vector3D<float> grid);
+        Vector3D<float> getGrid();
 
         void setAnalysis(Analysis analysis);
         Analysis getAnalysis();
