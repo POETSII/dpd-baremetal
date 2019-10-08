@@ -149,7 +149,7 @@ $(DPD_BIN)/DPDSimulation.o: $(DPD_SRC)/DPDSimulation.cpp $(DPD_INC)/DPDSimulatio
 $(DPD_BIN)/parser.o: $(DPD_SRC)/parser.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(DPD_INC) -c -o $(DPD_BIN)/parser.o $(DPD_SRC)/parser.cpp
 
-$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS) $(DPD_BIN)/parser.o $(DPD_BIN)/DPDSimulation.o
+$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS) $(DPD_BIN)/parser.o $(DPD_BIN)/DPDSimulation.o $(DPD_INC)/parseUniverse.hpp $(DPD_SRC)/parseUniverse.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
 	  -static-libgcc -static-libstdc++ \

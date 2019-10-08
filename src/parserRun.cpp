@@ -6,6 +6,7 @@
 #include <assert.h>
 #include "parser.cpp"
 #include "DPDSimulation.hpp"
+#include "parseUniverse.hpp"
 
 // #include <sys/time.h>
 // #include <HostLink.h>
@@ -53,7 +54,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    DPDsimulation sim = parse(filepath);
+    DPDSimulation sim = parse(filepath);
+    std::cout << "\nFile parsed. Building universe.\n\n";
+
+    Universe<ptype> uni(sim);
 
     // int beads_added = 0;
     // printf("starting the DPD application\n");

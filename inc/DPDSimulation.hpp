@@ -1,4 +1,9 @@
+
+#ifndef _DPD_SIMULATION_H
+#define _DPD_SIMULATION_H
+
 #include <stdio.h>
+#include <iostream>
 #include <map>
 #include <vector>
 
@@ -131,9 +136,9 @@ typedef struct Polymer {
 } Polymer;
 
 typedef struct Volume {
-    float x;
-    float y;
-    float z;
+    uint32_t x;
+    uint32_t y;
+    uint32_t z;
 } Volume;
 
 typedef struct Cell {
@@ -274,3 +279,5 @@ class DPDSimulation {
 };
 
 #include "../src/DPDSimulation.cpp"
+
+#endif /*_DPD_SIMULATION_H */

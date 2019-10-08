@@ -1,4 +1,9 @@
 
+#include "DPDSimulation.hpp"
+
+#ifndef _DPD_SIMULATION_IMPL
+#define _DPD_SIMULATION_IMPL
+
 std::vector<Polymer_structure> DPDSimulation::combinePolymers(std::vector<Polymer_structure> a, std::vector<Polymer_structure> b) {
     for (std::vector<Polymer_structure>::iterator i = b.begin(); i != b.end(); ++i) {
         a.push_back(*i);
@@ -349,3 +354,5 @@ void DPDSimulation::addCommand(Command command) {
 std::vector<Command> DPDSimulation::getCommands() {
     return _commands;
 }
+
+#endif /* _DPD_SIMULATION_IMPL */
