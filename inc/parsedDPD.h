@@ -783,7 +783,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         msg->beads[0].type = s->dpd_end;
         msg->beads[0].pos.set((float)s->wraps, 0, 0);
     #endif
-        msg->timestep = s->timestep;
+
+        msg->timestep = 1001;
+        uint32_t ci = get_next_slot(s->sentslot);
+        msg->beads[0].id = s->bead_slot[ci].id;
+        msg->beads[0].type = s->bead_slot[ci].type;
+        msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+        msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
 	    return true;
     }
 
