@@ -147,32 +147,32 @@ typedef struct Command {
 
 class DPDSimulation {
     private:
-        std::string _title;
-        Date _date;
-        std::string _comment;
-        initial_state _state;
+        std::string                       _title;
+        Date                              _date;
+        std::string                       _comment;
+        initial_state                     _state;
         std::map<bead_type_id, Bead_type> _bead_types;
-        std::vector<std::vector<float>> _conservative_parameters;
-        std::vector<std::vector<float>> _dissipative_parameters;
-        std::vector<Bond_type> _bond_types;
-        std::vector<Stiff_bond_type> _stiff_bond_types;
-        std::vector<Polymer> _polymers;
-        Vector3D<float> _volume;
-        Vector3D<float> _cell;
-        float _density;
-        float _temp;
-        int32_t _RNGSeed;
-        float _lambda;
-        float _step;
-        uint32_t _time;
-        uint32_t _samplePeriod;
-        uint32_t _analysisPeriod;
-        uint32_t _densityPeriod;
-        uint32_t _displayPeriod;
-        uint32_t _restartPeriod;
-        Vector3D<float> _grid;
-        Analysis _analysis;
-        std::vector<Command> _commands;
+        std::vector<std::vector<float>>   _conservative_parameters;
+        std::vector<std::vector<float>>   _dissipative_parameters;
+        std::vector<Bond_type>            _bond_types;
+        std::vector<Stiff_bond_type>      _stiff_bond_types;
+        std::vector<Polymer>              _polymers;
+        Vector3D<float>                   _volume;
+        Vector3D<float>                   _cell;
+        float                             _density;
+        float                             _temp;
+        int32_t                           _RNGSeed;
+        float                             _lambda;
+        float                             _step;
+        uint32_t                          _time;
+        uint32_t                          _samplePeriod;
+        uint32_t                          _analysisPeriod;
+        uint32_t                          _densityPeriod;
+        uint32_t                          _displayPeriod;
+        uint32_t                          _restartPeriod;
+        Vector3D<float>                   _grid;
+        Analysis                          _analysis;
+        std::vector<Command>              _commands;
 
     public:
         // Using vectors so just making it easier to combine polymers

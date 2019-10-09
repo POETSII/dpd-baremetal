@@ -12,11 +12,11 @@
 
 // helper functions for managing bead slots
 template<class S>
-uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
+uint32_t Universe<S>::clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
 template<class S>
-uint8_t Universe<S>::set_slot(uint8_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
+uint32_t Universe<S>::set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
 template<class S>
-bool Universe<S>::is_slot_set(uint8_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
+bool Universe<S>::is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
 // print out the occupancy of each device
 template<class S>
@@ -25,16 +25,16 @@ void Universe<S>::print_occupancy() {
     printf("DeviceId\t\tbeads\n--------------\n");
     for(auto const& x : _idToLoc) {
         PDeviceId t = x.first;
-        uint8_t beads = get_num_beads(_g->devices[t]->state.bslot);
+        uint32_t beads = get_num_beads(_g->devices[t]->state.bslot);
         if(beads > 0)
             printf("%x\t\t\t%d\n", t, (uint32_t)beads);
     }
 }
 
 template<class S>
-uint8_t Universe<S>::get_next_slot(uint8_t slotlist) {
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++) {
+uint32_t Universe<S>::get_next_slot(uint32_t slotlist) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++) {
         if(slotlist & mask) {
             return i;
         }
@@ -44,9 +44,9 @@ uint8_t Universe<S>::get_next_slot(uint8_t slotlist) {
 }
 
 template<class S>
-uint8_t Universe<S>::get_next_free_slot(uint8_t slotlist) {
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++){
+uint32_t Universe<S>::get_next_free_slot(uint32_t slotlist) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++){
         if(!(slotlist & mask)) {
            return i;
         }
@@ -56,10 +56,10 @@ uint8_t Universe<S>::get_next_free_slot(uint8_t slotlist) {
 }
 
 template<class S>
-void Universe<S>::print_slot(uint8_t slotlist) {
+void Universe<S>::print_slot(uint32_t slotlist) {
     printf("slotlist = ");
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++) {
         if(slotlist & mask) {
             printf("1");
         } else {
@@ -72,10 +72,10 @@ void Universe<S>::print_slot(uint8_t slotlist) {
 
 // get the number of beads occupying a slot
 template<class S>
-uint8_t Universe<S>::get_num_beads(uint8_t slotlist) {
+uint8_t Universe<S>::get_num_beads(uint32_t slotlist) {
     uint8_t cnt = 0;
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++) {
         if(slotlist & mask) {
             cnt++;
         }
@@ -106,6 +106,7 @@ void Universe<S>::createDevices() {
         }
     }
     std::cout << "All cells added to universe.   Total cells: " << numDevices << "\n";
+    _numCells = numDevices;
 }
 
 template<class S>
@@ -169,7 +170,7 @@ void Universe<S>::initialiseCells(DPDSimulation sim) {
         for (std::map<bead_type_id, Bead_type>::iterator i = sim.getBeadTypes().begin(); i != sim.getBeadTypes().end(); ++i) {
             _g->devices[cId]->state.r_c[i->second.type] = i->second.radius;
         }
-        // Set the conservative force for all possible bead types
+        // Set the conservative parameters for all possible bead types
         int i_pos = 0;
         std::vector<std::vector<float>> conservativeParameters = sim.getConservativeParameters();
         for (std::vector<std::vector<float>>::iterator i = conservativeParameters.begin(); i != conservativeParameters.end(); ++i) {
@@ -180,23 +181,93 @@ void Universe<S>::initialiseCells(DPDSimulation sim) {
             }
             i_pos++;
         }
-        std::cout << "[\n";
-        for(int i = 0; i < 5; i++) {
-            std::cout << "[ ";
-            for (int j = 0; j < 5; j++) {
-                std::cout << _g->devices[cId]->state.a[i][j];
-                if (j < 4)
-                    std::cout << ", ";
+        // Set the drag coefficient for all possible bead types
+        i_pos = 0;
+        std::vector<std::vector<float>> dissipativeParameters = sim.getDissipativeParameters();
+        for (std::vector<std::vector<float>>::iterator i = dissipativeParameters.begin(); i != dissipativeParameters.end(); ++i) {
+            int j_pos = 0;
+            for (std::vector<float>::iterator j = i->begin(); j != i->end(); ++j) {
+                _g->devices[cId]->state.d[i_pos][j_pos] = *j;
+                j_pos++;
             }
-            std::cout << "]\n";
+            i_pos++;
         }
-        std::cout << "]\n";
-        // _g->devices[cId]->state.loc.x = loc.x;
-        // _g->devices[cId]->state.loc.y = loc.y;
-        // _g->devices[cId]->state.loc.z = loc.z;
-        // _g->devices[cId]->state.unit_size = _unit_size;
-        // _g->devices[cId]->state.N = _D;
+        // Set the RNG seed
+        _g->devices[cId]->state.rngstate = sim.getRNGSeed();
+        // Set the timestep
+        _g->devices[cId]->state.dt = sim.getStep();
+        // Set the maximum number of timesteps
+        _g->devices[cId]->state.max_timestep = sim.getTime();
+        // Set the display period
+        _g->devices[cId]->state.display_period = sim.getDisplayPeriod();
     }
+    std::cout << "All cells have been initialised\n";
+}
+
+// vector1.insert( vector1.end(), vector2.begin(), vector2.end() );
+template<class S>
+std::vector<bead_t> Universe<S>::expandPolymer(Polymer_structure p) {
+    std::vector<bead_t> v;
+    if (p.type == BEAD) {
+        bead_type_id beadID = p.bead_type;
+        bead_t b;
+        b.type = sim.getBeadTypes()[beadID].type;
+        v.push_back(b);
+        return v;
+    } else if (p.type == CHAIN) {
+        for (std::vector<Polymer_structure>::iterator i = p.elements.begin(); i != p.elements.end(); ++i) {
+            std::vector<bead_t> r = expandPolymer(*i);
+            v.insert(v.end(), r.begin(), r.end());
+        }
+        return v;
+    } else if (p.type == BRANCH) {
+        return v;
+    } else if (p.type == LOOP) {
+        return v;
+    } else {
+        fprintf(stderr, "ERROR: Did not understand the polymer structure type\n");
+    }
+}
+
+template<class S>
+void Universe<S>::addBeads(DPDSimulation sim) {
+    std::vector<Polymer> polymers = sim.getPolymers();
+    uint totalBeads = 0, beadID = 0;
+    float numberDensity = sim.getDensity();
+    uint maxBeads = numberDensity * _volume.x() * _volume.y() * _volume.z();
+    std::cout << "Desnity = " << numberDensity << ", Max beads = " << maxBeads << "\n";
+
+    for (std::vector<Polymer>::iterator p = polymers.begin(); p != polymers.end(); ++p) {
+        std::vector<bead_t> beads = expandPolymer(p->structure);
+        float polymerFraction = p->fraction;
+        float maxPolymerBeads = floor(polymerFraction * maxBeads);
+
+        std::cout << "Polymer: " << p->name << " ";
+        uint polymerBeads = 0;
+        uint polymers = 0;
+        for (int i = 0; i < maxPolymerBeads; i++) {
+            std::vector<bead_t> thisPolymer(beads);
+            for (std::vector<bead_t>::iterator b = thisPolymer.begin(); b != thisPolymer.end(); ++b) {
+                bead_t b1 = *b;
+                bool added = false;
+                while (!added) {
+                    b1.id = beadID;
+                    beadID++;
+                    b1.pos.set((rand() / (float)RAND_MAX * _volume.x()), (rand() / (float)RAND_MAX * _volume.y()), (rand() / (float)RAND_MAX * _volume.z()));
+                    b1.velo.set(0.0, 0.0, 0.0);
+                    if (spaceForBead(&b1)) {
+                        addBead(&b1);
+                        totalBeads++;
+                        polymerBeads++;
+                        added = true;
+                    }
+                }
+            }
+            polymers++;
+        }
+        std::cout << polymers << " inserted - " << polymerBeads << " beads\n";
+    }
+    std::cout << "All beads inserted to universe. Total beads: " << totalBeads << "\n";
 }
 
 // constructor
@@ -209,12 +280,18 @@ Universe<S>::Universe(DPDSimulation sim) {
     _volume = sim.getVolume();
     std::cout << "Volume dimensions: " << _volume.x() << ", " << _volume.y() << ", " << _volume.z() << "\n";
 
+    _cell = sim.getCell();
+    std::cout << "Cell dimensions: " << _cell.x() << ", " << _cell.y() << ", " << _cell.z() << "\n";
+
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
-    _boxesX = TinselBoxMeshXLen;
-    _boxesY = TinselBoxMeshYLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
+
+    std::cout << "\nAttempting to acquire the hostlink\n";
     _hostLink = new HostLink(_boxesX, _boxesY);
+    std::cout << "Hostlink acquired\n";
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
     // Create the devices
@@ -237,16 +314,11 @@ Universe<S>::Universe(DPDSimulation sim) {
 
     // Initialise all the devices with necessary data to run a simulation
     initialiseCells(sim);
-//     // initialise all the devices with their position
-//     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
-//         PDeviceId cId = i->first;
-//         unit_t loc = i->second;
-//         _g->devices[cId]->state.loc.x = loc.x;
-//         _g->devices[cId]->state.loc.y = loc.y;
-//         _g->devices[cId]->state.loc.z = loc.z;
-//         _g->devices[cId]->state.unit_size = _unit_size;
-//         _g->devices[cId]->state.N = _D;
-//     }
+
+    // Add beads
+    addBeads(sim);
+
+    std::cout << "Universe setup is complete\n";
 }
 
 // deconstructor
@@ -255,117 +327,68 @@ Universe<S>::~Universe() {
     delete _g;
 }
 
-// checks to see if a bead can be added to the universe
-// template<class S>
-// bool Universe<S>::space(const bead_t *in) {
-//     bead_t b = *in;
-//     unit_pos_t x = floor(b.pos.x()/_unit_size);
-//     unit_pos_t y = floor(b.pos.y()/_unit_size);
-//     unit_pos_t z = floor(b.pos.z()/_unit_size);
-//     unit_t t = {x,y,z};
-//     if (x > _size || x < 0 || y > _size || y < 0 || z > _size || z < 0) {
-//         return false;
-//     }
+//checks to see if a bead can be added to the universe
+template<class S>
+bool Universe<S>::spaceForBead(const bead_t *in) {
+    bead_t b = *in;
+    unit_pos_t x = floor(b.pos.x()/_cell.x());
+    unit_pos_t y = floor(b.pos.y()/_cell.y());
+    unit_pos_t z = floor(b.pos.z()/_cell.z());
+    unit_t t = {x,y,z};
+    if (x > _volume.x() || x < 0 || y > _volume.y() || y < 0 || z > _volume.z() || z < 0) {
+        return false;
+    }
 
-//     // lookup the device
-//     PDeviceId b_su = _locToId[t];
+    // lookup the device
+    PDeviceId b_su = _locToId[t];
 
-//     // check to make sure there is still enough room in the device
-//     if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev)) {
-//         return false;
-//     } else {
-//         return true;
-//     }
-// }
-
-// checks to see if a pair of beads can be added to the universe
-// template<class S>
-// bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
-//    unit_pos_t xa = floor(pa->pos.x()/_unit_size);
-//    unit_pos_t ya = floor(pa->pos.y()/_unit_size);
-//    unit_pos_t za = floor(pa->pos.z()/_unit_size);
-//    unit_t ta = {xa,ya,za};
-
-//     unit_pos_t xb = floor(pb->pos.x()/_unit_size);
-//    unit_pos_t yb = floor(pb->pos.y()/_unit_size);
-//    unit_pos_t zb = floor(pb->pos.z()/_unit_size);
-//    unit_t tb = {xb,yb,zb};
-
-//     if(_locToId.find(ta)==_locToId.end()){
-//      return false;
-//    }
-//    if(_locToId.find(tb)==_locToId.end()){
-//      return false;
-//    }
-
-//     // lookup the device
-//    PDeviceId b_sua = _locToId[ta];
-//    PDeviceId b_sub = _locToId[tb];
-
-//     if(b_sua==b_sub){
-//      return get_num_beads(_g->devices[b_sua]->state.bslot)+1 < max_beads_per_dev;
-//    }else{
-//      return (get_num_beads(_g->devices[b_sua]->state.bslot) < max_beads_per_dev)
-//            && get_num_beads(_g->devices[b_sub]->state.bslot) < max_beads_per_dev;
-//    }
-// }
+    // check to make sure there is still enough room in the device
+    if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev)) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
 // add a bead to the simulation universe
-// template<class S>
-// unit_t Universe<S>::add(const bead_t *in) {
-//     bead_t b = *in;
-//     unit_pos_t x = floor(b.pos.x()/_unit_size);
-//     unit_pos_t y = floor(b.pos.y()/_unit_size);
-//     unit_pos_t z = floor(b.pos.z()/_unit_size);
-//     unit_t t = {x,y,z};
+template<class S>
+unit_t Universe<S>::addBead(const bead_t *in) {
+    bead_t b = *in;
+    unit_pos_t x = floor(b.pos.x()/_cell.x());
+    unit_pos_t y = floor(b.pos.y()/_cell.y());
+    unit_pos_t z = floor(b.pos.z()/_cell.z());
+    unit_t t = {x,y,z};
 
-//     // lookup the device
-//     PDeviceId b_su = _locToId[t];
+    // lookup the device
+    PDeviceId b_su = _locToId[t];
 
-//     // check to make sure there is still enough room in the device
-//     if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
-//         printf("Error: there is not enough space in device:%d for bead:%d  already %u beads in the slot\n", b_su, in->id, get_num_beads(_g->devices[b_su]->state.bslot));
-//         fflush(stdout);
-//         exit(EXIT_FAILURE);
-//     } else {
-//         // we can add the bead
+    // check to make sure there is still enough room in the device
+    if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
+        printf("Error: there is not enough space in device:%d for bead:%d  already %u beads in the slot\n", b_su, b.id, get_num_beads(_g->devices[b_su]->state.bslot));
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    } else {
+        // we can add the bead
 
-//         // make the postion of the bead relative
-//         b.pos.x(b.pos.x() - (S(float(t.x))*_unit_size));
-//         b.pos.y(b.pos.y() - (S(float(t.y))*_unit_size));
-//         b.pos.z(b.pos.z() - (S(float(t.z))*_unit_size));
+        // make the postion of the bead relative
+        b.pos.x(b.pos.x() - (S(float(t.x))*_cell.x()));
+        b.pos.y(b.pos.y() - (S(float(t.y))*_cell.y()));
+        b.pos.z(b.pos.z() - (S(float(t.z))*_cell.z()));
+        // get the next free slot in this device
+        uint32_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
+        _g->devices[b_su]->state.bead_slot[slot] = b;
+        _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
 
-//         // get the next free slot in this device
-//         uint8_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
-//         _g->devices[b_su]->state.bead_slot[slot] = b;
-//         _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
-//     }
+    }
 
-//     return t;
-// }
-
-// template<class S>
-// void Universe<S>::add(const unit_t cell, const bead_t *in) {
-//     bead_t b = *in;
-//     if (b.pos.x() > _unit_size || b.pos.y() > _unit_size || b.pos.z() > _unit_size) {
-//         printf("Error: Bead position given (%f, %f, %f) is outside the bounds of this unit (%d, %d, %d) which has side length %f\n", b.pos.x(), b.pos.y(), b.pos.z(), cell.x, cell.y, cell.z, _unit_size);
-//         fflush(stdout);
-//         exit(EXIT_FAILURE);
-//     }
-
-//     // lookup the device
-//     PDeviceId b_su = _locToId[cell];
-
-//     // get the next free slot in this device
-//     uint8_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
-//     _g->devices[b_su]->state.bead_slot[slot] = b;
-//     _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
-// }
+    return t;
+}
 
 // writes the universe into the POETS system
 template<class S>
 void Universe<S>::write() {
     _g->write(_hostLink);
+    std::cout << "Universe is written to the hardware\n";
 }
 
 // Use unit_t location to acquire thread id
@@ -379,10 +402,10 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 
 // starts the simulation
 template<class S>
-void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
+void Universe<S>::run() {
     _hostLink->boot("parsedCode.v", "parsedData.v");
-    gettimeofday(&_start, NULL);
     _hostLink->go();
+    std::cout << "Application has been started.\n";
 
 #ifdef TIMER
     uint32_t devices = 0;
@@ -399,7 +422,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
 #endif
-
+    uint32_t total_messages = 0;
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
@@ -474,6 +497,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         eMsg.from = msg.payload.from;
         eMsg.bead = msg.payload.beads[0];
         _extern->send(&eMsg);
+    #else
+        total_messages++;
+        std::cout << "Message received with timestep " << msg.payload.timestep << "\n";
+        std::cout << "Now received " << total_messages << " messages\n";
     #endif
     }
 }

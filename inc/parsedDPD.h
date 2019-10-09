@@ -42,26 +42,10 @@
     #define START 3
 #endif
 
-#if defined(TESTING) || defined(TIMER) || defined(STATS)
-#define TEST_LENGTH 1000
-#endif
-
 typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
-// const float problem_size = 18.0; // total size of the sim universe in one dimension
-// const unsigned N = 18; // the size of the sim universe in each dimension
-
-const ptype r_c(1.0);
-const ptype sq_r_c(r_c * r_c);
-
-// interaction matrix
-const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
-                         {ptype(75.0), ptype(25.0), ptype(50.0)},
-                         {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
-
-const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
 /* DT10: Playing with bonds.
@@ -79,10 +63,6 @@ const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
 {
     return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
 }
-
-#ifdef VISUALISE
-const uint32_t emitperiod = 0;
-#endif
 
 // ---------------------------------------------------------------------------------------
 
@@ -146,15 +126,19 @@ struct DPDState {
     // An array holding the destinations of where a bead is migrating to, which slots is indicated by migrateslot
     unit_t migrate_loc[MAX_BEADS]; // MAX_BEADS = 31. 31 * 6 = 186 bytes
     // 2D array of conservative interaction strengths
-    float a[MAX_BEAD_TYPES][MAX_BEAD_TYPES];
+    float a[MAX_BEAD_TYPES][MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 5 * 4 = 100 bytes
+    // 2D array of drag coefficients
+    float d[MAX_BEAD_TYPES][MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 5 * 4 = 100 bytes
     // Array of cutoff radii for each bead type
     float r_c[MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 12 = 60 bytes
+    // Array of square of cutoff radii for each bead type. Reduces number of square roots necessary
+    float r_c_sq[MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 12 = 60 bytes
     // The dimensions of this spatial unit
     Vector3D<ptype> unit_dimensions; // 12 bytes
     // The dimensions of the volume
     Vector3D<ptype> volume_dimensions; // 12 bytes
     // The state of the random number generator
-    uint64_t rngstate; // 8 bytes
+    int64_t rngstate; // 8 bytes
     // The location of this cell
     unit_t loc; // 6 bytes
     // A bitmap of which bead slot is occupied
@@ -171,6 +155,14 @@ struct DPDState {
     uint32_t timestep; // 4 bytes
     // The global random number at this timestep
     uint32_t grand; // 4 bytes
+    // The time delta (aka timestep)
+    float dt; // 4 bytes
+    // Square root of dt (used in force calculations)
+    float dt_sq; // 4 bytes
+    // Maximum number of timestep for simulation to run for
+    uint32_t max_timestep; // 4 bytes
+    // Display period - How often is the state of all beads emitted for visualising?
+    uint32_t display_period; // 4 bytes
 #ifdef VISUALISE
     // A counter to keep track of how many timesteps have elapsed since the last emit
     uint32_t emitcnt; // 4 bytes
@@ -283,20 +275,20 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
 
-        if (r_ij_dist_sq > sq_r_c) {
+        if (r_ij_dist_sq > s->r_c_sq[a->type]) {
             return force;
         }
 
         ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
 
-        ptype a_ij = A[a->type][b->type];
+        ptype a_ij = s->a[a->type][b->type];
         // Vector3D<ptype> r_ij = r_i - r_j;
         Vector3D<ptype> r_ij = a->pos - b->pos;
         // Vector3D<ptype> v_i = a->velo;
         // Vector3D<ptype> v_j = b->velo;
         // Vector3D<ptype> v_ij = v_i - v_j;
         Vector3D<ptype> v_ij = a->velo - b->velo;
-        const ptype drag_coef(4.5); // the drag coefficient
+        const ptype drag_coef = s->d[a->type][b->type]; // the drag coefficient
         const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
         const ptype sqrt_dt(0.1414); // sqrt(0.02)
 
@@ -304,7 +296,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
 
         //Conservative force: Equation 8.5 in the dl_meso manual
-        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/r_c));
+        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/s->r_c[a->type]));
         force = (r_ij/r_ij_dist) * con;
 
         // Drag force
@@ -372,6 +364,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
+        // Calculate square root of cutoff radii now so it doesn't have to be done every time
+        for (uint8_t i = 0; i < MAX_BEAD_TYPES; i++) {
+            s->r_c_sq[i] = s->r_c[i] * s->r_c[i];
+        }
+        // Calculate the square root of the timestep now so it doesn't have to be done every time
+        s->dt_sq = newt_sqrt(s->dt);
     #ifdef TIMER
         s->mode = START;
         if (s->timer)
@@ -379,16 +377,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         else
             *readyToSend = No;
         s->timestep = 0;
-        s->rngstate = 1234; // start with a seed
         s->grand = rand();
         s->sentslot = s->bslot;
     #else
-		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
-    #ifdef VISUALISE
-		s->emitcnt = emitperiod;
-    #endif
 		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
@@ -424,16 +417,16 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #if defined(TIMER) || defined(STATS)
-            // Timed run has ended
-            if (s->timestep >= TEST_LENGTH) {
-            #ifndef STATS
+        // #if defined(TIMER) || defined(STATS)
+            // Run has ended
+            if (s->timestep >= s->max_timestep) {
+            #ifdef TIMER
                 s->dpd_endU = tinselCycleCountU();
                 s->dpd_end  = tinselCycleCount();
             #endif
                 return false;
             }
-        #endif
+        // #endif
     	    s->grand = rand(); // advance the random number
     	    uint32_t i = s->bslot;
     	    while(i){
@@ -446,11 +439,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // Vector3D<ptype> force = s->force_slot[ci];
             // #endif
                 Vector3D<ptype> acceleration = force / p_mass;
-                Vector3D<ptype> delta_v = acceleration * dt;
+                Vector3D<ptype> delta_v = acceleration * s->dt;
                 // update velocity
                 s->bead_slot[ci].velo = s->bead_slot[ci].velo + delta_v;
                 // update position
-                s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
+                s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*s->dt + acceleration*ptype(0.5)*s->dt*s->dt;
 
                 // ----- clear the forces ---------------
             // #ifdef TESTING
@@ -542,7 +535,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if(s->mode == MIGRATION) {
         	// do we want to export?
         #ifdef VISUALISE
-            if(s->emitcnt >= emitperiod) {
+            if(s->emitcnt >= s->display_period) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -559,7 +552,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
             return true;
         #elif defined(TESTING)
-            if (s->timestep >= TEST_LENGTH) {
+            if (s->timestep >= s->max_timestep) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -595,7 +588,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return true;
         }
     #elif defined(TESTING) || defined(STATS)
-        if (s->timestep >= TEST_LENGTH) {
+        if (s->timestep >= s->max_timestep) {
             return false;
         }
     #endif
@@ -790,6 +783,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         msg->beads[0].type = s->dpd_end;
         msg->beads[0].pos.set((float)s->wraps, 0, 0);
     #endif
+        msg->timestep = s->timestep;
 	    return true;
     }
 

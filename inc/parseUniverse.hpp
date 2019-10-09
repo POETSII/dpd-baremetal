@@ -15,7 +15,7 @@
     #include "timer.h"
 #endif
 
-const uint8_t max_beads_per_dev = 7;
+const uint8_t max_beads_per_dev = 15;
 
 template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
 class Universe {
@@ -25,37 +25,40 @@ class Universe {
     ~Universe();
 
     // setup
-    unit_t add(const bead_t* in); // adds a bead to the universe
-    void add(const unit_t bead, const bead_t* in); // adds a bead to the universe in given cell space. Value of all positions must be less than unit length
-    bool space(const bead_t* in); // checks to see if this bead can be added to the universe
-    bool space(const bead_t* a, const bead_t *b); // checks to see if this pair of beads can be added to the universe
+    unit_t addBead(const bead_t *in); // adds a bead to the universe
+    bool spaceForBead(const bead_t *in); // checks to see if this bead can be added to the universe
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
     // simulation control
     void write(); // writes the simulation env onto the POETS system
     PThreadId get_thread_from_loc(unit_t loc); // Use unit_t location to acquire thread id
-    void run(bool printBeadNum, uint32_t beadNum); // runs the simulation
+    void run(); // runs the simulation
     std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
 
     // bead slot management
-    uint8_t clear_slot(uint8_t slotlist, uint8_t pos);
-    uint8_t set_slot(uint8_t slotlist, uint8_t pos);
-    bool is_slot_set(uint8_t slotlist, uint8_t pos);
+    uint32_t clear_slot(uint32_t slotlist, uint8_t pos);
+    uint32_t set_slot(uint32_t slotlist, uint8_t pos);
+    bool is_slot_set(uint32_t slotlist, uint8_t pos);
 
-    uint8_t get_next_slot(uint8_t slotlist);
-    uint8_t get_next_free_slot(uint8_t slotlist);
+    uint32_t get_next_slot(uint32_t slotlist);
+    uint32_t get_next_free_slot(uint32_t slotlist);
 
-    void print_slot(uint8_t slotlist);
-    uint8_t get_num_beads(uint8_t slotlist);
+    void print_slot(uint32_t slotlist);
+    uint8_t get_num_beads(uint32_t slotlist);
 
     // debugging
     void print_occupancy(); // prints the number of beads assigned to each devices
 
     private:
-        Vector3D<float> _volume;
+        // Volume dimensions
+        Vector3D<S> _volume;
+        // Cell dimensions
+        Vector3D<S> _cell;
+        // Total number of cells
+        uint _numCells;
      //        S _size;
      //        unsigned _D;
-    	// S _unit_size;
+
 
 	// POLite related stuff
 	PGraph<DPDDevice, DPDState, None, DPDMessage> * _g; // the graph
@@ -73,13 +76,12 @@ class Universe {
     // Box mesh dimensions
     uint32_t _boxesX, _boxesY;
 
-	// measuring performance
-	struct timeval _start, _finish, _diff;
-
     void createDevices();
     void connectDevices();
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float max);
     void initialiseCells(DPDSimulation sim);
+    void addBeads(DPDSimulation sim);
+    std::vector<bead_t> expandPolymer(Polymer_structure p);
 };
 
 #include "../src/parseUniverse.cpp"
