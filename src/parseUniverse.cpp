@@ -94,9 +94,9 @@ void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 template<class S>
 void Universe<S>::createDevices() {
     int64_t numDevices = 0;
-    for(uint16_t x = 0; x < _volume.x; x++) {
-        for(uint16_t y = 0; y < _volume.y; y++) {
-            for(uint16_t z = 0; z < _volume.z; z++) {
+    for(uint16_t x = 0; x < _volume.x(); x++) {
+        for(uint16_t y = 0; y < _volume.y(); y++) {
+            for(uint16_t z = 0; z < _volume.z(); z++) {
                     PDeviceId id = _g->newDevice();
                     unit_t loc = {x, y, z};
                     _idToLoc[id] = loc;
@@ -105,7 +105,7 @@ void Universe<S>::createDevices() {
             }
         }
     }
-    std::cout << "All cells added to universe. Total cells: " << numDevices << "\n";
+    std::cout << "All cells added to universe.   Total cells: " << numDevices << "\n";
 }
 
 template<class S>
@@ -122,9 +122,9 @@ uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, co
 template<class S>
 void Universe<S>::connectDevices() {
     int64_t numEdges = 0;
-    for (uint16_t x = 0; x < _volume.x; x++) {
-        for (uint16_t y = 0; y < _volume.y; y++) {
-            for (uint16_t z = 0; z < _volume.z; z++) {
+    for (uint16_t x = 0; x < _volume.x(); x++) {
+        for (uint16_t y = 0; y < _volume.y(); y++) {
+            for (uint16_t z = 0; z < _volume.z(); z++) {
                 // This device
                 unit_t c_loc = {x, y, z};
                 PDeviceId cId = _locToId[c_loc];
@@ -137,10 +137,10 @@ void Universe<S>::connectDevices() {
 
                             // Get neighbour location
                             unit_t n_loc;
-                            n_loc.x = locOffset(c_loc.x, x_off, _volume.x);
-                            n_loc.y = locOffset(c_loc.y, y_off, _volume.y);
-                            n_loc.z = locOffset(c_loc.z, z_off, _volume.z);
-                            assert (n_loc.x >= 0 && n_loc.x < _volume.x && n_loc.y >= 0 && n_loc.y < _volume.y && n_loc.z >= 0 && n_loc.z < _volume.z);
+                            n_loc.x = locOffset(c_loc.x, x_off, _volume.x());
+                            n_loc.y = locOffset(c_loc.y, y_off, _volume.y());
+                            n_loc.z = locOffset(c_loc.z, z_off, _volume.z());
+                            assert (n_loc.x >= 0 && n_loc.x < _volume.x() && n_loc.y >= 0 && n_loc.y < _volume.y() && n_loc.z >= 0 && n_loc.z < _volume.z());
 
                             PDeviceId nId = _locToId[n_loc];
                             addNeighbour(cId, nId);
@@ -154,6 +154,51 @@ void Universe<S>::connectDevices() {
     std::cout << "All cells have been connected. Total edges: " << numEdges << "\n";
 }
 
+template<class S>
+void Universe<S>::initialiseCells(DPDSimulation sim) {
+    for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+        // Device id
+        PDeviceId cId = i->first;
+        // Set cell location
+        unit_t loc = i->second;
+        // Set cell dimensions
+        _g->devices[cId]->state.unit_dimensions = sim.getCell();
+        // Set volume so this cell knows how large the entire universe is
+        _g->devices[cId]->state.volume_dimensions = sim.getVolume();
+        // Set the radii of all bead types in the simulation
+        for (std::map<bead_type_id, Bead_type>::iterator i = sim.getBeadTypes().begin(); i != sim.getBeadTypes().end(); ++i) {
+            _g->devices[cId]->state.r_c[i->second.type] = i->second.radius;
+        }
+        // Set the conservative force for all possible bead types
+        int i_pos = 0;
+        std::vector<std::vector<float>> conservativeParameters = sim.getConservativeParameters();
+        for (std::vector<std::vector<float>>::iterator i = conservativeParameters.begin(); i != conservativeParameters.end(); ++i) {
+            int j_pos = 0;
+            for (std::vector<float>::iterator j = i->begin(); j != i->end(); ++j) {
+                _g->devices[cId]->state.a[i_pos][j_pos] = *j;
+                j_pos++;
+            }
+            i_pos++;
+        }
+        std::cout << "[\n";
+        for(int i = 0; i < 5; i++) {
+            std::cout << "[ ";
+            for (int j = 0; j < 5; j++) {
+                std::cout << _g->devices[cId]->state.a[i][j];
+                if (j < 4)
+                    std::cout << ", ";
+            }
+            std::cout << "]\n";
+        }
+        std::cout << "]\n";
+        // _g->devices[cId]->state.loc.x = loc.x;
+        // _g->devices[cId]->state.loc.y = loc.y;
+        // _g->devices[cId]->state.loc.z = loc.z;
+        // _g->devices[cId]->state.unit_size = _unit_size;
+        // _g->devices[cId]->state.N = _D;
+    }
+}
+
 // constructor
 template<class S>
 Universe<S>::Universe(DPDSimulation sim) {
@@ -162,14 +207,14 @@ Universe<S>::Universe(DPDSimulation sim) {
     }
 
     _volume = sim.getVolume();
-    std::cout << "Volume dimensions: " << _volume.x << ", " << _volume.y << ", " << _volume.z << "\n";
+    std::cout << "Volume dimensions: " << _volume.x() << ", " << _volume.y() << ", " << _volume.z() << "\n";
 
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
     _boxesX = TinselBoxMeshXLen;
     _boxesY = TinselBoxMeshYLen;
-    // _hostLink = new HostLink(_boxesX, _boxesY);
+    _hostLink = new HostLink(_boxesX, _boxesY);
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
     // Create the devices
@@ -178,13 +223,20 @@ Universe<S>::Universe(DPDSimulation sim) {
     // Connect each device to it's neighbours - Each has 26
     connectDevices();
 
+    // Optional - Mapping vertices to DRAM allows for more devices, at the cost of slower to read from DRAM.
     // _g->mapVerticesToDRAM = true;
 #ifndef TIMER
-    _g->map(); // map the graph into hardware calling the POLite placer
+    // Map the graph into hardware calling the POLite placer
+    _g->map();
 #else
+    // Map the graph into hardware, but add "Timer" devices to the mapping also, which synchronise TinselCycleCount across all available boards
+    // This allows for more accurate timing, from when the first device starts to the first device finishes.
+    // This mapper copies PGraph's map(), but adds timers and maps these separately.
     timerMap(_g, TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS Boxes
 #endif
 
+    // Initialise all the devices with necessary data to run a simulation
+    initialiseCells(sim);
 //     // initialise all the devices with their position
 //     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
 //         PDeviceId cId = i->first;
@@ -328,7 +380,7 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 // starts the simulation
 template<class S>
 void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
-    _hostLink->boot("code.v", "data.v");
+    _hostLink->boot("parsedCode.v", "parsedData.v");
     gettimeofday(&_start, NULL);
     _hostLink->go();
 

@@ -7,14 +7,9 @@
 #include "parser.cpp"
 #include "DPDSimulation.hpp"
 #include "parseUniverse.hpp"
-
-// #include <sys/time.h>
-// #include <HostLink.h>
-// #include "dpd.h"
-// #include "universe.hpp"
+#include "parsedDPD.h"
 // #include <map>
 // #include <math.h>
-// #include <random>
 // #ifdef TIMER
 //     #include "timer.cpp"
 // #endif

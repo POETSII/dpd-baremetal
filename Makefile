@@ -24,7 +24,7 @@ SOCAT_SCRIPT = ./scripts/socat_script
 all: DFLAGS=-DVISUALISE
 all: run
 
-run: $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run $(DPD_BIN)
+run: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run
 
 bridge: $(DPD_BIN)/dpd-bridge
 
@@ -149,14 +149,26 @@ $(DPD_BIN)/DPDSimulation.o: $(DPD_SRC)/DPDSimulation.cpp $(DPD_INC)/DPDSimulatio
 $(DPD_BIN)/parser.o: $(DPD_SRC)/parser.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(DPD_INC) -c -o $(DPD_BIN)/parser.o $(DPD_SRC)/parser.cpp
 
-$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS) $(DPD_BIN)/parser.o $(DPD_BIN)/DPDSimulation.o $(DPD_INC)/parseUniverse.hpp $(DPD_SRC)/parseUniverse.cpp
+$(DPD_BIN)/parsedCode.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)
+	$(BIN)/checkelf.sh $(DPD_BIN)/parsedDPD.elf
+	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/parsedDPD.elf $@
+
+$(DPD_BIN)/parsedData.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)
+	$(RV_OBJCOPY) -O verilog --remove-section=.text \
+                --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/parsedDPD.elf $@
+
+$(DPD_BIN)/parsedDPD.elf: $(DPD_SRC)/parsedDPD.cpp $(DPD_INC)/parsedDPD.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) -I $(DPD_INC) -o $(DPD_BIN)/parsedDPD.o $<
+	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/parsedDPD.o $(TINSEL_LIB_INC) $(DPD_OBJS)
+
+$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(DPD_INC)/parsedDPD.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS) $(DPD_BIN)/parser.o $(DPD_BIN)/DPDSimulation.o $(DPD_INC)/parseUniverse.hpp $(DPD_SRC)/parseUniverse.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
-parse: $(DPD_BIN)/parserRun
+parse: $(DPD_BIN) $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
 
 .PHONY: clean
 clean:

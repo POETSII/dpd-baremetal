@@ -4,7 +4,7 @@
 #ifndef _SIM_PARSE_UNIVERSE_H
 #define _SIM_PARSE_UNIVERSE_H
 
-#include "dpd.h"
+#include "parsedDPD.h"
 #include "POLite.h"
 #include "HostLink.h"
 #include <sys/time.h>
@@ -52,7 +52,7 @@ class Universe {
     void print_occupancy(); // prints the number of beads assigned to each devices
 
     private:
-        Volume _volume;
+        Vector3D<float> _volume;
      //        S _size;
      //        unsigned _D;
     	// S _unit_size;
@@ -79,6 +79,7 @@ class Universe {
     void createDevices();
     void connectDevices();
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float max);
+    void initialiseCells(DPDSimulation sim);
 };
 
 #include "../src/parseUniverse.cpp"
