@@ -302,7 +302,7 @@ Universe<S>::Universe(DPDSimulation sim) {
     connectDevices();
 
     // Optional - Mapping vertices to DRAM allows for more devices, at the cost of slower to read from DRAM.
-    _g->mapVerticesToDRAM = true;
+    // _g->mapVerticesToDRAM = true;
 #ifndef TIMER
     // Map the graph into hardware calling the POLite placer
     _g->map();

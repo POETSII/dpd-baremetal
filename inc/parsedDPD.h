@@ -145,10 +145,12 @@ struct DPDState {
     uint32_t bslot; // 4 bytes
     // A bitmap of which bead slot has not been sent from yet
     uint32_t sentslot; // 4 bytes
+#ifndef ONE_BY_ONE
     // An outer bitmap of which bead slot has not been used in local calculations yet
     uint32_t local_slot_i; // 4 bytes
     // An inner bitmap of which bead slot has not been used in local calculations yet
     uint32_t local_slot_j; // 4 bytes
+#endif
     // A bitmap of which bead slot is being migrated to another cell
     uint32_t migrateslot; // 4 bytes
     // The current timestep that we are on
@@ -322,6 +324,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 #endif
 
+#ifndef ONE_BY_ONE
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
         while(s->local_slot_i) {
@@ -361,6 +364,33 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
         s->sentslot = s->bslot;
     }
+#else
+    void local_calcs(uint32_t ci) {
+        uint32_t j = s->bslot;
+        while(j) {
+            uint32_t cj = get_next_slot(j);
+            if(ci != cj) {
+                #ifndef ACCELERATE
+                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                #else
+                    return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                    s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                                    s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                    s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                                    s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                                    s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+                                                    A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                    Vector3D<ptype> f;
+                    f.set(r.x, r.y, r.z);
+                #endif
+
+                    Vector3D<int32_t> x = f.floatToFixed();
+                    s->force_slot[ci] = s->force_slot[ci] + x;
+            }
+            j = clear_slot(j, cj);
+        }
+    }
+#endif
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
@@ -600,6 +630,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline void send(volatile DPDMessage *msg){
 	    if(s->mode == UPDATE) {
 	        uint32_t ci = get_next_slot(s->sentslot);
+        #ifdef ONE_BY_ONE
+            local_calcs(ci);
+        #endif
 	        // send all of our beads to neighbours
 	        msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
@@ -613,10 +646,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->sentslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
+            #ifndef ONE_BY_ONE
                 s->local_slot_i = s->bslot;
                 s->local_slot_j = s->bslot;
                 *readyToSend = No;
                 local_calcs();
+            #else
+                *readyToSend = No;
+            #endif
 	        }
 	        return;
 	    }
@@ -737,9 +774,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	            i = clear_slot(i, ci);
 	        }
+        #ifndef ONE_BY_ONE
             if (s->sentslot == 0) {
                 local_calcs();
             }
+        #endif
 	    } else if (s->mode == MIGRATION) {
             // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
