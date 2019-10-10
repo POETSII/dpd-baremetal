@@ -5,7 +5,9 @@
 #include <string>
 #include <assert.h>
 #include "parseUniverse.hpp"
+#ifdef TIMER
 #include "timer.cpp"
+#endif
 #include "parser.cpp"
 
 void print_help() {
