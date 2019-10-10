@@ -142,13 +142,6 @@ test-bonds: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/
 
 
 # ------------- FILE PARSING AND RUNNING ---------------
-$(DPD_BIN)/DPDSimulation.o: $(DPD_SRC)/DPDSimulation.cpp $(DPD_INC)/DPDSimulation.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/DPDSimulation.o $(DPD_SRC)/DPDSimulation.cpp
-
-$(DPD_BIN)/parser.o: $(DPD_SRC)/parser.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) -I $(DPD_INC) -c -o $(DPD_BIN)/parser.o $(DPD_SRC)/parser.cpp
-
 $(DPD_BIN)/parsedCode.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/parsedDPD.elf
 	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/parsedDPD.elf $@
@@ -161,14 +154,20 @@ $(DPD_BIN)/parsedDPD.elf: $(DPD_SRC)/parsedDPD.cpp $(DPD_INC)/parsedDPD.h $(DPD_
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) -I $(DPD_INC) -o $(DPD_BIN)/parsedDPD.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/parsedDPD.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
-$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(DPD_INC)/parsedDPD.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS) $(DPD_BIN)/parser.o $(DPD_BIN)/DPDSimulation.o $(DPD_INC)/parseUniverse.hpp $(DPD_SRC)/parseUniverse.cpp
+PARSE_OBJS = $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+
+$(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(PARSE_OBJS) $(DPD_SRC)/parseUniverse.cpp $(DPD_INC)/parseUniverse.hpp $(DPD_SRC)/parser.cpp $(DPD_INC)/parser.hpp $(DPD_INC)/parsedDPD.h $(HL)/*.o $(DPD_BIN) $(PARSE_OBJS)
 	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(PARSE_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
+parse: DFLAGS=-DVISUALISE
 parse: $(DPD_BIN) $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
+
+ptime: DFLAGS=-DTIMER
+ptime: $(DPD_BIN) $(DPD_SRC)/timer.cpp $(DPD_INC)/timer.h $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
 
 .PHONY: clean
 clean:

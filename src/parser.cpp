@@ -3,28 +3,7 @@
 // simulation, and as such, this parser reads the file, and then reads through
 // the list and prepares a class to set up and build the universe and run it.
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <iomanip>
-#include <iostream>
-#include <fstream>
-#include <boost/algorithm/string/replace.hpp>
-#include <boost/algorithm/string.hpp>
-#include <vector>
-#include "DPDSimulation.hpp"
-#include "Vector3D.hpp"
-#include <random>
-#include <sstream>
-
-// Stores each line of the input file for easier reading
-std::vector<std::string> lines;
-// Iterator for moving through the lines
-std::vector<std::string>::iterator i;
-// Class to hold parameters for the simulation
-DPDSimulation sim;
-// Bool to reduce parsing errors based on anaylsis/sampling
-bool analysisErrored = false;
+#include "parser.hpp"
 
 // Empty lines are used to separate sections of parameters and can be ignored
 std::vector<std::string>::iterator getNextLine() {
@@ -458,6 +437,7 @@ bool polymers() {
     }
 }
 
+// The definition of the dimensions of the simulation volume, and the cells which make this up
 bool box() {
     std::string box = *i;
     if (boost::starts_with(box, "Box")) {
@@ -559,6 +539,7 @@ bool box() {
     return false;
 }
 
+// This is the number density, the number of beads per unit volume.
 bool density() {
     std::string den = *i;
     if (boost::starts_with(den, "Density")) {
@@ -574,6 +555,7 @@ bool density() {
     }
 }
 
+// The temperature of the simulation. This is fixed at 1.
 bool temperature() {
     std::string temp = *i;
     if (boost::starts_with(temp, "Temp")) {
@@ -592,6 +574,7 @@ bool temperature() {
     }
 }
 
+// The RNG seed used for the random force calculations.
 bool rngSeed() {
     std::string seed = *i;
     if (boost::starts_with(seed, "RNGSeed")) {
@@ -607,6 +590,7 @@ bool rngSeed() {
     }
 }
 
+// A velocity verlet parameter constant. This is set to 0.5 and not changed, but could be in the future
 bool lambda() {
     std::string lam = *i;
     if (boost::starts_with(lam, "Lambda")) {
@@ -626,6 +610,7 @@ bool lambda() {
     }
 }
 
+// The delta of real time between timesteps.
 bool step() {
     std::string s = *i;
     if (boost::starts_with(s, "Step")) {
@@ -640,6 +625,7 @@ bool step() {
     }
 }
 
+// The total number of timesteps to run for.
 bool time() {
     std::string t = *i;
     if (boost::starts_with(t, "Time")) {
@@ -657,6 +643,7 @@ bool time() {
     }
 }
 
+// The frequency of taking samples (not yet implemented)
 bool samplePeriod() {
     std::string sample = *i;
     if (boost::starts_with(sample, "SamplePeriod")) {
@@ -685,6 +672,7 @@ bool samplePeriod() {
     }
 }
 
+// THe frequency of taking samples for analysis as defined by the analysis parameter (Not yet implemented)
 bool analysisPeriod() {
     std::string analysis = *i;
     if (boost::starts_with(analysis, "AnalysisPeriod")) {
@@ -712,6 +700,7 @@ bool analysisPeriod() {
     }
 }
 
+// This is not used and should be the same as the time value.
 bool densityPeriod() {
     std::string density = *i;
     if (boost::starts_with(density, "DensityPeriod")) {
@@ -731,6 +720,7 @@ bool densityPeriod() {
     }
 }
 
+// The frequency of emitting positional values of every bead for the purposes of displaying/visualising
 bool displayPeriod() {
     std::string d = *i;
     if (boost::starts_with(d, "DisplayPeriod")) {
@@ -753,6 +743,7 @@ bool displayPeriod() {
     }
 }
 
+// How often should a sample be taken of all bead information, including velocity, for restarting the simulation from this point if desired
 bool restartPeriod() {
     std::string d = *i;
     if (boost::starts_with(d, "RestartPeriod")) {
@@ -776,6 +767,7 @@ bool restartPeriod() {
     }
 }
 
+// Unsure what this is for, it is currently stored for future feature improvements
 bool grid() {
     std::string g = *i;
     if (boost::starts_with(g, "Grid")) {
@@ -843,6 +835,8 @@ bool grid() {
     return false;
 }
 
+// This stores the analysis requests as provided by the input file. No analysis information is currently implemented in this simulator
+// But it is stored for future analysis updates
 bool analysis() {
     std::string a = *i;
     if (boost::starts_with(a, "Analysis")) {
@@ -864,6 +858,8 @@ bool analysis() {
     return false;
 }
 
+// This stores the list of commands to be executed during the simulation. No commands are currently implemented.
+// They are stored for future improvements
 bool commands() {
     std::string c = *i;
     if (boost::starts_with(c, "Command")) {
@@ -892,6 +888,8 @@ bool commands() {
     return false;
 }
 
+// The main function. Takes in a string, a filepath to the DMPCI file to be parsed,
+// and executes, in order, all of the above functions (except helper functions)
 DPDSimulation parse(std::string filepath) {
 
     // Input file stream to read the input file one line at a time

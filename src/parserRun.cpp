@@ -4,17 +4,9 @@
 #include <stdint.h>
 #include <string>
 #include <assert.h>
-#include "parser.cpp"
-#include "DPDSimulation.hpp"
 #include "parseUniverse.hpp"
-#include "parsedDPD.h"
-// #include <map>
-// #include <math.h>
-// #ifdef TIMER
-//     #include "timer.cpp"
-// #endif
-
-
+#include "timer.cpp"
+#include "parser.cpp"
 
 void print_help() {
     std::cerr << "POETS DPD simulator - POLite version\n";

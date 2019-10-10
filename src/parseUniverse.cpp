@@ -162,6 +162,7 @@ void Universe<S>::initialiseCells(DPDSimulation sim) {
         PDeviceId cId = i->first;
         // Set cell location
         unit_t loc = i->second;
+        _g->devices[cId]->state.loc = loc;
         // Set cell dimensions
         _g->devices[cId]->state.unit_dimensions = sim.getCell();
         // Set volume so this cell knows how large the entire universe is
@@ -206,7 +207,7 @@ void Universe<S>::initialiseCells(DPDSimulation sim) {
 
 // vector1.insert( vector1.end(), vector2.begin(), vector2.end() );
 template<class S>
-std::vector<bead_t> Universe<S>::expandPolymer(Polymer_structure p) {
+std::vector<bead_t> Universe<S>::expandPolymer(Polymer_structure p, DPDSimulation sim) {
     std::vector<bead_t> v;
     if (p.type == BEAD) {
         bead_type_id beadID = p.bead_type;
@@ -216,7 +217,7 @@ std::vector<bead_t> Universe<S>::expandPolymer(Polymer_structure p) {
         return v;
     } else if (p.type == CHAIN) {
         for (std::vector<Polymer_structure>::iterator i = p.elements.begin(); i != p.elements.end(); ++i) {
-            std::vector<bead_t> r = expandPolymer(*i);
+            std::vector<bead_t> r = expandPolymer(*i, sim);
             v.insert(v.end(), r.begin(), r.end());
         }
         return v;
@@ -238,7 +239,7 @@ void Universe<S>::addBeads(DPDSimulation sim) {
     std::cout << "Desnity = " << numberDensity << ", Max beads = " << maxBeads << "\n";
 
     for (std::vector<Polymer>::iterator p = polymers.begin(); p != polymers.end(); ++p) {
-        std::vector<bead_t> beads = expandPolymer(p->structure);
+        std::vector<bead_t> beads = expandPolymer(p->structure, sim);
         float polymerFraction = p->fraction;
         float maxPolymerBeads = floor(polymerFraction * maxBeads);
 
@@ -301,7 +302,7 @@ Universe<S>::Universe(DPDSimulation sim) {
     connectDevices();
 
     // Optional - Mapping vertices to DRAM allows for more devices, at the cost of slower to read from DRAM.
-    // _g->mapVerticesToDRAM = true;
+    _g->mapVerticesToDRAM = true;
 #ifndef TIMER
     // Map the graph into hardware calling the POLite placer
     _g->map();
@@ -309,7 +310,7 @@ Universe<S>::Universe(DPDSimulation sim) {
     // Map the graph into hardware, but add "Timer" devices to the mapping also, which synchronise TinselCycleCount across all available boards
     // This allows for more accurate timing, from when the first device starts to the first device finishes.
     // This mapper copies PGraph's map(), but adds timers and maps these separately.
-    timerMap(_g, TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS Boxes
+    timerMap(_g, _boxesX, _boxesY); // 4 POETS Boxes
 #endif
 
     // Initialise all the devices with necessary data to run a simulation
@@ -421,6 +422,8 @@ void Universe<S>::run() {
     uint32_t stats_finished = 0;
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
+#elif defined(VISUALISE)
+    uint32_t cellsFinished = 0;
 #endif
     uint32_t total_messages = 0;
     // enter the main loop
@@ -453,7 +456,7 @@ void Universe<S>::run() {
             dpd_end[cell_loc] = e;
             locToThread[cell_loc] = threadId;
         }
-        if (devices >= (_D*_D*_D) && timers >= 6) {
+        if (devices >= (_numCells) && timers >= (_boxesX * 3 * _boxesY * 2)) {
             for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
                 uint32_t threadId = locToThread[i->first];
                 uint32_t board = (uint32_t) threadId/1024;
@@ -471,9 +474,6 @@ void Universe<S>::run() {
             double time = (double)diff/250000000;
             printf("Runtime = %f\n", time);
             FILE* f = fopen("../timing_results.csv", "a+");
-            if (printBeadNum) {
-                fprintf(f, "%u, %u, ", _D, beadNum);
-            }
             fprintf(f, "%1.10f", time);
             fclose(f);
             return;
@@ -492,6 +492,12 @@ void Universe<S>::run() {
             }
         }
     #elif defined(VISUALISE)
+        if (msg.payload.type == 0xFE) {
+            cellsFinished++;
+            if (cellsFinished++ == _numCells) {
+                return;
+            }
+        }
         pts_to_extern_t eMsg;
         eMsg.timestep = msg.payload.timestep;
         eMsg.from = msg.payload.from;

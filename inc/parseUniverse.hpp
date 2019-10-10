@@ -81,7 +81,7 @@ class Universe {
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float max);
     void initialiseCells(DPDSimulation sim);
     void addBeads(DPDSimulation sim);
-    std::vector<bead_t> expandPolymer(Polymer_structure p);
+    std::vector<bead_t> expandPolymer(Polymer_structure p, DPDSimulation sim);
 };
 
 #include "../src/parseUniverse.cpp"

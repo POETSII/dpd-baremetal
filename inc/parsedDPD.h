@@ -56,13 +56,13 @@ const ptype p_mass = 1.0; // the mass of all beads (not currently configurable p
     In principle the bonds could break, which is a bit worrying. If they drift
     within sight again then they will re-capture, but that is unlikely.
 */
-const ptype bond_kappa=100; // Bond interaction is very strong
-const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
+// const ptype bond_kappa=100; // Bond interaction is very strong
+// const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
 
- inline bool are_beads_bonded(uint32_t a, uint32_t b)
-{
-    return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
-}
+//  inline bool are_beads_bonded(uint32_t a, uint32_t b)
+// {
+//     return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
+// }
 
 // ---------------------------------------------------------------------------------------
 
@@ -314,9 +314,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype ran = sqrt_dt*r*w_r*sigma_ij;
         force = force - ((r_ij / r_ij_dist) * ran);
 
-        if(are_beads_bonded(a->id, b->id)) {
-            force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
-        }
+        // if(are_beads_bonded(a->id, b->id)) {
+        //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
+        // }
 
         return force;
     }
@@ -347,7 +347,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                                                         s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
                                                         s->bead_slot[ci].id, s->bead_slot[cj].id,
                                                         s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
-                                                        A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                                                        s->a[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
                         Vector3D<ptype> f;
                         f.set(r.x, r.y, r.z);
                     #endif
@@ -419,7 +419,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	    s->timestep++;
         // #if defined(TIMER) || defined(STATS)
             // Run has ended
-            if (s->timestep >= s->max_timestep) {
+            if (s->max_timestep > 0 && s->timestep >= s->max_timestep) {
             #ifdef TIMER
                 s->dpd_endU = tinselCycleCountU();
                 s->dpd_end  = tinselCycleCount();
@@ -727,7 +727,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                                                  b.velo.x(), b.velo.y(), b.velo.z(),
                                                  s->bead_slot[ci].id, b.id,
                                                  s->bead_slot[ci].pos.sq_dist(b.pos),
-                                                 r_c, A[s->bead_slot[ci].type][b.type], s->grand);
+                                                 r_c, s->a[s->bead_slot[ci].type][b.type], s->grand);
                 Vector3D<ptype> f;
                 f.set(r.x, r.y, r.z);
             #endif
@@ -784,12 +784,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         msg->beads[0].pos.set((float)s->wraps, 0, 0);
     #endif
 
-        msg->timestep = 1001;
-        uint32_t ci = get_next_slot(s->sentslot);
-        msg->beads[0].id = s->bead_slot[ci].id;
-        msg->beads[0].type = s->bead_slot[ci].type;
-        msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
-        msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+    #ifdef VISUALISE
+        msg->type = 0xFE;
+    #endif
 	    return true;
     }
 
