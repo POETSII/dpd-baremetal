@@ -494,6 +494,7 @@ void Universe<S>::run() {
     #elif defined(VISUALISE)
         if (msg.payload.type == 0xFE) {
             cellsFinished++;
+            std::cout << cellsFinished << " cells finished\n";
             if (cellsFinished++ == _numCells) {
                 return;
             }
@@ -503,14 +504,6 @@ void Universe<S>::run() {
         eMsg.from = msg.payload.from;
         eMsg.bead = msg.payload.beads[0];
         _extern->send(&eMsg);
-    #else
-        total_messages++;
-        std::cout << "Message received with timestep " << msg.payload.timestep << "\n";
-        std::cout << "Now received " << total_messages << " messages\n";
-        std::cout << "Bead " << msg.payload.beads[0].id << "\n";
-        std::cout << "Type " << msg.payload.beads[0].type << "\n";
-        std::cout << "Pos (" << msg.payload.beads[0].pos.x() << ", " << msg.payload.beads[0].pos.y() << ", " << msg.payload.beads[0].pos.z() << ")\n";
-        std::cout << "Velo (" << msg.payload.beads[0].velo.x() << ", " << msg.payload.beads[0].velo.y() << ", " << msg.payload.beads[0].velo.z() << ")\n";
     #endif
     }
 }
