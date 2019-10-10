@@ -9,17 +9,17 @@ State	random
 
 
 Bead  W
-      0.5
+      1
       25
       4.5
 
 Bead  Y
-      0.5
+      1
       75   25
       4.5  4.5
 
 Bead  R
-      0.5
+      1
       35   50   25
       4.5  4.5  4.5
 
@@ -28,17 +28,17 @@ Polymer	YellowOil   0.3   " (Y) "
 Polymer	RedOil      0.1   " (R) "
 
 
-Box         20  20  10       1  1  1
-Density		3
+Box         10  10  10       1  1  1
+Density		4
 Temp        1
 RNGSeed		-26784
 Lambda		0.5
 Step		0.02
-Time		10000
+Time		0
 SamplePeriod     100
 AnalysisPeriod	 10000
 DensityPeriod    100000
-DisplayPeriod    100
+DisplayPeriod    10
 RestartPeriod    10000
 Grid		1  1  1
 
