@@ -530,26 +530,26 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             }
         }
     #else
-        // pts_to_extern_t eMsg;
-        // eMsg.timestep = msg.payload.timestep;
-        // eMsg.from = msg.payload.from;
-        // eMsg.bead = msg.payload.beads[0];
-        // _extern->send(&eMsg);
-        if (msg.payload.beads[0].id == 400) {
-            devices++;
-            std::cout << devices << " finished ";
-        } else {
-            if (msg.payload.timestep != timestep) {
-                timestep = msg.payload.timestep;
-                std::cout << "Timestep = " << timestep << "\n";
-            }
-        }
-        if (msg.payload.type > 0) {
-            std::cout << "Timestep = " << (uint32_t)msg.payload.timestep << ", ERROR " << (uint32_t)msg.payload.type << " MODE " << (uint32_t) msg.payload.beads[0].type << "\n";
-            return;
-        } else if (msg.payload.beads[0].id == 400) {
-            std::cout << "\n";
-        }
+        pts_to_extern_t eMsg;
+        eMsg.timestep = msg.payload.timestep;
+        eMsg.from = msg.payload.from;
+        eMsg.bead = msg.payload.beads[0];
+        _extern->send(&eMsg);
+        // if (msg.payload.beads[0].id == 400) {
+        //     devices++;
+        //     std::cout << devices << " finished ";
+        // } else {
+        //     if (msg.payload.timestep != timestep) {
+        //         timestep = msg.payload.timestep;
+        //         std::cout << "Timestep = " << timestep << "\n";
+        //     }
+        // }
+        // if (msg.payload.type > 0) {
+        //     std::cout << "Timestep = " << (uint32_t)msg.payload.timestep << ", ERROR " << (uint32_t)msg.payload.type << " MODE " << (uint32_t) msg.payload.beads[0].type << " ERR TIMESTEP " << msg.payload.total_beads << "\n";
+        //     return;
+        // } else if (msg.payload.beads[0].id == 400) {
+        //     std::cout << "\n";
+        // }
     #endif
     }
 }
