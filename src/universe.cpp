@@ -458,6 +458,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
 #endif
+    uint32_t devices = 0;
+    int32_t timestep = -1;
 
     // enter the main loop
     while(1) {
@@ -528,11 +530,26 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             }
         }
     #else
-        pts_to_extern_t eMsg;
-        eMsg.timestep = msg.payload.timestep;
-        eMsg.from = msg.payload.from;
-        eMsg.bead = msg.payload.beads[0];
-        _extern->send(&eMsg);
+        // pts_to_extern_t eMsg;
+        // eMsg.timestep = msg.payload.timestep;
+        // eMsg.from = msg.payload.from;
+        // eMsg.bead = msg.payload.beads[0];
+        // _extern->send(&eMsg);
+        if (msg.payload.beads[0].id == 400) {
+            devices++;
+            std::cout << devices << " finished ";
+        } else {
+            if (msg.payload.timestep != timestep) {
+                timestep = msg.payload.timestep;
+                std::cout << "Timestep = " << timestep << "\n";
+            }
+        }
+        if (msg.payload.type > 0) {
+            std::cout << "Timestep = " << (uint32_t)msg.payload.timestep << ", ERROR " << (uint32_t)msg.payload.type << " MODE " << (uint32_t) msg.payload.beads[0].type << "\n";
+            return;
+        } else if (msg.payload.beads[0].id == 400) {
+            std::cout << "\n";
+        }
     #endif
     }
 }

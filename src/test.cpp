@@ -4,7 +4,11 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
+#ifndef GALS
 #include "dpd.h"
+#else
+#include "dpdGALS.h"
+#endif
 #include "universe.hpp"
 #include <map>
 #include <math.h>

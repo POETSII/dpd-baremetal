@@ -4,7 +4,11 @@
 #ifndef _SIM_UNIVERSE_H
 #define _SIM_UNIVERSE_H
 
+#ifndef GALS
 #include "dpd.h"
+#else
+#include "dpdGALS.h"
+#endif
 #include "POLite.h"
 #include "HostLink.h"
 #include <sys/time.h>
