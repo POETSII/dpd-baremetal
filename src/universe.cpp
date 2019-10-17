@@ -100,8 +100,10 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
-    _hostLink = new HostLink(TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS boxes
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS boxes
+    uint32_t boxesX = 1;
+    uint32_t boxesY = 1;
+    _hostLink = new HostLink(boxesX, boxesY); // 4 POETS boxes
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(boxesX, boxesY); // 4 POETS boxes
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -294,7 +296,7 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g, TinselBoxMeshXLen, TinselBoxMeshYLen); // 4 POETS Boxes
+    timerMap(_g, boxesX, boxesY); // 4 POETS Boxes
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -560,6 +562,9 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     std::map<uint32_t, DPDMessage> result;
     // Finish counter
     uint32_t finish = 0;
+    uint64_t numBeads = 0;
+    uint64_t total_beads = 0;
+    uint64_t lost_beads = 0;
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
 
@@ -569,11 +574,17 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
         _hostLink->recvMsg(&msg, sizeof(msg));
        if (msg.payload.type == 0xAA) {
             finish++;
+            numBeads += msg.payload.timestep;
+            // lost_beads += msg.payload.total_beads;
             if (finish >= (_D*_D*_D)) {
+                std::cout << "total_beads = " << total_beads << "\n";
+                std::cout << "numBeads (at start) = " << numBeads << "\n";
+                // std::cout << "lost beads = " << lost_beads << "\n";
                 return result;
             }
         } else {
-           result[msg.payload.beads[0].id] = msg.payload;
+            total_beads++;
+            // result[msg.payload.beads[0].id] = msg.payload;
         }
    }
 

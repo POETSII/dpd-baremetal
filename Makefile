@@ -207,31 +207,8 @@ gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
 
-gals-obo: DFLAGS=-DVISUALISE -DGALS -DONE_BY_ONE
-gals-obo: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-
-obo-gals: DFLAGS=-DVISUALISE -DGALS -DONE_BY_ONE
-obo-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-
 test-gals: DFLAGS=-DTESTING -DGALS
 test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
-
-test-obo-gals: DFLAGS = -DTESTING -DONE_BY_ONE -DGALS
-test-obo-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
