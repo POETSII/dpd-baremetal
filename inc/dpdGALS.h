@@ -238,7 +238,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 #ifndef ACCELERATE
     // calculate a new force acting between two particles
-    __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+    // __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+    Vector3D<ptype> force_update(bead_t *a, bead_t *b){
 
         ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
@@ -578,7 +579,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
-        msg->type = 0xFF;
+        msg->type = 0x00;
         msg->timestep = s->timestep;
 	    if(s->mode == UPDATE) {
             msg->type = UPDATE;
@@ -589,6 +590,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             } else {
                 msg->total_beads = 0;
             }
+
 	        uint32_t ci = get_next_slot(s->sentslot);
             local_calcs(ci);
 	        // send all of our beads to neighbours
@@ -615,11 +617,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             if (!update_complete()) {
                 *readyToSend = No;
             }
-            // if (s->update_completes_received == 27 && s->total_update_beads == 0 && s->updates_received == 26) {
-            //     update_complete();
-            // } else {
-            //     *readyToSend = No;
-            // }
             return;
         }
 
@@ -662,11 +659,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             if (!migration_complete()) {
                 *readyToSend = No;
             }
-            // if (s->migration_completes_received == 27 && s->total_migration_beads == 0 && s->migrations_received == 26) {
-            //     migration_complete();
-            // } else {
-            //     *readyToSend = No;
-            // }
             return;
         }
 
@@ -675,26 +667,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
-         //    msg->type = s->error;
-         //    msg->timestep = s->timestep;
-         //    msg->total_beads = s->err_total_beads;
-         //    msg->beads[0].id = s->err_recv_mode;
-         //    msg->beads[0].type = s->err_curr_mode;
-         //    s->error = 0;
-         //    s->err_total_beads = 0;
-         //    s->err_recv_mode = 0;
-         //    s->err_curr_mode = 0;
-
-                // msg->type = 0xFF;
-
-                msg->from.x = s->loc.x;
-                msg->from.y = s->loc.y;
-                msg->from.z = s->loc.z;
-                msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
-                msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-    	        msg->beads[0].id = s->bead_slot[ci].id;
-    	        msg->beads[0].type = s->bead_slot[ci].type;
-            // }
+            msg->from.x = s->loc.x;
+            msg->from.y = s->loc.y;
+            msg->from.z = s->loc.z;
+            msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+            msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+	        msg->beads[0].id = s->bead_slot[ci].id;
+	        msg->beads[0].type = s->bead_slot[ci].type;
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
         #ifdef VISUALISE
@@ -721,11 +700,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             // Tell neighbours I have finished emitting.
             msg->type = EMIT_COMPLETE;
             s->emit_completes_received++;
-            // if (s->emit_completes_received == 27) {
-            //     emit_complete();
-            // } else {
-            //     *readyToSend = No;
-            // }
             if (!emit_complete()) {
                 *readyToSend = No;
             }
@@ -816,13 +790,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     // if (s->total_update_beads == 0 && s->mode == UPDATE_COMPLETE && s->update_completes_received == 27 && s->updates_received == 26) {
                     //     update_complete();
                     // }
-                } else {
-                    // if (s->error == 0) {
-                    //     s->error = 1;
-                    //     s->err_recv_mode = msg->type;
-                    //     s->err_total_beads = msg->total_beads;
-                    //     s->err_curr_mode = s->mode;
-                    // }
                 }
             } else if (msg->type == MIGRATION) { // MIGRATION MESSAGE
                 // Allowed modes for this message
@@ -855,16 +822,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     }
                     s->total_migration_beads--;
                     migration_complete();
-                    // if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == 27 && s->migrations_received == 26) {
-                    //     migration_complete();
-                    // }
-                } else {
-                    // if (s->error == 0) {
-                    //     s->error = 2;
-                    //     s->err_recv_mode = msg->type;
-                    //     s->err_total_beads = msg->total_beads;
-                    //     s->err_curr_mode = s->mode;
-                    // }
                 }
             } else if (msg->type == UPDATE_COMPLETE) { // UPDATE_COMPLETE MESSAGE
                 // Allowed modes for this message type
@@ -876,15 +833,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         s->updates_received++;
                     }
                     update_complete();
-                    // if (s->update_completes_received == 27 && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == 26) {
-                    //     update_complete();
-                    // }
                     return;
-                } else {
-                    // if (s->error == 0) {
-                    //     s->error = 3;
-                    //     s->err_mode = s->mode;
-                    // }
                 }
             } else if (msg->type == MIGRATION_COMPLETE) { // MIGRATION_COMPLETE MESSAGE
                 // Allowed modes
@@ -894,43 +843,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         s->migrations_received++;
                     }
                     migration_complete();
-                    // if (s->migration_completes_received == 27 && s->mode == MIGRATION_COMPLETE && s->total_migration_beads == 0 && s->migrations_received == 26) {
-                    //     migration_complete();
-                    // }
                     return;
-                } else {
-                    // if (s->error == 0) {
-                    //     s->error = 4;
-                    //     s->err_mode = s->mode;
-                    // }
                 }
             } else if (msg->type == EMIT_COMPLETE) { // EMIT_COMPLETE MESSAGE
                 // Allowed modes
                 if (s->mode == EMIT || s->mode == EMIT_COMPLETE || s->mode == MIGRATION_COMPLETE) {
                     s->emit_completes_received++;
                     emit_complete();
-                    // if (s->emit_completes_received == 27 && s->mode == EMIT_COMPLETE) {
-                    //     emit_complete();
-                    // }
-                } else {
-                    // if (s->error == 0) {
-                    //     s->error = 5;
-                    //     s->err_mode = s->mode;
-                    // }
                 }
-            } else {
-                // if (s->error == 0) {
-                //     s->error = 6;
-                //     s->err_mode = s->mode;
-                // }
             }
-        } else {
-            // if (s->error == 0) {
-            //     s->error = 7;
-            //     s->err_recv_mode = msg->type;
-            //     s->err_total_beads = msg->total_beads;
-            //     s->err_curr_mode = s->mode;
-            // }
         }
 	}
 
