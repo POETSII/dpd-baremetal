@@ -143,7 +143,7 @@ struct DPDMessage {
 
 // the state of the DPD Device
 struct DPDState {
-    uint32_t numBeads;
+    // uint32_t expectedBeads;
     uint8_t error;
     uint8_t err_mode;
     uint32_t err_timestep;
@@ -555,7 +555,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-        s->numBeads = get_num_beads(s->bslot);
+        // s->expectedBeads = get_num_beads(s->bslot);
     #ifdef TIMER
         s->mode = START;
         if (s->timer)
@@ -614,7 +614,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         msg->type = 0x00;
         msg->timestep = s->timestep;
 	    if(s->mode == UPDATE) {
-            msg->type = s->mode;
+            msg->type = UPDATE;
             if (!s->first_update) {
                 msg->total_beads = get_num_beads(s->bslot);
                 s->first_update = true;
@@ -641,7 +641,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         if(s->mode == UPDATE_COMPLETE) {
-            msg->type = 0xCC;
+            msg->type = UPDATE_COMPLETE;
             s->update_completes_received++;
             if (s->update_completes_received == 27 && s->total_update_beads == 0) {
                 update_complete();
@@ -674,6 +674,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        s->migrateslot = clear_slot(s->migrateslot, ci);
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
+            // s->expectedBeads--;
 	        s->sentslot = s->bslot;
             *readyToSend = Pin(0);
 	        if(s->migrateslot == 0) {
@@ -683,7 +684,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         if (s->mode == MIGRATION_COMPLETE) {
-            msg->type = 0xDD;
+            msg->type = MIGRATION_COMPLETE;
             s->migration_completes_received++;
             if (s->migration_completes_received == 27 && s->total_migration_beads == 0) {
                 migration_complete();
@@ -698,14 +699,21 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
+            // if (get_num_beads(s->bslot) != s->expectedBeads) {
+            //     msg->type = 0x99;
+            //     msg->timestep = get_num_beads(s->bslot);
+            //     msg->total_beads = s->expectedBeads;
+            // } else {
+                msg->type = 0;
 
-            msg->from.x = s->loc.x;
-            msg->from.y = s->loc.y;
-            msg->from.z = s->loc.z;
-            msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
-            msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-	        msg->beads[0].id = s->bead_slot[ci].id;
-	        msg->beads[0].type = s->bead_slot[ci].type;
+                msg->from.x = s->loc.x;
+                msg->from.y = s->loc.y;
+                msg->from.z = s->loc.z;
+                msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+                msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+    	        msg->beads[0].id = s->bead_slot[ci].id;
+    	        msg->beads[0].type = s->bead_slot[ci].type;
+            // }
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
         #ifdef VISUALISE
@@ -729,7 +737,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if (s->mode==EMIT_COMPLETE) {
             // Tell neighbours I have finished emitting.
-            msg->type = 0xEE;
+            msg->type = EMIT_COMPLETE;
             s->emit_completes_received++;
             if (s->emit_completes_received == 27) {
                 emit_complete();
@@ -837,6 +845,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     // it depends on whether the from address matches our own
                     s->total_migration_beads += msg->total_beads;
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
+                        // s->expectedBeads++;
                         // looks like we are getting a new addition to our family
                         uint32_t ni = get_next_free_slot(s->newBeadMap); // I hope we have space...
                         if (ni == 0xFFFFFFFF) {
@@ -863,7 +872,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     //     }
                     // }
                 }
-            } else if (msg->type == 0xCC) { // UPDATE_COMPLETE MESSAGE
+            } else if (msg->type == UPDATE_COMPLETE) { // UPDATE_COMPLETE MESSAGE
                 // Allowed modes for this message type
                 // UPDATE and UPDATE_COMPLETE are expected.
                 // EMIT and EMIT_COMPLETE are allowed as a neighbouring bead calculation will not affect the positions of this bead
@@ -879,7 +888,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     //     s->err_mode = s->mode;
                     // }
                 }
-            } else if (msg->type == 0xDD) { // MIGRATION_COMPLETE MESSAGE
+            } else if (msg->type == MIGRATION_COMPLETE) { // MIGRATION_COMPLETE MESSAGE
                 // Allowed modes
                 if (s->mode == MIGRATION || s->mode == MIGRATION_COMPLETE || s->mode == UPDATE_COMPLETE) {
                     s->migration_completes_received++;
@@ -893,7 +902,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     //     s->err_mode = s->mode;
                     // }
                 }
-            } else if (msg->type == 0xEE) { // EMIT_COMPLETE MESSAGE
+            } else if (msg->type == EMIT_COMPLETE) { // EMIT_COMPLETE MESSAGE
                 // Allowed modes
                 if (s->mode == EMIT || s->mode == EMIT_COMPLETE || s->mode == MIGRATION_COMPLETE) {
                     s->emit_completes_received++;
@@ -913,164 +922,23 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // }
             }
         } else {
-            // if (s->error == 0) {
-            //     s->error = 7;
-            //     s->err_mode = s->mode;
-            //     // s->err_timestep = msg->timestep;
-            // }
+            if (s->error == 0) {
+                s->error = 7;
+                s->err_mode = s->mode;
+                s->err_timestep = msg->timestep;
+            }
         }
-
-
-
-
-
-     //    if(s->mode == UPDATE || s->mode == UPDATE_COMPLETE) {
-     //        if (msg->type == 0xCC) {
-     //            // s->error = 0;
-     //            s->update_completes_received++;
-     //            if (s->update_completes_received == 27 && s->mode == UPDATE_COMPLETE) {
-     //                update_complete();
-     //            }
-     //            return;
-     //        } else if (msg->type == 0xDD) {
-     //            // s->migration_completes_received++;
-     //            if (s->error == 0)
-     //                s->error = 1;
-     //            return;
-     //        } else if (msg->type == 0xBB) {
-     //            if (s->error == 0)
-     //                s->error = 2;
-     //            return;
-     //        } else if (msg->type == 0xAA) {
-     //            // s->error = 0;
-     //        } else if (msg->type == 0xEE) {
-     //            if (s->error == 0)
-     //                s->error = 3;
-     //            // s->emit_completes_received++;
-     //            return;
-     //        }
-     //        bead_t b;
-     //        b.id = msg->beads[0].id;
-     //        b.type = msg->beads[0].type;
-     //        b.pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-     //        b.velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-	    //     // from the device locaton get the adjustments to the bead positions
-     //        int x_rel = period_bound_adj(msg->from.x - s->loc.x);
-     //        int y_rel = period_bound_adj(msg->from.y - s->loc.y);
-     //        int z_rel = period_bound_adj(msg->from.z - s->loc.z);
-
-	    //     // relative position for this particle to this device
-	    //     b.pos.x(b.pos.x() + ptype(x_rel));
-	    //     b.pos.y(b.pos.y() + ptype(y_rel));
-	    //     b.pos.z(b.pos.z() + ptype(z_rel));
-
-     //        // loop through the occupied bead slots -- update force
-	    //     uint32_t i = s->bslot;
-	    //     while(i) {
-     //            int ci = get_next_slot(i);
-     //        #ifndef ACCELERATE
-     //            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
-     //        #else
-     //            return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-     //                                             b.pos.x(), b.pos.y(), b.pos.z(),
-     //                                             s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-     //                                             b.velo.x(), b.velo.y(), b.velo.z(),
-     //                                             s->bead_slot[ci].id, b.id,
-     //                                             s->bead_slot[ci].pos.sq_dist(b.pos),
-     //                                             r_c, A[s->bead_slot[ci].type][b.type], s->grand);
-     //            Vector3D<ptype> f;
-     //            f.set(r.x, r.y, r.z);
-     //        #endif
-
-     //            Vector3D<int32_t> x = f.floatToFixed();
-     //            s->force_slot[ci] = s->force_slot[ci] + x;
-
-	    //         i = clear_slot(i, ci);
-	    //     }
-     //    #ifndef ONE_BY_ONE
-     //        if (s->sentslot == 0) {
-     //            local_calcs();
-     //        }
-     //    #endif
-	    // } else if (s->mode == MIGRATION || s->mode == MIGRATION_COMPLETE) {
-     //        if (msg->type == 0xDD) {
-     //            // s->error = 0;
-     //            s->migration_completes_received++;
-     //            if (s->migration_completes_received == 27 && s->mode == MIGRATION_COMPLETE) {
-     //                migration_complete();
-     //            }
-     //            return;
-     //        } else if (msg->type == 0xCC) {
-     //            if (s->error == 0)
-     //                s->error = 4;
-     //            // s->update_completes_received++;
-     //            return;
-     //        } else if (msg->type == 0xAA) {
-     //            if (s->error == 0)
-     //                s->error = 5;
-     //            return;
-     //        } else if (msg->type == 0xBB) {
-     //            // s->error = 0;
-     //        } else if (msg->type == 0xEE) {
-     //            if (s->error == 0)
-     //                s->error = 6;
-     //            s->emit_completes_received++;
-     //            return;
-     //        }
-     //        // we are in the MIGRATION mode beads we receive here _may_ be added to our state
-	    //     // when we receive a message it _may_ contain a bead that we need to add to our state
-	    //     // it depends on whether the from address matches our own
-	    //     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
-	    //         // looks like we are getting a new addition to our family
-	    //         uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
-     //            if (ci == 0xFFFFFFFF) {
-     //                s->lost_beads++;
-     //            } else {
-     //                s->bslot = set_slot(s->bslot, ci);
-    	//             s->sentslot = s->bslot;
-
-    	//             // welcome the new little bead
-    	//             s->bead_slot[ci].type = msg->beads[0].type;
-    	//             s->bead_slot[ci].id = msg->beads[0].id;
-    	//             s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-    	//             s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-     //            }
-	    //     }
-     //    } else if (s->mode == EMIT || s->mode == EMIT_COMPLETE) {
-     //        if (msg->type == 0xEE) {
-     //            // s->error = 0;
-     //            s->emit_completes_received++;
-     //            if (s->emit_completes_received == 27 && s->mode == EMIT_COMPLETE) {
-     //                emit_complete();
-     //            }
-     //        } else if (msg->type == 0xAA) {
-     //            if (s->error == 0)
-     //                s->error = 7;
-     //            return;
-     //        } else if (msg->type == 0xBB) {
-     //            if (s->error == 0)
-     //                s->error = 8;
-     //            return;
-     //        } else if (msg->type == 0xCC) {
-     //            if (s->error == 0)
-     //                s->error = 9;
-     //            // s->update_completes_received++;
-     //            return;
-     //        } else if (msg->type == 0xDD) {
-     //            if (s->error == 0)
-     //                s->error = 10;
-     //            // s->migration_completes_received++;
-     //            return;
-     //        }
-     //    }
 	}
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->numBeads;
-        msg->total_beads = s->lost_beads;
+        // msg->timestep = s->expectedBeads;
+        // msg->total_beads = s->lost_beads;
+        msg->timestep = s->error;
+        msg->total_beads = s->err_mode;
+        msg->beads[0].id = s->err_timestep;
     #endif
 
     #ifdef TIMER
