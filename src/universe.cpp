@@ -528,31 +528,11 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             }
         }
     #else
-        // pts_to_extern_t eMsg;
-        // eMsg.timestep = msg.payload.timestep;
-        // eMsg.from = msg.payload.from;
-        // eMsg.bead = msg.payload.beads[0];
-        // _extern->send(&eMsg);
-        if (msg.payload.type == 0x99) {
-            std::cout << "Expected beads = " << msg.payload.total_beads << ", got beads = " << msg.payload.timestep << "\n";
-            return;
-        } else {
-            if (msg.payload.timestep != timestep) {
-                timestep = msg.payload.timestep;
-                std::cout << "Timestep " << timestep << "\n";
-            }
-            // if (timestep == 1000) {
-            //     if (msg.payload.beads[0].id == 418) {
-            //         std::cout << "Bead ID  : " << msg.payload.beads[0].id << "\n";
-            //         std::cout << "Bead type: " << msg.payload.beads[0].type << "\n";
-            //         std::cout << "Bead pos : (" << msg.payload.beads[0].pos.x() << "," << msg.payload.beads[0].pos.y() << ", " << msg.payload.beads[0].pos.z() << ")\n";
-            //         std::cout << "Bead velo: (" << msg.payload.beads[0].velo.x() << "," << msg.payload.beads[0].velo.y() << ", " << msg.payload.beads[0].velo.z() << ")\n";
-            //     }
-            // }
-            if (timestep == 1001) {
-                return;
-            }
-        }
+        pts_to_extern_t eMsg;
+        eMsg.timestep = msg.payload.timestep;
+        eMsg.from = msg.payload.from;
+        eMsg.bead = msg.payload.beads[0];
+        _extern->send(&eMsg);
     #endif
     }
 }
@@ -561,7 +541,6 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 template<class S>
 std::map<uint32_t, DPDMessage> Universe<S>::test() {
     std::map<uint32_t, DPDMessage> result;
-    std::map<uint32_t, DPDMessage> blank;
     // Finish counter
     uint32_t finish = 0;
     uint64_t numBeads = 0;
@@ -575,25 +554,16 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
         if (msg.payload.type == 0xAA) {
-            if (msg.payload.timestep != 0) {
-                std::cout << "Error: " << msg.payload.timestep << ", mode = " << msg.payload.total_beads << ", timestep = " << msg.payload.beads[0].id << "\n";
-                return blank;
-            }
             finish++;
             numBeads += msg.payload.timestep;
-            // lost_beads += msg.payload.total_beads;
             if (finish >= (_D*_D*_D)) {
-                if (total_beads != numBeads) {
-                    std::cout << "total_beads = " << total_beads << "\n";
-                    return blank;
-                }
                 return result;
             }
         } else {
             total_beads++;
             result[msg.payload.beads[0].id] = msg.payload;
         }
-   }
+    }
 
     return result;
 }

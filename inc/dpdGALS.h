@@ -144,9 +144,10 @@ struct DPDMessage {
 // the state of the DPD Device
 struct DPDState {
     // uint32_t expectedBeads;
-    uint8_t error;
-    uint8_t err_mode;
-    uint32_t err_timestep;
+    // uint8_t error;
+    // uint8_t err_total_beads;
+    // uint8_t err_curr_mode;
+    // uint8_t err_recv_mode;
     float unit_size; // the size of this spatial unit in one dimension
     uint8_t N;
     unit_t loc; // the location of this cube
@@ -180,13 +181,15 @@ struct DPDState {
     uint32_t upperCount;
     uint32_t wraps; // Number of times tinselCycleCountU has reset
 #endif
+    uint8_t updates_received;
     uint8_t update_completes_received;
+    uint8_t migrations_received;
     uint8_t migration_completes_received;
     uint8_t emit_completes_received;
     bool first_update;
     bool first_migration;
-    uint32_t total_update_beads;
-    uint32_t total_migration_beads;
+    int32_t total_update_beads;
+    int32_t total_migration_beads;
 
 };
 
@@ -342,6 +345,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     __attribute__((noinline)) void update_complete() {
         s->update_completes_received = 0;
         s->first_update = false;
+        s->updates_received = 0;
         s->timestep++;
     #if defined(TIMER) || defined(STATS)
         // Timed run has ended
@@ -464,6 +468,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     __attribute__((noinline)) void migration_complete() {
 // we have just finished a particle migration step
         s->migration_completes_received = 0;
+        s->migrations_received = 0;
         s->first_migration = false;
         // Add new beads to bead_slot and update bslot
         while (s->newBeadMap) {
@@ -545,7 +550,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
         s->mode = UPDATE;
         *readyToSend = Pin(0);
-        s->sentslot = s->bslot;
+        // s->sentslot = s->bslot;
         if(s->bslot == 0){
             s->mode = UPDATE_COMPLETE;
         }
@@ -565,11 +570,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         s->timestep = 0;
         s->rngstate = 1234; // start with a seed
         s->grand = rand();
-        s->sentslot = s->bslot;
+        // s->sentslot = s->bslot;
     #else
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
-		s->sentslot = s->bslot;
+		// s->sentslot = s->bslot;
     #ifdef VISUALISE
 		s->emitcnt = emitperiod;
     #endif
@@ -611,11 +616,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
-        msg->type = 0x00;
+        msg->type = 0xFF;
         msg->timestep = s->timestep;
 	    if(s->mode == UPDATE) {
             msg->type = UPDATE;
             if (!s->first_update) {
+                s->sentslot = s->bslot;
                 msg->total_beads = get_num_beads(s->bslot);
                 s->first_update = true;
             } else {
@@ -642,8 +648,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if(s->mode == UPDATE_COMPLETE) {
             msg->type = UPDATE_COMPLETE;
+            msg->total_beads = s->first_update;
             s->update_completes_received++;
-            if (s->update_completes_received == 27 && s->total_update_beads == 0) {
+            if (s->update_completes_received == 27 && s->total_update_beads == 0 && s->updates_received == 26) {
                 update_complete();
             } else {
                 *readyToSend = No;
@@ -675,7 +682,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
             // s->expectedBeads--;
-	        s->sentslot = s->bslot;
+	        // s->sentslot = s->bslot;
             *readyToSend = Pin(0);
 	        if(s->migrateslot == 0) {
                 s->mode = MIGRATION_COMPLETE;
@@ -685,8 +692,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if (s->mode == MIGRATION_COMPLETE) {
             msg->type = MIGRATION_COMPLETE;
+            msg->total_beads = s->first_migration;
             s->migration_completes_received++;
-            if (s->migration_completes_received == 27 && s->total_migration_beads == 0) {
+            if (s->migration_completes_received == 27 && s->total_migration_beads == 0 && s->migrations_received == 26) {
                 migration_complete();
             } else {
                 *readyToSend = No;
@@ -699,12 +707,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
-            // if (get_num_beads(s->bslot) != s->expectedBeads) {
-            //     msg->type = 0x99;
-            //     msg->timestep = get_num_beads(s->bslot);
-            //     msg->total_beads = s->expectedBeads;
-            // } else {
-                msg->type = 0;
+         //    msg->type = s->error;
+         //    msg->timestep = s->timestep;
+         //    msg->total_beads = s->err_total_beads;
+         //    msg->beads[0].id = s->err_recv_mode;
+         //    msg->beads[0].type = s->err_curr_mode;
+         //    s->error = 0;
+         //    s->err_total_beads = 0;
+         //    s->err_recv_mode = 0;
+         //    s->err_curr_mode = 0;
+
+                // msg->type = 0xFF;
 
                 msg->from.x = s->loc.x;
                 msg->from.y = s->loc.y;
@@ -720,7 +733,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->sentslot != 0) {
                 *readyToSend = HostPin;
 	        } else {
-	            s->sentslot = s->bslot;
+	            // s->sentslot = s->bslot;
                 s->mode = EMIT_COMPLETE;
 	            *readyToSend = Pin(0);
 	        }
@@ -784,7 +797,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // EMIT and EMIT_COMPLETE will not be affected by incoming beads being used for calculations
                 // UPDATE AND UPDATE_COMPLETE will not affect emitting of neighbouring cells as this will not affect their position
                 if (s->mode == UPDATE || s->mode == UPDATE_COMPLETE || s->mode == EMIT || s->mode == EMIT_COMPLETE) {
-                    s->total_update_beads += msg->total_beads;
+                    if (msg->total_beads > 0) {
+                        s->updates_received++;
+                        s->total_update_beads += msg->total_beads;
+                    }
+
                     bead_t b;
                     b.id = msg->beads[0].id;
                     b.type = msg->beads[0].type;
@@ -824,14 +841,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         i = clear_slot(i, ci);
                     }
                     s->total_update_beads--;
-                    if (s->total_update_beads == 0 && s->mode == UPDATE_COMPLETE && s->update_completes_received == 27) {
+                    if (s->total_update_beads == 0 && s->mode == UPDATE_COMPLETE && s->update_completes_received == 27 && s->updates_received == 26) {
                         update_complete();
                     }
                 } else {
                     // if (s->error == 0) {
                     //     s->error = 1;
-                    //     s->err_mode = s->mode;
-                    //     // s->err_timestep = msg->timestep;
+                    //     s->err_recv_mode = msg->type;
+                    //     s->err_total_beads = msg->total_beads;
+                    //     s->err_curr_mode = s->mode;
                     // }
                 }
             } else if (msg->type == MIGRATION) { // MIGRATION MESSAGE
@@ -843,7 +861,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     // we are in the MIGRATION mode beads we receive here _may_ be added to our state
                     // when we receive a message it _may_ contain a bead that we need to add to our state
                     // it depends on whether the from address matches our own
-                    s->total_migration_beads += msg->total_beads;
+                    if (msg->total_beads > 0) {
+                        s->total_migration_beads += msg->total_beads;
+                        s->migrations_received++;
+                    }
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
                         // s->expectedBeads++;
                         // looks like we are getting a new addition to our family
@@ -861,15 +882,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         }
                     }
                     s->total_migration_beads--;
-                    if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == 27) {
+                    if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == 27 && s->migrations_received == 26) {
                         migration_complete();
                     }
                 } else {
-                    // if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
-                    //     if (s->error == 0) {
-                    //         s->error = 2;
-                    //         s->err_mode = s->mode;
-                    //     }
+                    // if (s->error == 0) {
+                    //     s->error = 2;
+                    //     s->err_recv_mode = msg->type;
+                    //     s->err_total_beads = msg->total_beads;
+                    //     s->err_curr_mode = s->mode;
                     // }
                 }
             } else if (msg->type == UPDATE_COMPLETE) { // UPDATE_COMPLETE MESSAGE
@@ -878,7 +899,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // EMIT and EMIT_COMPLETE are allowed as a neighbouring bead calculation will not affect the positions of this bead
                 if (s->mode == UPDATE || s->mode == UPDATE_COMPLETE || s->mode == EMIT || s->mode == EMIT_COMPLETE) {
                     s->update_completes_received++;
-                    if (s->update_completes_received == 27 && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0) {
+                    if (!msg->total_beads) {
+                        s->updates_received++;
+                    }
+                    if (s->update_completes_received == 27 && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == 26) {
                         update_complete();
                     }
                     return;
@@ -892,7 +916,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // Allowed modes
                 if (s->mode == MIGRATION || s->mode == MIGRATION_COMPLETE || s->mode == UPDATE_COMPLETE) {
                     s->migration_completes_received++;
-                    if (s->migration_completes_received == 27 && s->mode == MIGRATION_COMPLETE && s->total_migration_beads == 0) {
+                    if (!msg->total_beads) {
+                        s->migrations_received++;
+                    }
+                    if (s->migration_completes_received == 27 && s->mode == MIGRATION_COMPLETE && s->total_migration_beads == 0 && s->migrations_received == 26) {
                         migration_complete();
                     }
                     return;
@@ -922,11 +949,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // }
             }
         } else {
-            if (s->error == 0) {
-                s->error = 7;
-                s->err_mode = s->mode;
-                s->err_timestep = msg->timestep;
-            }
+            // if (s->error == 0) {
+            //     s->error = 7;
+            //     s->err_recv_mode = msg->type;
+            //     s->err_total_beads = msg->total_beads;
+            //     s->err_curr_mode = s->mode;
+            // }
         }
 	}
 
@@ -934,11 +962,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
     #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        // msg->timestep = s->expectedBeads;
-        // msg->total_beads = s->lost_beads;
-        msg->timestep = s->error;
-        msg->total_beads = s->err_mode;
-        msg->beads[0].id = s->err_timestep;
     #endif
 
     #ifdef TIMER

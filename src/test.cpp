@@ -28,7 +28,11 @@ int main() {
     int N = 25;
 #endif
 
+#ifndef GALS
     printf("Testing the DPD application\n");
+#else
+    printf("Testing the GALS DPD application\n");
+#endif
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
     Universe<ptype> uni(problem_size, N);
