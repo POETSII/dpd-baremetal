@@ -218,6 +218,12 @@ test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BI
           -ljtag_atlantic -ljtag_client -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
+timed-gals: DFLAGS=-DTIMER -DGALS
+timed-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json

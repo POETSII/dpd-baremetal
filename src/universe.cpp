@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
 
+
 // helper functions for managing bead slots
 template<class S>
 uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
@@ -100,10 +101,10 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
-    uint32_t boxesX = 1;
-    uint32_t boxesY = 1;
-    _hostLink = new HostLink(boxesX, boxesY); // 4 POETS boxes
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(boxesX, boxesY); // 4 POETS boxes
+    _boxesX = 1;
+    _boxesY = 1;
+    _hostLink = new HostLink(_boxesX, _boxesY); // 4 POETS boxes
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY); // 4 POETS boxes
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {
@@ -296,7 +297,7 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
 #else
-    timerMap(_g, boxesX, boxesY); // 4 POETS Boxes
+    timerMap(_g, _boxesX, _boxesY); // 4 POETS Boxes
 #endif
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -446,7 +447,6 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     _hostLink->go();
 
 #ifdef TIMER
-    uint32_t devices = 0;
     uint32_t timers = 0;
     std::map<uint32_t,uint64_t> board_start;
     std::map<uint32_t,uint32_t> board_wrap;
@@ -470,14 +470,18 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;
+        #ifndef GALS
             uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
+        #else
+            uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.total_beads;
+        #endif
             unit_t timer_loc;
             timer_loc.x = msg.payload.from.x;
             timer_loc.y = msg.payload.from.y;
             timer_loc.z = msg.payload.from.z;
             PThreadId timer_thread = get_thread_from_loc(timer_loc);
             board_start[(uint32_t)timer_thread/1024] = t;
-        } else if (msg.payload.type == 0xAA || msg.payload.type == 0xAC) {
+        } else if (msg.payload.type == 0xAA) {
             devices++;
             unit_t cell_loc;
             cell_loc.x = msg.payload.from.x;
@@ -486,14 +490,18 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             uint32_t wraps = (uint32_t) msg.payload.beads[0].pos.x();
             uint32_t thread = get_thread_from_loc(cell_loc);
             board_wrap[thread/1024] = wraps;
+        #ifndef GALS
             uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
+        #else
+            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.total_beads;
+        #endif
             uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
             PThreadId threadId = get_thread_from_loc(cell_loc);
             dpd_start[cell_loc] = s;
             dpd_end[cell_loc] = e;
             locToThread[cell_loc] = threadId;
         }
-        if (devices >= (_D*_D*_D) && timers >= 6) {
+        if (devices >= (_D*_D*_D) && timers >= (_boxesX * 3) * (_boxesY * 2)) {
             for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
                 uint32_t threadId = locToThread[i->first];
                 uint32_t board = (uint32_t) threadId/1024;
