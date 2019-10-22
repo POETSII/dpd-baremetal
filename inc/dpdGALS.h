@@ -139,7 +139,7 @@ struct DPDState {
     uint32_t bslot; // a bitmap of which bead slot is occupied
     uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
     uint32_t newBeadMap;
-    bead_t newBeads[MAX_BEADS];
+    // bead_t newBeads[MAX_BEADS];
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
@@ -185,7 +185,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     inline uint32_t clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
     inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
 
-    __attribute__((noinline)) uint32_t get_next_slot(uint32_t slotlist){
+    uint32_t get_next_slot(uint32_t slotlist){
 
         uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++) {
@@ -292,34 +292,34 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 #endif
 
-    void local_calcs(uint32_t ci) {
-        uint32_t j = s->bslot;
-        while(j) {
-            uint32_t cj = get_next_slot(j);
-            if(ci != cj) {
-                #ifndef ACCELERATE
-                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
-                #else
-                    return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                    s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
-                                                    s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                    s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
-                                                    s->bead_slot[ci].id, s->bead_slot[cj].id,
-                                                    s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
-                                                    A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
-                    Vector3D<ptype> f;
-                    f.set(r.x, r.y, r.z);
-                #endif
+    // void local_calcs(uint32_t ci) {
+    //     uint32_t j = s->bslot;
+    //     while(j) {
+    //         uint32_t cj = get_next_slot(j);
+    //         if(ci != cj) {
+    //             #ifndef ACCELERATE
+    //                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+    //             #else
+    //                 return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+    //                                                 s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+    //                                                 s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+    //                                                 s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+    //                                                 s->bead_slot[ci].id, s->bead_slot[cj].id,
+    //                                                 s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+    //                                                 A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+    //                 Vector3D<ptype> f;
+    //                 f.set(r.x, r.y, r.z);
+    //             #endif
 
-                    Vector3D<int32_t> x = f.floatToFixed();
-                    s->force_slot[ci] = s->force_slot[ci] + x;
-            }
-            j = clear_slot(j, cj);
-        }
-    }
+    //                 Vector3D<int32_t> x = f.floatToFixed();
+    //                 s->force_slot[ci] = s->force_slot[ci] + x;
+    //         }
+    //         j = clear_slot(j, cj);
+    //     }
+    // }
 
     __attribute__((noinline)) bool update_complete() {
-        if (s->update_completes_received == 27 && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == 26) {
+        if (s->update_completes_received == 27 && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == 27) {
             s->update_completes_received = 0;
             s->first_update = false;
             s->updates_received = 0;
@@ -447,28 +447,30 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     __attribute__((noinline)) bool migration_complete() {
-        if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == 27 && s->migrations_received == 26) {
+        if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == 27 && s->migrations_received == 27) {
         // we have just finished a particle migration step
             s->migration_completes_received = 0;
             s->migrations_received = 0;
             s->first_migration = false;
             // Add new beads to bead_slot and update bslot
-            while (s->newBeadMap) {
-                uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
-                uint32_t n = get_next_slot(s->newBeadMap);
-                if (ci == 0xFFFFFFFF) {
-                    s->lost_beads++;
-                } else {
-                    s->bslot = set_slot(s->bslot, ci);
+            s->bslot = s->newBeadMap;
+            s->newBeadMap = 0;
+            // while (s->newBeadMap) {
+            //     uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
+            //     uint32_t n = get_next_slot(s->newBeadMap);
+            //     if (ci == 0xFFFFFFFF) {
+            //         s->lost_beads++;
+            //     } else {
+            //         s->bslot = set_slot(s->bslot, ci);
 
-                    // welcome the new little bead
-                    s->bead_slot[ci].type = s->newBeads[n].type;
-                    s->bead_slot[ci].id = s->newBeads[n].id;
-                    s->bead_slot[ci].pos.set(s->newBeads[n].pos.x(), s->newBeads[n].pos.y(), s->newBeads[n].pos.z());
-                    s->bead_slot[ci].velo.set(s->newBeads[n].velo.x(), s->newBeads[n].velo.y(), s->newBeads[n].velo.z());
-                }
-                s->newBeadMap = clear_slot(s->newBeadMap, n);
-            }
+            //         // welcome the new little bead
+            //         s->bead_slot[ci].type = s->newBeads[n].type;
+            //         s->bead_slot[ci].id = s->newBeads[n].id;
+            //         s->bead_slot[ci].pos.set(s->newBeads[n].pos.x(), s->newBeads[n].pos.y(), s->newBeads[n].pos.z());
+            //         s->bead_slot[ci].velo.set(s->newBeads[n].velo.x(), s->newBeads[n].velo.y(), s->newBeads[n].velo.z());
+            //     }
+            //     s->newBeadMap = clear_slot(s->newBeadMap, n);
+            // }
         #ifdef VISUALISE
             if(s->emitcnt >= emitperiod) {
                 s->mode = EMIT;
@@ -511,7 +513,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
     }
 
-    __attribute__((noinline)) bool emit_complete() {
+    bool emit_complete() {
         if (s->emit_completes_received == 27 && s->mode == EMIT_COMPLETE) {
             s->emit_completes_received = 0;
         #if defined(TESTING) || defined(STATS)
@@ -524,6 +526,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             s->mode = UPDATE;
             *readyToSend = Pin(0);
             if(s->bslot == 0){
+                s->newBeadMap = s->bslot;
                 s->mode = UPDATE_COMPLETE;
             }
             return true;
@@ -553,6 +556,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->mode = UPDATE;
         *readyToSend = Pin(0);
 		if(s->bslot == 0) {
+            s->newBeadMap = s->bslot;
 		    s->mode = UPDATE_COMPLETE;
         }
 #endif
@@ -567,6 +571,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             s->mode = UPDATE;
             *readyToSend = Pin(0);
             if(s->bslot == 0) {
+                s->newBeadMap = s->bslot;
                 s->mode = UPDATE_COMPLETE;
             }
             s->dpd_startU = tinselCycleCountU();
@@ -592,7 +597,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
 
 	        uint32_t ci = get_next_slot(s->sentslot);
-            local_calcs(ci);
+            // local_calcs(ci);
 	        // send all of our beads to neighbours
 	        msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
@@ -605,6 +610,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        s->sentslot = clear_slot(s->sentslot, ci);
             *readyToSend = Pin(0);
 	        if(!s->sentslot) {
+                s->newBeadMap = s->bslot;
                 s->mode = UPDATE_COMPLETE;
 	        }
 	        return;
@@ -613,7 +619,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if(s->mode == UPDATE_COMPLETE) {
             msg->type = UPDATE_COMPLETE;
             msg->total_beads = s->first_update;
-            s->update_completes_received++;
+            // s->update_completes_received++;
             if (!update_complete()) {
                 *readyToSend = No;
             }
@@ -643,7 +649,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        s->migrateslot = clear_slot(s->migrateslot, ci);
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
-            // s->expectedBeads--;
+            // clear the new bead slot -- To match bslot
+            s->newBeadMap = clear_slot(s->newBeadMap, ci);
 	        // s->sentslot = s->bslot;
             *readyToSend = Pin(0);
 	        if(s->migrateslot == 0) {
@@ -655,7 +662,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if (s->mode == MIGRATION_COMPLETE) {
             msg->type = MIGRATION_COMPLETE;
             msg->total_beads = s->first_migration;
-            s->migration_completes_received++;
+            // s->migration_completes_received++;
             if (!migration_complete()) {
                 *readyToSend = No;
             }
@@ -699,7 +706,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if (s->mode==EMIT_COMPLETE) {
             // Tell neighbours I have finished emitting.
             msg->type = EMIT_COMPLETE;
-            s->emit_completes_received++;
+            // s->emit_completes_received++;
             if (!emit_complete()) {
                 *readyToSend = No;
             }
@@ -766,23 +773,24 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     uint32_t i = s->bslot;
                     while(i) {
                         int ci = get_next_slot(i);
-                    #ifndef ACCELERATE
-                        Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
-                    #else
-                        return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                         b.pos.x(), b.pos.y(), b.pos.z(),
-                                                         s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                         b.velo.x(), b.velo.y(), b.velo.z(),
-                                                         s->bead_slot[ci].id, b.id,
-                                                         s->bead_slot[ci].pos.sq_dist(b.pos),
-                                                         r_c, A[s->bead_slot[ci].type][b.type], s->grand);
-                        Vector3D<ptype> f;
-                        f.set(r.x, r.y, r.z);
-                    #endif
+                            if(s->bead_slot[ci].id != b.id) {
+                        #ifndef ACCELERATE
+                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
+                        #else
+                            return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                             b.pos.x(), b.pos.y(), b.pos.z(),
+                                                             s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                             b.velo.x(), b.velo.y(), b.velo.z(),
+                                                             s->bead_slot[ci].id, b.id,
+                                                             s->bead_slot[ci].pos.sq_dist(b.pos),
+                                                             r_c, A[s->bead_slot[ci].type][b.type], s->grand);
+                            Vector3D<ptype> f;
+                            f.set(r.x, r.y, r.z);
+                        #endif
 
-                        Vector3D<int32_t> x = f.floatToFixed();
-                        s->force_slot[ci] = s->force_slot[ci] + x;
-
+                            Vector3D<int32_t> x = f.floatToFixed();
+                            s->force_slot[ci] = s->force_slot[ci] + x;
+                            }
                         i = clear_slot(i, ci);
                     }
                     s->total_update_beads--;
@@ -805,19 +813,29 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         s->migrations_received++;
                     }
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
-                        // s->expectedBeads++;
                         // looks like we are getting a new addition to our family
-                        uint32_t ni = get_next_free_slot(s->newBeadMap); // I hope we have space...
+                        // uint32_t ni = get_next_free_slot(s->newBeadMap); // I hope we have space...
+                        // if (ni == 0xFFFFFFFF) {
+                        //     s->lost_beads++;
+                        // } else {
+                        //     s->newBeadMap = set_slot(s->newBeadMap, ni);
+
+                        //     // store the new little bead
+                        //     s->newBeads[ni].type = msg->beads[0].type;
+                        //     s->newBeads[ni].id = msg->beads[0].id;
+                        //     s->newBeads[ni].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+                        //     s->newBeads[ni].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                        // }
+                        uint32_t ni = get_next_free_slot(s->newBeadMap);
                         if (ni == 0xFFFFFFFF) {
                             s->lost_beads++;
                         } else {
                             s->newBeadMap = set_slot(s->newBeadMap, ni);
 
-                            // store the new little bead
-                            s->newBeads[ni].type = msg->beads[0].type;
-                            s->newBeads[ni].id = msg->beads[0].id;
-                            s->newBeads[ni].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-                            s->newBeads[ni].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                            s->bead_slot[ni].type = msg->beads[0].type;
+                            s->bead_slot[ni].id = msg->beads[0].id;
+                            s->bead_slot[ni].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+                            s->bead_slot[ni].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                         }
                     }
                     s->total_migration_beads--;
