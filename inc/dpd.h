@@ -37,12 +37,10 @@
 #define EMIT 2
 #endif
 
-#ifdef TIMER
-    #define START 3
-#endif
-
-#if defined(TESTING) || defined(TIMER) || defined(STATS)
-#define TEST_LENGTH 10000
+#if defined(TESTING)
+#define TEST_LENGTH 1000
+#elif defined(TIMER) || defined(STATS)
+#define TEST_LENGTH 1000
 #endif
 
 typedef float ptype;
@@ -128,9 +126,6 @@ struct unit_t {
 struct DPDMessage {
     uint8_t type;
     uint32_t timestep; // the timestep this message is from
-#ifdef TIMER
-    uint32_t extra; //Used for sending cycle counts
-#endif
     unit_t from; // the unit that this message is from
     bead_t beads[1]; // the beads payload from this unit
 };
@@ -164,18 +159,6 @@ struct DPDState {
     uint64_t rngstate; // the state of the random number generator
 
     uint32_t lost_beads;
-
-#ifdef TIMER
-    uint32_t board_startU;
-    uint32_t board_start;
-    uint32_t dpd_startU;
-    uint32_t dpd_start;
-    uint32_t dpd_endU;
-    uint32_t dpd_end;
-    uint8_t timer;
-    uint32_t upperCount;
-    uint32_t wraps; // Number of times tinselCycleCountU has reset
-#endif
 
 };
 
@@ -374,17 +357,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-    #ifdef TIMER
-        s->mode = START;
-        if (s->timer)
-            *readyToSend = HostPin;
-        else
-            *readyToSend = No;
-        s->timestep = 0;
-        s->rngstate = 1234; // start with a seed
-        s->grand = rand();
-        s->sentslot = s->bslot;
-    #else
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
@@ -396,32 +368,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		    *readyToSend = Pin(0);
         else
 		    *readyToSend = No;
-    #endif
 	}
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
         // default case
         *readyToSend = No;
-    #ifdef TIMER
-        if (s->mode == START) {
-            s->mode = UPDATE;
-            if(get_num_beads(s->bslot) > 0)
-                *readyToSend = Pin(0);
-            else
-                *readyToSend = No;
 
-            s->dpd_startU = tinselCycleCountU();
-            s->dpd_start  = tinselCycleCount();
-            return true;
-        } else if (s->timer) {
-            uint32_t count = tinselCycleCountU();
-            if (count < s->upperCount) {
-                s->wraps++;
-            }
-            s->upperCount = count;
-        }
-    #endif
         // we have just finished an update step
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
@@ -429,10 +382,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #if defined(TIMER) || defined(STATS)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
-            #ifndef STATS
-                s->dpd_endU = tinselCycleCountU();
-                s->dpd_end  = tinselCycleCount();
-            #endif
                 return false;
             }
         #endif
@@ -686,19 +635,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return;
 	    }
     #endif
-
-    #ifdef TIMER
-        if (s->timer) {
-            msg->type = 0xAB;
-            msg->from.x = s->loc.x;
-            msg->from.y = s->loc.y;
-            msg->from.z = s->loc.z;
-            msg->timestep = tinselCycleCountU();
-            msg->extra = tinselCycleCount();
-            *readyToSend = No;
-            return;
-        }
-    #endif
 	}
 
 	// used to help adjust the relative positions for the periodic boundary
@@ -804,21 +740,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-    #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-    #endif
-
-    #ifdef TIMER
-        msg->type = 0xAA;
-        msg->from.x = s->loc.x;
-        msg->from.y = s->loc.y;
-        msg->from.z = s->loc.z;
-        msg->timestep = s->dpd_startU;
-        msg->extra = s->dpd_start;
-        msg->beads[0].id = s->dpd_endU;
-        msg->beads[0].type = s->dpd_end;
-        msg->beads[0].pos.set((float)s->wraps, 0, 0);
-    #endif
 	    return true;
     }
 

@@ -39,8 +39,10 @@
 #define START 6
 #define END 7
 
-#if defined(TESTING) || defined(TIMER) || defined(STATS)
-#define TEST_LENGTH 10000
+#if defined(TESTING)
+#define TEST_LENGTH 1000
+#elif defined(TIMER) || defined(STATS)
+#define TEST_LENGTH 1000
 #endif
 
 typedef float ptype;
@@ -154,17 +156,6 @@ struct DPDState {
 
     uint32_t lost_beads;
 
-#ifdef TIMER
-    uint32_t board_startU;
-    uint32_t board_start;
-    uint32_t dpd_startU;
-    uint32_t dpd_start;
-    uint32_t dpd_endU;
-    uint32_t dpd_end;
-    uint8_t timer;
-    uint32_t upperCount;
-    uint32_t wraps; // Number of times tinselCycleCountU has reset
-#endif
     uint8_t updates_received;
     uint8_t update_completes_received;
     uint8_t migrations_received;
@@ -327,10 +318,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #if defined(TIMER) || defined(STATS)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
-            #ifndef STATS
-                s->dpd_endU = tinselCycleCountU();
-                s->dpd_end  = tinselCycleCount();
-            #endif
                 *readyToSend = No;
                 s->mode = END;
                 return true;
@@ -537,16 +524,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-#ifdef TIMER
-        s->mode = START;
-        if (s->timer)
-            *readyToSend = HostPin;
-        else {
-            *readyToSend = No;
-            s->rngstate = 1234; // start with a seed
-            s->grand = rand();
-        }
-#else
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		// s->sentslot = s->bslot;
@@ -559,26 +536,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             s->newBeadMap = s->bslot;
 		    s->mode = UPDATE_COMPLETE;
         }
-#endif
 	}
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
         // default case
         *readyToSend = No;
-    #ifdef TIMER
-        if (s->mode == START) {
-            s->mode = UPDATE;
-            *readyToSend = Pin(0);
-            if(s->bslot == 0) {
-                s->newBeadMap = s->bslot;
-                s->mode = UPDATE_COMPLETE;
-            }
-            s->dpd_startU = tinselCycleCountU();
-            s->dpd_start  = tinselCycleCount();
-            return true;
-        }
-    #endif
         return false;
     }
 
@@ -713,18 +676,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return;
         }
 
-    #ifdef TIMER
-        if (s->timer) {
-            msg->type = 0xAB;
-            msg->from.x = s->loc.x;
-            msg->from.y = s->loc.y;
-            msg->from.z = s->loc.z;
-            msg->timestep = tinselCycleCountU();
-            msg->total_beads = tinselCycleCount();
-            *readyToSend = No;
-            return;
-        }
-    #endif
 	}
 
 	// used to help adjust the relative positions for the periodic boundary
@@ -875,24 +826,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-    #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-    #endif
-
-    #ifdef TIMER
-
-        msg->type = 0xAA;
-
-        msg->from.x = s->loc.x;
-        msg->from.y = s->loc.y;
-        msg->from.z = s->loc.z;
-        msg->timestep = s->dpd_startU;
-        msg->total_beads = s->dpd_start;
-        msg->beads[0].id = s->dpd_endU;
-        msg->beads[0].type = s->dpd_end;
-        msg->beads[0].pos.set((float)s->wraps, 0, 0);
-    #endif
-
 	    return true;
     }
 

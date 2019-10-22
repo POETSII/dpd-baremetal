@@ -305,11 +305,8 @@ Universe<S>::Universe(S size, unsigned D) {
     // all the edges have been connected
 
     // _g->mapVerticesToDRAM = true;
-#ifndef TIMER
     _g->map(); // map the graph into hardware calling the POLite placer
-#else
-    timerMap(_g, _boxesX, _boxesY); // 4 POETS Boxes
-#endif
+
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
@@ -459,16 +456,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     struct timeval start, finish;
     gettimeofday(&start, NULL);
 
-#ifdef TIMER
-    uint32_t timers = 0;
-    std::map<uint32_t,uint64_t> board_start;
-    std::map<uint32_t,uint32_t> board_wrap;
-    std::map<unit_t, uint64_t> dpd_start;
-    std::map<unit_t, uint64_t> dpd_end;
-    std::map<unit_t, uint32_t> locToThread;
-    uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
-    uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
-#elif defined(STATS)
+#if defined(STATS)
     uint32_t stats_finished = 0;
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
@@ -481,67 +469,15 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
-        if (msg.payload.type == 0xAB) {
-            timers++;
-        #ifndef GALS
-            uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-        #else
-            uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.total_beads;
-        #endif
-            unit_t timer_loc;
-            timer_loc.x = msg.payload.from.x;
-            timer_loc.y = msg.payload.from.y;
-            timer_loc.z = msg.payload.from.z;
-            PThreadId timer_thread = get_thread_from_loc(timer_loc);
-            board_start[(uint32_t)timer_thread/1024] = t;
-        } else if (msg.payload.type == 0xAA) {
-            if (devices == 0) {
-                gettimeofday(&finish, NULL);
-                double elapsedTime = (finish.tv_sec - start.tv_sec) * 1000.0;      // sec to ms
-                elapsedTime += (finish.tv_usec - start.tv_usec) / 1000.0;   // us to ms
-                std::cout << "TIME OF DAY TIME: " << elapsedTime * 1000 << " s.\n";
-            }
-            devices++;
-            unit_t cell_loc;
-            cell_loc.x = msg.payload.from.x;
-            cell_loc.y = msg.payload.from.y;
-            cell_loc.z = msg.payload.from.z;
-            uint32_t wraps = (uint32_t) msg.payload.beads[0].pos.x();
-            uint32_t thread = get_thread_from_loc(cell_loc);
-            board_wrap[thread/1024] = wraps;
-        #ifndef GALS
-            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-        #else
-            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.total_beads;
-        #endif
-            uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            PThreadId threadId = get_thread_from_loc(cell_loc);
-            dpd_start[cell_loc] = s;
-            dpd_end[cell_loc] = e;
-            locToThread[cell_loc] = threadId;
-        }
-        if (devices >= (_D*_D*_D) && timers >= (_boxesX * 3) * (_boxesY * 2)) {
-            for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
-                uint32_t threadId = locToThread[i->first];
-                uint32_t board = (uint32_t) threadId/1024;
-                uint64_t s = dpd_start[i->first] - board_start[board];
-                uint64_t e = (uint64_t) board_wrap[board] << 40 | dpd_end[i->first];
-                e = e - board_start[board];
-                if (s < earliest_start) {
-                    earliest_start = s;
-                }
-                if (e < earliest_end) {
-                    earliest_end = e;
-                }
-            }
-            uint64_t diff = earliest_end - earliest_start;
-            double time = (double)diff/250000000;
-            printf("Runtime = %f\n", time);
+        if (msg.payload.type == 0xAA) {
+            gettimeofday(&finish, NULL);
+            double elapsedTime = (finish.tv_sec - start.tv_sec) * 1000.0;      // sec to ms
+            elapsedTime += (finish.tv_usec - start.tv_usec) / 1000.0;   // us to ms
+            elapsedTime /= 1000;
+            // std::cout << "TIME OF DAY TIME: " << elapsedTime << " ms.\n";
+            printf("Runtime = %1.10f\n", elapsedTime);
             FILE* f = fopen("../timing_results.csv", "a+");
-            if (printBeadNum) {
-                fprintf(f, "%u, %u, ", _D, beadNum);
-            }
-            fprintf(f, "%1.10f", time);
+            fprintf(f, "%1.10f", elapsedTime);
             fclose(f);
             return;
         }
