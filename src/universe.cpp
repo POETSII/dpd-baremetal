@@ -101,8 +101,9 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
-    _boxesX = 1;
-    _boxesY = 1;
+    _boxesX = TinselBoxMeshXLen;
+    _boxesY = TinselBoxMeshYLen;
+    std::cout << "Running on " << _boxesX * _boxesY << " boxes.\n";
     _hostLink = new HostLink(_boxesX, _boxesY); // 4 POETS boxes
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY); // 4 POETS boxes
 
@@ -466,7 +467,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
-        _hostLink->recvMsg(&msg, sizeof(msg));
+        _hostLink->recv(&msg);
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;

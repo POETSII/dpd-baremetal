@@ -792,11 +792,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
 
     #ifdef TIMER
-        if (s->timer)
-            msg->type = 0xAC;
-        else
-            msg->type = 0xAA;
-
+        msg->type = 0xAA;
         msg->from.x = s->loc.x;
         msg->from.y = s->loc.y;
         msg->from.z = s->loc.z;
