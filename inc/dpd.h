@@ -308,7 +308,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 #endif
 
-#ifndef ONE_BY_ONE
+#if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
         while(s->local_slot_i) {
@@ -348,7 +348,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
         s->sentslot = s->bslot;
     }
-#else
+#elif defined(ONE_BY_ONE)
     void local_calcs(uint32_t ci) {
         uint32_t j = s->bslot;
         while(j) {
@@ -629,7 +629,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->sentslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
-            #ifndef ONE_BY_ONE
+            #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
                 s->local_slot_i = s->bslot;
                 s->local_slot_j = s->bslot;
                 *readyToSend = No;
@@ -738,6 +738,26 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        uint32_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
+            #ifdef SEND_TO_SELF
+                if(s->bead_slot[ci].id != b.id) {
+                #ifndef ACCELERATE
+                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
+                #else
+                    return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                     b.pos.x(), b.pos.y(), b.pos.z(),
+                                                     s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                     b.velo.x(), b.velo.y(), b.velo.z(),
+                                                     s->bead_slot[ci].id, b.id,
+                                                     s->bead_slot[ci].pos.sq_dist(b.pos),
+                                                     r_c, A[s->bead_slot[ci].type][b.type], s->grand);
+                    Vector3D<ptype> f;
+                    f.set(r.x, r.y, r.z);
+                #endif
+
+                    Vector3D<int32_t> x = f.floatToFixed();
+                    s->force_slot[ci] = s->force_slot[ci] + x;
+                }
+            #else
             #ifndef ACCELERATE
                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
             #else
@@ -754,10 +774,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
                 Vector3D<int32_t> x = f.floatToFixed();
                 s->force_slot[ci] = s->force_slot[ci] + x;
+            #endif
 
 	            i = clear_slot(i, ci);
 	        }
-        #ifndef ONE_BY_ONE
+        #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
             if (s->sentslot == 0) {
                 local_calcs();
             }

@@ -177,7 +177,7 @@ Universe<S>::Universe(S size, unsigned D) {
                 unit_t n_loc;
                 PDeviceId nId;
 
-            #ifdef GALS
+            #if defined(GALS) || defined(SEND_TO_SELF)
                 addNeighbour(cId, cId);
             #endif
 
