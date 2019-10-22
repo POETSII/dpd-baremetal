@@ -40,7 +40,7 @@
 #define END 7
 
 #if defined(TESTING) || defined(TIMER) || defined(STATS)
-#define TEST_LENGTH 1000
+#define TEST_LENGTH 10000
 #endif
 
 typedef float ptype;

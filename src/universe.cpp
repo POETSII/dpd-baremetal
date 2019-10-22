@@ -456,6 +456,8 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     _hostLink->boot("code.v", "data.v");
     gettimeofday(&_start, NULL);
     _hostLink->go();
+    struct timeval start, finish;
+    gettimeofday(&start, NULL);
 
 #ifdef TIMER
     uint32_t timers = 0;
@@ -493,6 +495,12 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             PThreadId timer_thread = get_thread_from_loc(timer_loc);
             board_start[(uint32_t)timer_thread/1024] = t;
         } else if (msg.payload.type == 0xAA) {
+            if (devices == 0) {
+                gettimeofday(&finish, NULL);
+                double elapsedTime = (finish.tv_sec - start.tv_sec) * 1000.0;      // sec to ms
+                elapsedTime += (finish.tv_usec - start.tv_usec) / 1000.0;   // us to ms
+                std::cout << "TIME OF DAY TIME: " << elapsedTime * 1000 << " s.\n";
+            }
             devices++;
             unit_t cell_loc;
             cell_loc.x = msg.payload.from.x;
