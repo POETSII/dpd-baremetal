@@ -467,7 +467,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
-        _hostLink->recv(&msg);
+        _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
         if (msg.payload.type == 0xAB) {
             timers++;
