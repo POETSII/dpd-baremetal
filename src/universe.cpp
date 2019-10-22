@@ -111,8 +111,8 @@ Universe<S>::Universe(S size, unsigned D) {
     }
     std::cout << ".\n";
 
-    _hostLink = new HostLink(_boxesX, _boxesY); // 4 POETS boxes
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY); // 4 POETS boxes
+    _hostLink = new HostLink(_boxesX, _boxesY);
+    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
     // create the devices
     for(uint16_t x=0; x<D; x++) {

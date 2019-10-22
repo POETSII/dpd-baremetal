@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 
     printf("Universe setup -- adding beads\n");
 
-    int total_beads = N*N*N * 4;
+    int total_beads = N*N*N * 3;
     int w = 0.6 * total_beads;
     int r = 0.3 * total_beads;
     int o = 0.1 * total_beads;

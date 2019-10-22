@@ -3,7 +3,7 @@
 cd ./bin
 
 i=0
-s=10
+s=3
 while [[ $s -le 40 ]]
 do
     echo -n "$s, " >> ../timing_results.csv
