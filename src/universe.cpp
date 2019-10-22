@@ -2,8 +2,10 @@
 
 #include "universe.hpp"
 
+#ifdef STATS
 #define POLITE_DUMP_STATS
 #define POLITE_COUNT_MSGS
+#endif
 
 #ifndef __UNIVERSE_IMPL
 #define __UNIVERSE_IMPL
@@ -451,9 +453,8 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 template<class S>
 void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     _hostLink->boot("code.v", "data.v");
-    gettimeofday(&_start, NULL);
     _hostLink->go();
-    struct timeval start, finish;
+    struct timeval start, finish, elapsedTime;
     gettimeofday(&start, NULL);
 
 #if defined(STATS)
@@ -471,11 +472,9 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
     #ifdef TIMER
         if (msg.payload.type == 0xAA) {
             gettimeofday(&finish, NULL);
-            double elapsedTime = (finish.tv_sec - start.tv_sec) * 1000.0;      // sec to ms
-            elapsedTime += (finish.tv_usec - start.tv_usec) / 1000.0;   // us to ms
-            elapsedTime /= 1000;
-            // std::cout << "TIME OF DAY TIME: " << elapsedTime << " ms.\n";
-            printf("Runtime = %1.10f\n", elapsedTime);
+            timersub(&finish, &start, &elapsedTime);
+            double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+            printf("Runtime = %1.10f\n", duration);
             FILE* f = fopen("../timing_results.csv", "a+");
             fprintf(f, "%1.10f", elapsedTime);
             fclose(f);

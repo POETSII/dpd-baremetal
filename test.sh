@@ -3,13 +3,18 @@
 cd ./bin
 
 i=0
-s=50
-while [[ $s -le 70 ]]
+s=10
+while [[ $s -le 40 ]]
 do
     echo -n "$s, " >> ../timing_results.csv
-    while [[ $i -lt 5 ]]
+    while [[ $i -lt 3 ]]
     do
-        timeout 250 ./run $s
+        t=$((s*20))
+        echo "Timeout: $t seconds"
+        timeout $t ./run $s
+        if [[ $? -ne 0 ]] ; then
+            i=$((i - 1))
+        fi
         if [[ $i -lt 4 ]] ; then
             echo -n ", " >> ../timing_results.csv
         fi
