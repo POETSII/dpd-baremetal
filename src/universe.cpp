@@ -476,7 +476,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
             printf("Runtime = %1.10f\n", duration);
             FILE* f = fopen("../timing_results.csv", "a+");
-            fprintf(f, "%1.10f", elapsedTime);
+            fprintf(f, "%1.10f", duration);
             fclose(f);
             return;
         }
