@@ -103,7 +103,12 @@ Universe<S>::Universe(S size, unsigned D) {
 #endif
     _boxesX = TinselBoxMeshXLen;
     _boxesY = TinselBoxMeshYLen;
-    std::cout << "Running on " << _boxesX * _boxesY << " boxes.\n";
+    std::cout << "Running on " << _boxesX * _boxesY << " box";
+    if ((_boxesX * _boxesY) != 1) {
+        std::cout << "es";
+    }
+    std::cout << ".\n";
+
     _hostLink = new HostLink(_boxesX, _boxesY); // 4 POETS boxes
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY); // 4 POETS boxes
 
@@ -171,6 +176,11 @@ Universe<S>::Universe(S size, unsigned D) {
 
                 unit_t n_loc;
                 PDeviceId nId;
+
+            #ifdef GALS
+                addNeighbour(cId, cId);
+            #endif
+
                 // z = -1
                 // { -1,-1,-1 },  { -1,0,-1 },  { -1, +1,-1 }
                 n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z_neg;
