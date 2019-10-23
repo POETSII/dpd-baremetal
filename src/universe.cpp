@@ -103,6 +103,17 @@ Universe<S>::Universe(S size, unsigned D) {
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
+
+#ifdef ONE_BY_ONE
+    std::cout << "Running one by one version\n";
+#elif defined(SEND_TO_SELF)
+    std::cout << "Running send to self version\n";
+#elif defined(GALS)
+    std::cout << "Running GALS implementation\n";
+#else
+    std::cout << "Running standard\n";
+#endif
+
     _boxesX = TinselBoxMeshXLen;
     _boxesY = TinselBoxMeshYLen;
     std::cout << "Running on " << _boxesX * _boxesY << " box";

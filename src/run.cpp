@@ -14,6 +14,8 @@
 #include <math.h>
 #include <random>
 
+#define BEAD_DENSITY 3
+
 //! generates a random position within a given space (NxN)
 Vector3D<ptype> rand2DPos(unsigned N) {
     Vector3D<ptype> t_pos;
@@ -100,7 +102,7 @@ int main(int argc, char *argv[]) {
 
     printf("Universe setup -- adding beads\n");
 
-    int total_beads = N*N*N * 3;
+    int total_beads = N*N*N * BEAD_DENSITY;
     int w = 0.6 * total_beads;
     int r = 0.3 * total_beads;
     int o = 0.1 * total_beads;
@@ -168,7 +170,7 @@ int main(int argc, char *argv[]) {
 
         uint32_t const bead_chain_numbers = 10;
 
-        for(int i=0; i<(0.1*4*N*N*N); i+=bead_chain_numbers) {
+        for(int i=0; i<(0.1*BEAD_DENSITY*N*N*N); i+=bead_chain_numbers) {
             bool added = false;
             auto prev_bead = std::make_shared<bead_t>();
             prev_bead->id = b_uid_bonded++;
@@ -206,7 +208,7 @@ int main(int argc, char *argv[]) {
 
 
         uint32_t b_uid = 0;
-        for(int i=0; i<(0.9*4*N*N*N); i++) {
+        for(int i=0; i<(0.9*BEAD_DENSITY*N*N*N); i++) {
             bool added = false;
             while(!added) {
                 bead_t *b1 = new bead_t;

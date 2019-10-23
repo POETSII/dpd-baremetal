@@ -4,18 +4,17 @@ cd ./bin
 
 i=0
 s=3
-while [[ $s -le 40 ]]
+while [[ $s -le 60 ]]
 do
     echo -n "$s, " >> ../timing_results.csv
     while [[ $i -lt 3 ]]
     do
-        t=$((s*20))
+        t=$((s*30))
         echo "Timeout: $t seconds"
         timeout $t ./run $s
         if [[ $? -ne 0 ]] ; then
             i=$((i - 1))
-        fi
-        if [[ $i -lt 4 ]] ; then
+        elif [[ $i -lt 2 ]] ; then
             echo -n ", " >> ../timing_results.csv
         fi
         i=$((i + 1))
