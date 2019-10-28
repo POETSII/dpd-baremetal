@@ -138,9 +138,17 @@ clean-tinsel:
 $(TINSEL_LIB)/lib.o:
 	make -C $(TINSEL_LIB)
 
-stats-run: DFLAGS=-DSTATS
-stats-run: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
-stats-run: clean clean-tinsel $(TINSEL_LIB)/lib.o run
+# stats-run: DFLAGS=-DSTATS
+# stats-run: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+# stats-run: clean clean-tinsel $(TINSEL_LIB)/lib.o run
+
+stats-obo: DFLAGS=-DSTATS -DONE_BY_ONE
+stats-obo: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+stats-obo: clean clean-tinsel $(TINSEL_LIB)/lib.o run
+
+stats-sts: DFLAGS=-DSTATS -DSEND_TO_SELF
+stats-sts: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+stats-sts: clean clean-tinsel $(TINSEL_LIB)/lib.o run
 
 print-stats: $(DPD_BIN)/stats.txt
 	./$(TINSEL_ROOT)/apps/POLite/util/sumstats.awk < $(DPD_BIN)/stats.txt
