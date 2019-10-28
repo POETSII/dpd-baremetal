@@ -244,6 +244,13 @@ timed-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/ru
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
 
+stats-gals: DFLAGS=-DSTATS -DGALS
+stats-gals: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json
