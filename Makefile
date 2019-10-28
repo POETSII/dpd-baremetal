@@ -138,9 +138,9 @@ clean-tinsel:
 $(TINSEL_LIB)/lib.o:
 	make -C $(TINSEL_LIB)
 
-# stats-run: DFLAGS=-DSTATS
-# stats-run: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
-# stats-run: clean clean-tinsel $(TINSEL_LIB)/lib.o run
+stats-run: DFLAGS=-DSTATS
+stats-run: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+stats-run: clean clean-tinsel $(TINSEL_LIB)/lib.o run
 
 stats-obo: DFLAGS=-DSTATS -DONE_BY_ONE
 stats-obo: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o

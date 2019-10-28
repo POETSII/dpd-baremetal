@@ -137,10 +137,6 @@ struct DPDState {
     unit_t loc; // the location of this cube
     uint32_t bslot; // a bitmap of which bead slot is occupied
     uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
-#ifndef ONE_BY_ONE
-    uint32_t local_slot_i; // an outer bitmap of which bead slot has not been used in local calculations yet
-    uint32_t local_slot_j; // an inner bitmap of which bead slot has not been used in local calculations yet
-#endif
     uint16_t num_beads; // the number of beads in this device
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
 // #ifdef TESTING
@@ -290,19 +286,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
-        while(s->local_slot_i) {
-            if (tinselCanRecv()) {
-                return;
-            }
-            int ci = get_next_slot(s->local_slot_i);
-            if (s->local_slot_j == 0) {
-                s->local_slot_j = s->bslot;
-            }
-            while(s->local_slot_j) {
-                if (tinselCanRecv()) {
-                    return;
-                }
-                int cj = get_next_slot(s->local_slot_j);
+        uint32_t i = s->bslot;
+        while(i) {
+            int ci = get_next_slot(i);
+            uint32_t j = s->bslot;
+            while(j) {
+                int cj = get_next_slot(j);
                 if(ci != cj) {
                     #ifndef ACCELERATE
                         Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
@@ -321,9 +310,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         Vector3D<int32_t> x = f.floatToFixed();
                         s->force_slot[ci] = s->force_slot[ci] + x;
                 }
-                s->local_slot_j = clear_slot(s->local_slot_j, cj);
+                j = clear_slot(j, cj);
             }
-            s->local_slot_i = clear_slot(s->local_slot_i, ci);
+            i = clear_slot(i, ci);
         }
         s->sentslot = s->bslot;
     }
@@ -575,8 +564,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = Pin(0);
 	        } else {
             #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
-                s->local_slot_i = s->bslot;
-                s->local_slot_j = s->bslot;
+                // s->local_slot_i = s->bslot;
+                // s->local_slot_j = s->bslot;
                 *readyToSend = No;
                 local_calcs();
             #else
@@ -710,11 +699,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	            i = clear_slot(i, ci);
 	        }
-        #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
-            if (s->sentslot == 0) {
-                local_calcs();
-            }
-        #endif
 	    } else if (s->mode == MIGRATION) {
             // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
