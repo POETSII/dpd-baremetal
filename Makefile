@@ -106,9 +106,15 @@ $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
 timed-run: DFLAGS=-DTIMER
 timed-run: run
 
+timed-dram-run: DFLAGS=-DTIMER -DDRAM
+timed-dram-run: run
+
 # ------------- Do local calculations one bead at a time ------------
 onebyone: DFLAGS=-DTIMER -DONE_BY_ONE
 onebyone: run
+
+onebyone-dram: DFLAGS=-DTIMER -DONE_BY_ONE -DDRAM
+onebyone-dram: run
 
 test-onebyone: DFLAGS=-DTESTING -DONE_BY_ONE
 test-onebyone: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
@@ -121,6 +127,9 @@ test-onebyone: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BI
 # ------------ Send beads to self to reduce local calculation memory space -------------------
 sendtoself: DFLAGS=-DTIMER -DSEND_TO_SELF
 sendtoself: run
+
+sendtoself-dram: DFLAGS=-DTIMER -DSEND_TO_SELF -DDRAM
+sendtoself-dram: run
 
 test-sendtoself: DFLAGS=-DTESTING -DSEND_TO_SELF
 test-sendtoself: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
@@ -240,6 +249,12 @@ test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BI
 
 timed-gals: DFLAGS=-DTIMER -DGALS
 timed-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
+timed-dram-gals: DFLAGS=-DTIMER -DGALS -DDRAM
+timed-dram-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
 	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf

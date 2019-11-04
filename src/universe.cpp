@@ -316,8 +316,10 @@ Universe<S>::Universe(S size, unsigned D) {
         }
     }
     // all the edges have been connected
-
-    // _g->mapVerticesToDRAM = true;
+#ifdef DRAM
+    _g->mapVerticesToDRAM = true;
+    std::cout << "Mapping vertices to DRAM\n";
+#endif
     _g->map(); // map the graph into hardware calling the POLite placer
 
     // initialise all the devices with their position
@@ -486,7 +488,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             timersub(&finish, &start, &elapsedTime);
             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
             printf("Runtime = %1.10f\n", duration);
-            FILE* f = fopen("../timing_results.csv", "a+");
+            FILE* f = fopen("../mega_results.csv", "a+");
             fprintf(f, "%1.10f", duration);
             fclose(f);
             return;
