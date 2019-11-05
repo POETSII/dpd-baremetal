@@ -483,7 +483,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
-        if (msg.payload.type == 0xAA) {
+        // if (msg.payload.type == 0xAA) {
             gettimeofday(&finish, NULL);
             timersub(&finish, &start, &elapsedTime);
             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
@@ -492,7 +492,7 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             fprintf(f, "%1.10f", duration);
             fclose(f);
             return;
-        }
+        // }
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
             stats_finished++;
