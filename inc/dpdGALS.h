@@ -318,7 +318,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #if defined(TIMER) || defined(STATS)
             // Timed run has ended
             if (s->timestep >= TEST_LENGTH) {
-                *readyToSend = No;
+                *readyToSend = HostPin;
                 s->mode = END;
                 return true;
             }
@@ -483,7 +483,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     *readyToSend = HostPin;
                 } else {
                     s->mode = END;
-                    *readyToSend = No;
+                    *readyToSend = HostPin;
                 }
             } else {
                 s->mode = EMIT_COMPLETE;
@@ -506,7 +506,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #if defined(TESTING) || defined(STATS)
             if (s->timestep >= TEST_LENGTH) {
                 s->mode = END;
-                *readyToSend = No;
+                *readyToSend = HostPin;
                 return true;
             }
         #endif
@@ -540,9 +540,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
-        // default case
-        *readyToSend = No;
-        return false;
+        return true;
     }
 
 	// send handler -- called when the ready to send flag has been set
@@ -660,7 +658,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = HostPin;
             } else {
                 s->mode = END;
-                *readyToSend = No;
+                *readyToSend = HostPin;
             }
         #endif
 	    }
@@ -673,6 +671,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             if (!emit_complete()) {
                 *readyToSend = No;
             }
+            return;
+        }
+
+        if (s->mode == END) {
+            msg->type = 0xAA;
+            msg->timestep = s->timestep;
+            *readyToSend = No;
             return;
         }
 
@@ -826,7 +831,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        msg->type = 0xAA;
+        msg->type = 0xBB;
 	    return true;
     }
 

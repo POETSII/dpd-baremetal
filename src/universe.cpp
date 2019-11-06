@@ -477,22 +477,31 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 #endif
     uint32_t devices = 0;
     int32_t timestep = -1;
-
+    std::cout << "Test length = " << TEST_LENGTH << "\n";
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
-        // if (msg.payload.type == 0xAA) {
-            gettimeofday(&finish, NULL);
-            timersub(&finish, &start, &elapsedTime);
-            double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-            printf("Runtime = %1.10f\n", duration);
-            FILE* f = fopen("../mega_results.csv", "a+");
-            fprintf(f, "%1.10f", duration);
-            fclose(f);
+        if (msg.payload.type != 0xBB) {
+            if (msg.payload.timestep >= TEST_LENGTH) {
+                gettimeofday(&finish, NULL);
+                timersub(&finish, &start, &elapsedTime);
+                double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+                printf("Runtime = %1.10f\n", duration);
+                // FILE* f = fopen("../mega_results.csv", "a+");
+                FILE* f = fopen("../timing_results.csv", "a+");
+                fprintf(f, "%1.10f", duration);
+                fclose(f);
+                return;
+            } else {
+                std::cerr << "ERROR: Received finish message at early timestep: " << msg.payload.timestep << "\n";
+                return;
+            }
+        } else {
+            std::cerr << "ERROR: finish received when not expected\n";
             return;
-        // }
+        }
     #elif defined(STATS)
         if (msg.payload.type = 0xAA) {
             stats_finished++;

@@ -725,6 +725,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
         msg->type = 0xAA;
+        msg->timestep = s->timestep;
 	    return true;
     }
 
