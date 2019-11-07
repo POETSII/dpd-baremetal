@@ -503,13 +503,10 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
             return;
         }
     #elif defined(STATS)
-        if (msg.payload.type = 0xAA) {
-            stats_finished++;
-            if (stats_finished >= _D*_D*_D) {
-                politeSaveStats(_hostLink, "stats.txt");
-                printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-                return;
-            }
+        if (msg.payload.type == 0xAA) {
+            politeSaveStats(_hostLink, "stats.txt");
+            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+            return;
         }
     #else
         pts_to_extern_t eMsg;
