@@ -472,8 +472,6 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 
 #if defined(STATS)
     uint32_t stats_finished = 0;
-    uint32_t lost_beads = 0;
-    uint32_t migrations = 0;
 #endif
     uint32_t devices = 0;
     int32_t timestep = -1;
@@ -524,9 +522,6 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     std::map<uint32_t, DPDMessage> result;
     // Finish counter
     uint32_t finish = 0;
-    uint64_t numBeads = 0;
-    uint64_t total_beads = 0;
-    uint64_t lost_beads = 0;
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
 
@@ -536,12 +531,10 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
         _hostLink->recvMsg(&msg, sizeof(msg));
         if (msg.payload.type == 0xAA) {
             finish++;
-            numBeads += msg.payload.timestep;
             if (finish >= (_D*_D*_D)) {
                 return result;
             }
         } else {
-            total_beads++;
             result[msg.payload.beads[0].id] = msg.payload;
         }
     }
