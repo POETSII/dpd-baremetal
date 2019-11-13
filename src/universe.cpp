@@ -114,8 +114,8 @@ Universe<S>::Universe(S size, unsigned D) {
     std::cout << "Running standard\n";
 #endif
 
-    _boxesX = TinselBoxMeshXLen;
-    _boxesY = TinselBoxMeshYLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
     std::cout << "Running on " << _boxesX * _boxesY << " box";
     if ((_boxesX * _boxesY) != 1) {
         std::cout << "es";
