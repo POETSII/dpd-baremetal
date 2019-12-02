@@ -35,7 +35,7 @@ int main() {
 #endif
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N);
+    Universe<ptype> uni(problem_size, N, 1000);
 
     std::cerr << "Universe setup -- loading beads from " << bead_file << "\n";
 

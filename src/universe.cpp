@@ -96,7 +96,7 @@ void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 
 // constructor
 template<class S>
-Universe<S>::Universe(S size, unsigned D) {
+Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _size = size;
     _D = D;
     _unit_size = _size / S(D);
@@ -113,6 +113,8 @@ Universe<S>::Universe(S size, unsigned D) {
 #else
     std::cout << "Running standard\n";
 #endif
+
+    std::cout << "Test length = " << max_time << "\n";
 
     _boxesX = 1;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
@@ -331,6 +333,7 @@ Universe<S>::Universe(S size, unsigned D) {
         _g->devices[cId]->state.loc.z = loc.z;
         _g->devices[cId]->state.unit_size = _unit_size;
         _g->devices[cId]->state.N = _D;
+        _g->devices[cId]->state.max_time = max_time;
     }
 }
 
@@ -464,7 +467,7 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 
 // starts the simulation
 template<class S>
-void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
+void Universe<S>::run() {
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
     struct timeval start, finish, elapsedTime;
@@ -475,14 +478,13 @@ void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
 #endif
     uint32_t devices = 0;
     int32_t timestep = -1;
-    std::cout << "Test length = " << TEST_LENGTH << "\n";
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
         if (msg.payload.type != 0xBB) {
-            if (msg.payload.timestep >= TEST_LENGTH) {
+            if (msg.payload.timestep >= max_time) {
                 gettimeofday(&finish, NULL);
                 timersub(&finish, &start, &elapsedTime);
                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;

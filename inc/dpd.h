@@ -37,11 +37,11 @@
 #define EMIT 2
 #endif
 
-#if defined(TESTING) || defined(STATS)
-#define TEST_LENGTH 1000
-#elif defined(TIMER)
-#define TEST_LENGTH 10000
-#endif
+// #if defined(TESTING) || defined(STATS)
+// #define TEST_LENGTH 1000
+// #elif defined(TIMER)
+// #define TEST_LENGTH 10000
+// #endif
 
 typedef float ptype;
 
@@ -155,7 +155,7 @@ struct DPDState {
     uint64_t rngstate; // the state of the random number generator
 
     uint32_t lost_beads;
-
+    uint32_t max_time;
 };
 
 // DPD Device code
@@ -346,6 +346,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
+    #if defined(TESTING) || defined(STATS)
+        s->max_time = 1000;
+    #endif
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
 		s->sentslot = s->bslot;
@@ -370,7 +373,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	    s->timestep++;
         #if defined(TIMER) || defined(STATS)
             // Timed run has ended
-            if (s->timestep >= TEST_LENGTH) {
+            if (s->timestep >= s->max_time) {
                 return false;
             }
         #endif
@@ -499,7 +502,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
             return true;
         #elif defined(TESTING)
-            if (s->timestep >= TEST_LENGTH) {
+            if (s->timestep >= s->max_time) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -535,7 +538,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return true;
         }
     #elif defined(TESTING) || defined(STATS)
-        if (s->timestep >= TEST_LENGTH) {
+        if (s->timestep >= s->max_time) {
             return false;
         }
     #endif

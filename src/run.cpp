@@ -38,11 +38,14 @@ Vector3D<ptype> randPos(unsigned N) {
 void print_help() {
     std::cerr << "POETS DPD simulator - POLite version\n";
     std::cerr << "Usage:\n";
-    std::cerr << "./run <Simulation length> [--bonds] [--print-number-of-beads] [--help]\n";
+    std::cerr << "./run <Simulation length> [--time t][--bonds] [--print-number-of-beads] [--help]\n";
     std::cerr << "\n";
     std::cerr << "Simulation length       - The length of one side of the simulation volume.\n";
     std::cerr << "                          Simulation volumes are (currently) assumed to be cubes.\n";
     std::cerr << "                          This value must be 3 or larger, no string.\n";
+    std::cerr << "\n";
+    std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
+    std::cerr << "                        - If not provided, a default of 10000 will be used\n";
     std::cerr << "\n";
     std::cerr << "bonds=b                 - Optional boolean. Do we want to include bonded beads?\n";
     std::cerr << "                          Bonded beads are beads which are connected to form polymers\n";
@@ -67,6 +70,7 @@ int main(int argc, char *argv[]) {
     bool printBeadNum = false;
     float problem_size = 0;
     int N = 0;
+    uint32_t max_time = 10000;
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && argv[i][1] == '-') {
@@ -74,6 +78,9 @@ int main(int argc, char *argv[]) {
             if (arg == "--help") {
                 print_help();
                 return(0);
+            } else if (boost::contains(arg, "--time")) {
+                max_time = std::stoi(argv[i+1]);
+                i++;
             } else if (boost::contains(arg, "--bonds")) {
                 include_bonds = true;
             } else if (boost::contains(arg, "--print-number-of-beads")) {
@@ -98,7 +105,7 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N);
+    Universe<ptype> uni(problem_size, N, max_time);
 
     printf("Universe setup -- adding beads\n");
 
@@ -237,7 +244,7 @@ int main(int argc, char *argv[]) {
     // uni.print_occupancy();
 
     printf("running...\n");
-    uni.run(printBeadNum, beads_added); // start the simulation
+    uni.run(); // start the simulation
 
     return 0;
 }
