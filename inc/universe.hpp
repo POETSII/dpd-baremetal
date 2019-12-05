@@ -34,7 +34,7 @@ class Universe {
     // simulation control
     void write(); // writes the simulation env onto the POETS system
     PThreadId get_thread_from_loc(unit_t loc); // Use unit_t location to acquire thread id
-    void run(); // runs the simulation
+    void run(uint32_t max_time); // runs the simulation
     std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
 
     // bead slot management

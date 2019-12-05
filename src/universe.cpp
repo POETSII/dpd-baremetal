@@ -116,7 +116,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesX = 2;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     std::cout << "Running on " << _boxesX * _boxesY << " box";
     if ((_boxesX * _boxesY) != 1) {
@@ -467,7 +467,7 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 
 // starts the simulation
 template<class S>
-void Universe<S>::run() {
+void Universe<S>::run(uint32_t max_time) {
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
     struct timeval start, finish, elapsedTime;
@@ -489,8 +489,8 @@ void Universe<S>::run() {
                 timersub(&finish, &start, &elapsedTime);
                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
                 printf("Runtime = %1.10f\n", duration);
-                // FILE* f = fopen("../mega_results.csv", "a+");
-                FILE* f = fopen("../timing_results.csv", "a+");
+                FILE* f = fopen("../mega_results.csv", "a+");
+                // FILE* f = fopen("../timing_results.csv", "a+");
                 fprintf(f, "%1.10f", duration);
                 fclose(f);
                 return;
