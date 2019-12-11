@@ -2,13 +2,16 @@
 
 #include "universe.hpp"
 
+#ifdef STATS
 #define POLITE_DUMP_STATS
 #define POLITE_COUNT_MSGS
+#endif
 
 #ifndef __UNIVERSE_IMPL
 #define __UNIVERSE_IMPL
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
+
 
 // helper functions for managing bead slots
 template<class S>
@@ -93,15 +96,34 @@ void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 
 // constructor
 template<class S>
-Universe<S>::Universe(S size, unsigned D) {
+Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _size = size;
     _D = D;
     _unit_size = _size / S(D);
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
-    _boxesX = TinselBoxMeshXLen;
-    _boxesY = TinselBoxMeshYLen;
+
+#ifdef ONE_BY_ONE
+    std::cout << "Running one by one version\n";
+#elif defined(SEND_TO_SELF)
+    std::cout << "Running send to self version\n";
+#elif defined(GALS)
+    std::cout << "Running GALS implementation\n";
+#else
+    std::cout << "Running standard\n";
+#endif
+
+    std::cout << "Test length = " << max_time << "\n";
+
+    _boxesX = 2;//TinselBoxMeshXLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
+    std::cout << "Running on " << _boxesX * _boxesY << " box";
+    if ((_boxesX * _boxesY) != 1) {
+        std::cout << "es";
+    }
+    std::cout << ".\n";
+
     _hostLink = new HostLink(_boxesX, _boxesY);
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
@@ -169,6 +191,11 @@ Universe<S>::Universe(S size, unsigned D) {
 
                 unit_t n_loc;
                 PDeviceId nId;
+
+            #if defined(GALS) || defined(SEND_TO_SELF)
+                addNeighbour(cId, cId);
+            #endif
+
                 // z = -1
                 // { -1,-1,-1 },  { -1,0,-1 },  { -1, +1,-1 }
                 n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z_neg;
@@ -292,12 +319,12 @@ Universe<S>::Universe(S size, unsigned D) {
     }
     // all the edges have been connected
 
-    // _g->mapVerticesToDRAM = true;
-#ifndef TIMER
-    _g->map(); // map the graph into hardware calling the POLite placer
-#else
-    timerMap(_g, _boxesX, _boxesY); // All Boxes
+#ifdef DRAM
+    _g->mapVerticesToDRAM = true;
+    std::cout << "Mapping vertices to DRAM\n";
 #endif
+    _g->map(); // map the graph into hardware calling the POLite placer
+
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
@@ -307,6 +334,7 @@ Universe<S>::Universe(S size, unsigned D) {
         _g->devices[cId]->state.loc.z = loc.z;
         _g->devices[cId]->state.unit_size = _unit_size;
         _g->devices[cId]->state.N = _D;
+        _g->devices[cId]->state.max_time = max_time;
     }
 }
 
@@ -440,112 +468,54 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 
 // starts the simulation
 template<class S>
-void Universe<S>::run(bool printBeadNum, uint32_t beadNum) {
+void Universe<S>::run(uint32_t max_time) {
     _hostLink->boot("code.v", "data.v");
-    gettimeofday(&_start, NULL);
     _hostLink->go();
-    std::cout << "Started\n";
-    uint32_t numBoards = (_boxesX * TinselMeshXLenWithinBox) * (_boxesY * TinselMeshYLenWithinBox);
 
-#ifdef TIMER
-    uint32_t devices = 0;
-    uint32_t timers = 0;
-    std::map<uint32_t,uint64_t> board_start;
-    std::map<uint32_t,uint32_t> board_wrap;
-    std::map<unit_t, uint64_t> dpd_start;
-    std::map<unit_t, uint64_t> dpd_end;
-    std::map<unit_t, uint32_t> locToThread;
-    uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
-    uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
-#elif defined(STATS)
+    struct timeval start, finish, elapsedTime;
+    gettimeofday(&start, NULL);
+
+#if defined(STATS)
     uint32_t stats_finished = 0;
-    uint32_t lost_beads = 0;
-    uint32_t migrations = 0;
 #endif
-    int32_t timestep = 0;
+    uint32_t devices = 0;
+    int32_t timestep = -1;
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
-        if (msg.payload.type == 0xAB) {
-            timers++;
-            // std::cout << "Timer get = " << timers << " num boards = " << numBoards << "\n";
-            uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            unit_t timer_loc;
-            timer_loc.x = msg.payload.from.x;
-            timer_loc.y = msg.payload.from.y;
-            timer_loc.z = msg.payload.from.z;
-            PThreadId timer_thread = get_thread_from_loc(timer_loc);
-            board_start[(uint32_t)timer_thread/1024] = t;
-        } else if (msg.payload.type == 0xAA || msg.payload.type == 0xAC) {
-            devices++;
-            // std::cout << "Finish get = " << devices << " num devices = " << (_D*_D*_D) << "\n";
-            unit_t cell_loc;
-            cell_loc.x = msg.payload.from.x;
-            cell_loc.y = msg.payload.from.y;
-            cell_loc.z = msg.payload.from.z;
-            uint32_t wraps = (uint32_t) msg.payload.beads[0].pos.x();
-            uint32_t thread = get_thread_from_loc(cell_loc);
-            board_wrap[thread/1024] = wraps;
-            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            PThreadId threadId = get_thread_from_loc(cell_loc);
-            dpd_start[cell_loc] = s;
-            dpd_end[cell_loc] = e;
-            locToThread[cell_loc] = threadId;
-        }
-        if (devices >= (_D*_D*_D) && timers >= numBoards) {
-            for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
-                uint32_t threadId = locToThread[i->first];
-                uint32_t board = (uint32_t) threadId/1024;
-                uint64_t s = dpd_start[i->first] - board_start[board];
-                uint64_t e = (uint64_t) board_wrap[board] << 40 | dpd_end[i->first];
-                e = e - board_start[board];
-                if (s < earliest_start) {
-                    earliest_start = s;
-                }
-                if (e < earliest_end) {
-                    earliest_end = e;
-                }
+        if (msg.payload.type != 0xBB) {
+            if (msg.payload.timestep >= max_time) {
+                gettimeofday(&finish, NULL);
+                timersub(&finish, &start, &elapsedTime);
+                double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+                printf("Runtime = %1.10f\n", duration);
+                FILE* f = fopen("../mega_results.csv", "a+");
+                // FILE* f = fopen("../timing_results.csv", "a+");
+                fprintf(f, "%1.10f", duration);
+                fclose(f);
+                return;
+            } else {
+                std::cerr << "ERROR: Received finish message at early timestep: " << msg.payload.timestep << "\n";
+                return;
             }
-            uint64_t diff = earliest_end - earliest_start;
-            double time = (double)diff/250000000;
-            printf("Runtime = %f\n", time);
-            FILE* f = fopen("../timing_results.csv", "a+");
-            if (printBeadNum) {
-                fprintf(f, "%u, %u, ", _D, beadNum);
-            }
-            fprintf(f, "%1.10f", time);
-            fclose(f);
+        } else {
+            std::cerr << "ERROR: finish received when not expected\n";
             return;
         }
     #elif defined(STATS)
-        if (msg.payload.type = 0xAA) {
-            stats_finished++;
-            lost_beads += msg.payload.timestep;
-            migrations += msg.payload.beads[0].id;
-            if (stats_finished >= _D*_D*_D) {
-                politeSaveStats(_hostLink, "stats.txt");
-                printf("Lost beads = %u\n", lost_beads);
-                printf("migrations = %u\n", migrations);
-                printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-                return;
-            }
+        if (msg.payload.type == 0xAA) {
+            politeSaveStats(_hostLink, "stats.txt");
+            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+            return;
         }
     #else
-        // pts_to_extern_t eMsg;
-        // eMsg.timestep = msg.payload.timestep;
-        // eMsg.from = msg.payload.from;
-        // eMsg.bead = msg.payload.beads[0];
-        // _extern->send(&eMsg);
-        if (msg.payload.timestep != timestep) {
-            timestep = msg.payload.timestep;
-            if (timestep > 1000) {
-                exit(0);
-            }
-            std::cout << "Timestep " << timestep << "\n";
-        }
+        pts_to_extern_t eMsg;
+        eMsg.timestep = msg.payload.timestep;
+        eMsg.from = msg.payload.from;
+        eMsg.bead = msg.payload.beads[0];
+        _extern->send(&eMsg);
     #endif
     }
 }
@@ -563,15 +533,15 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     while(1) {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
-       if (msg.payload.type == 0xAA) {
+        if (msg.payload.type == 0xAA) {
             finish++;
             if (finish >= (_D*_D*_D)) {
                 return result;
             }
         } else {
-           result[msg.payload.beads[0].id] = msg.payload;
+            result[msg.payload.beads[0].id] = msg.payload;
         }
-   }
+    }
 
     return result;
 }

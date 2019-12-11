@@ -1,0 +1,50 @@
+dpd
+
+Title	" Oil/Water "
+Date    22/10/18
+Comment	" Oil water phase separation  "
+
+
+State	random
+
+
+Bead  W
+      1
+      25
+      4.5
+
+Bead  Y
+      1
+      75   25
+      4.5  4.5
+
+Bead  R
+      1
+      35   50   25
+      4.5  4.5  4.5
+
+Polymer	Water       0.6   " (W) "
+Polymer	YellowOil   0.3   " (Y) "
+Polymer	RedOil      0.1   " (R) "
+
+
+Box         10  10  10       1  1  1
+Density		4
+Temp        1
+RNGSeed		-26784
+Lambda		0.5
+Step		0.02
+Time		1000
+SamplePeriod     100
+AnalysisPeriod	 10000
+DensityPeriod    100000
+DisplayPeriod    10
+RestartPeriod    10000
+Grid		1  1  1
+
+
+Command	ToggleBeadDisplay             1    W
+Command SetCurrentStateCamera         1    0.5 -1.0 -0.5  0.5 0.5 0.5
+Command SetCurrentStateDefaultFormat  1    Paraview
+
+

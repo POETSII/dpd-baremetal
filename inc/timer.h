@@ -4,7 +4,8 @@
 
 #include <POLite.h>
 #include <POLite/Placer.h>
-#include "dpd.h"
+// #include "dpd.h"
+#include "parsedDPD.h"
 
 void timerMap(PGraph<DPDDevice, DPDState, None, DPDMessage>* g, uint32_t numBoardsX, uint32_t numBoardsY);
 

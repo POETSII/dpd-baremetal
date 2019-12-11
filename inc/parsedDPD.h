@@ -29,6 +29,7 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 #define MAX_BEADS 31
+#define MAX_BEAD_TYPES 5
 
 #define UPDATE 0
 #define MIGRATION 1
@@ -37,28 +38,14 @@
 #define EMIT 2
 #endif
 
-// #if defined(TESTING) || defined(STATS)
-// #define TEST_LENGTH 1000
-// #elif defined(TIMER)
-// #define TEST_LENGTH 10000
-// #endif
+#ifdef TIMER
+    #define START 3
+#endif
 
 typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
-// const float problem_size = 18.0; // total size of the sim universe in one dimension
-// const unsigned N = 18; // the size of the sim universe in each dimension
-
-const ptype r_c(1.0);
-const ptype sq_r_c(r_c * r_c);
-
-// interaction matrix
-const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
-                         {ptype(75.0), ptype(25.0), ptype(50.0)},
-                         {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
-
-const ptype dt = 0.02; // the timestep
 const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
 
 /* DT10: Playing with bonds.
@@ -69,17 +56,13 @@ const ptype p_mass = 1.0; // the mass of all beads (not currently configurable p
     In principle the bonds could break, which is a bit worrying. If they drift
     within sight again then they will re-capture, but that is unlikely.
 */
-const ptype bond_kappa=100; // Bond interaction is very strong
-const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
+// const ptype bond_kappa=100; // Bond interaction is very strong
+// const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
 
- inline bool are_beads_bonded(uint32_t a, uint32_t b)
-{
-    return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
-}
-
-#ifdef VISUALISE
-const uint32_t emitperiod = 0;
-#endif
+//  inline bool are_beads_bonded(uint32_t a, uint32_t b)
+// {
+//     return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
+// }
 
 // ---------------------------------------------------------------------------------------
 
@@ -126,36 +109,90 @@ struct unit_t {
 struct DPDMessage {
     uint8_t type;
     uint32_t timestep; // the timestep this message is from
+#ifdef TIMER
+    uint32_t extra; //Used for sending cycle counts
+#endif
     unit_t from; // the unit that this message is from
     bead_t beads[1]; // the beads payload from this unit
 };
 
 // the state of the DPD Device
 struct DPDState {
-    float unit_size; // the size of this spatial unit in one dimension
-    uint8_t N;
-    unit_t loc; // the location of this cube
-    uint32_t bslot; // a bitmap of which bead slot is occupied
-    uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    uint16_t num_beads; // the number of beads in this device
-    bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-// #ifdef TESTING
-    Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
-// #else
-    // Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
-// #endif
-    uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
-    unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
-    uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#ifdef VISUALISE
-    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+    // Array storing beads in slots according to bslot
+    bead_t bead_slot[MAX_BEADS]; // MAX_BEADS = 31. 31 * 32 = 992 bytes
+    // Array holding force values for each bead.
+    // This is held in integer form in order to ensure the result is deterministic.
+    Vector3D<int32_t> force_slot[MAX_BEADS]; // MAX_BEADS = 31. 31 * 12 = 372 bytes
+    // An array holding the destinations of where a bead is migrating to, which slots is indicated by migrateslot
+    unit_t migrate_loc[MAX_BEADS]; // MAX_BEADS = 31. 31 * 6 = 186 bytes
+    // 2D array of conservative interaction strengths
+    float a[MAX_BEAD_TYPES][MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 5 * 4 = 100 bytes
+    // 2D array of drag coefficients
+    float d[MAX_BEAD_TYPES][MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 5 * 4 = 100 bytes
+    // Array of cutoff radii for each bead type
+    float r_c[MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 12 = 60 bytes
+    // Array of square of cutoff radii for each bead type. Reduces number of square roots necessary
+    float r_c_sq[MAX_BEAD_TYPES]; // MAX_BEAD_TYPES = 5. 5 * 12 = 60 bytes
+    // The dimensions of this spatial unit
+    Vector3D<ptype> unit_dimensions; // 12 bytes
+    // The dimensions of the volume
+    Vector3D<ptype> volume_dimensions; // 12 bytes
+    // The state of the random number generator
+    int64_t rngstate; // 8 bytes
+    // The location of this cell
+    unit_t loc; // 6 bytes
+    // A bitmap of which bead slot is occupied
+    uint32_t bslot; // 4 bytes
+    // A bitmap of which bead slot has not been sent from yet
+    uint32_t sentslot; // 4 bytes
+#ifndef ONE_BY_ONE
+    // An outer bitmap of which bead slot has not been used in local calculations yet
+    uint32_t local_slot_i; // 4 bytes
+    // An inner bitmap of which bead slot has not been used in local calculations yet
+    uint32_t local_slot_j; // 4 bytes
 #endif
-    uint32_t timestep; // the current timestep that we are on
-    uint32_t grand; // the global random number at this timestep
-    uint64_t rngstate; // the state of the random number generator
+    // A bitmap of which bead slot is being migrated to another cell
+    uint32_t migrateslot; // 4 bytes
+    // The current timestep that we are on
+    uint32_t timestep; // 4 bytes
+    // The global random number at this timestep
+    uint32_t grand; // 4 bytes
+    // The time delta (aka timestep)
+    float dt; // 4 bytes
+    // Square root of dt (used in force calculations)
+    float dt_sq; // 4 bytes
+    // Maximum number of timestep for simulation to run for
+    uint32_t max_timestep; // 4 bytes
+    // Display period - How often is the state of all beads emitted for visualising?
+    uint32_t display_period; // 4 bytes
+#ifdef VISUALISE
+    // A counter to keep track of how many timesteps have elapsed since the last emit
+    uint32_t emitcnt; // 4 bytes
+#endif
 
-    uint32_t lost_beads;
-    uint32_t max_time;
+#ifdef TIMER
+    // Holds the TinselCycleCount (upper and lower) values at the point when the
+    // board cycle count synchronisations are complete, and the DPD application can start.
+    uint32_t dpd_startU; // 4 bytes
+    uint32_t dpd_start; // 4 bytes
+    // Holds the TinselCycleCount (upper and lower) values at the point when the
+    // application has reached the given maximum for the timestep, signalling the end of the timed run.
+    uint32_t dpd_endU; // 4 bytes
+    uint32_t dpd_end; // 4 bytes
+    // Holds the value of TinselCycleCountU when a timer device hits step().
+    // This is used to see if the built in cycle count timers have wrapped, meaning that
+    // the maximum value TinselCycleCountU can indicate has run out.
+    uint32_t upperCount; // 4 bytes
+    // Indicates the number of times that tinselCycelCountU has reset
+    uint32_t wraps; // 4 bytes
+    // Boolean to indicate if this device is a standard cell, or a timer device.
+    // Timers record their cycle time and then only check for upper cycle count wraps.
+    uint8_t timer; // 1 byte
+#endif
+
+    // The mode this device is in. 0 = UPDATE, 1 = MIGRATION, 2 = EMIT
+    uint8_t mode; // 1 byte
+
 };
 
 // DPD Device code
@@ -172,7 +209,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
     inline bool is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
+#ifdef TIMER
+    __attribute__((noinline)) uint32_t get_next_slot(uint32_t slotlist){
+#else
     inline uint32_t get_next_slot(uint32_t slotlist){
+#endif
         uint32_t mask = 0x1;
         for(int i=0; i<MAX_BEADS; i++) {
             if(slotlist & mask){
@@ -236,20 +277,20 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
 
-        if (r_ij_dist_sq > sq_r_c) {
+        if (r_ij_dist_sq > s->r_c_sq[a->type]) {
             return force;
         }
 
         ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
 
-        ptype a_ij = A[a->type][b->type];
+        ptype a_ij = s->a[a->type][b->type];
         // Vector3D<ptype> r_ij = r_i - r_j;
         Vector3D<ptype> r_ij = a->pos - b->pos;
         // Vector3D<ptype> v_i = a->velo;
         // Vector3D<ptype> v_j = b->velo;
         // Vector3D<ptype> v_ij = v_i - v_j;
         Vector3D<ptype> v_ij = a->velo - b->velo;
-        const ptype drag_coef(4.5); // the drag coefficient
+        const ptype drag_coef = s->d[a->type][b->type]; // the drag coefficient
         const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
         const ptype sqrt_dt(0.1414); // sqrt(0.02)
 
@@ -257,7 +298,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
 
         //Conservative force: Equation 8.5 in the dl_meso manual
-        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/r_c));
+        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/s->r_c[a->type]));
         force = (r_ij/r_ij_dist) * con;
 
         // Drag force
@@ -275,23 +316,30 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype ran = sqrt_dt*r*w_r*sigma_ij;
         force = force - ((r_ij / r_ij_dist) * ran);
 
-        if(are_beads_bonded(a->id, b->id)) {
-            force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
-        }
+        // if(are_beads_bonded(a->id, b->id)) {
+        //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
+        // }
 
         return force;
     }
 #endif
 
-#if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
+#ifndef ONE_BY_ONE
     __attribute__((noinline)) void local_calcs() {
         // iterate over the ocupied beads twice -- and do the inter device pairwise interactions
-        uint32_t i = s->bslot;
-        while(i) {
-            int ci = get_next_slot(i);
-            uint32_t j = s->bslot;
-            while(j) {
-                int cj = get_next_slot(j);
+        while(s->local_slot_i) {
+            if (tinselCanRecv()) {
+                return;
+            }
+            int ci = get_next_slot(s->local_slot_i);
+            if (s->local_slot_j == 0) {
+                s->local_slot_j = s->bslot;
+            }
+            while(s->local_slot_j) {
+                if (tinselCanRecv()) {
+                    return;
+                }
+                int cj = get_next_slot(s->local_slot_j);
                 if(ci != cj) {
                     #ifndef ACCELERATE
                         Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
@@ -302,7 +350,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                                                         s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
                                                         s->bead_slot[ci].id, s->bead_slot[cj].id,
                                                         s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
-                                                        A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                                                        s->a[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
                         Vector3D<ptype> f;
                         f.set(r.x, r.y, r.z);
                     #endif
@@ -310,13 +358,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         Vector3D<int32_t> x = f.floatToFixed();
                         s->force_slot[ci] = s->force_slot[ci] + x;
                 }
-                j = clear_slot(j, cj);
+                s->local_slot_j = clear_slot(s->local_slot_j, cj);
             }
-            i = clear_slot(i, ci);
+            s->local_slot_i = clear_slot(s->local_slot_i, ci);
         }
         s->sentslot = s->bslot;
     }
-#elif defined(ONE_BY_ONE)
+#else
     void local_calcs(uint32_t ci) {
         uint32_t j = s->bslot;
         while(j) {
@@ -346,37 +394,69 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-    #if defined(TESTING) || defined(STATS)
-        s->max_time = 1000;
-    #endif
-		s->rngstate = 1234; // start with a seed
+        // Calculate square root of cutoff radii now so it doesn't have to be done every time
+        for (uint8_t i = 0; i < MAX_BEAD_TYPES; i++) {
+            s->r_c_sq[i] = s->r_c[i] * s->r_c[i];
+        }
+        // Calculate the square root of the timestep now so it doesn't have to be done every time
+        s->dt_sq = newt_sqrt(s->dt);
+    #ifdef TIMER
+        s->mode = START;
+        if (s->timer)
+            *readyToSend = HostPin;
+        else
+            *readyToSend = No;
+        s->timestep = 0;
+        s->grand = rand();
+        s->sentslot = s->bslot;
+    #else
 		s->grand = rand();
 		s->sentslot = s->bslot;
-    #ifdef VISUALISE
-		s->emitcnt = emitperiod;
-    #endif
 		s->mode = UPDATE;
 		if(get_num_beads(s->bslot) > 0)
 		    *readyToSend = Pin(0);
         else
 		    *readyToSend = No;
+    #endif
 	}
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
         // default case
         *readyToSend = No;
+    #ifdef TIMER
+        if (s->mode == START) {
+            s->mode = UPDATE;
+            if(get_num_beads(s->bslot) > 0)
+                *readyToSend = Pin(0);
+            else
+                *readyToSend = No;
 
+            s->dpd_startU = tinselCycleCountU();
+            s->dpd_start  = tinselCycleCount();
+            return true;
+        } else if (s->timer) {
+            uint32_t count = tinselCycleCountU();
+            if (count < s->upperCount) {
+                s->wraps++;
+            }
+            s->upperCount = count;
+        }
+    #endif
         // we have just finished an update step
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #if defined(TIMER) || defined(STATS)
-            // Timed run has ended
-            if (s->timestep >= s->max_time) {
+        // #if defined(TIMER) || defined(STATS)
+            // Run has ended
+            if (s->max_timestep > 0 && s->timestep >= s->max_timestep) {
+            #ifdef TIMER
+                s->dpd_endU = tinselCycleCountU();
+                s->dpd_end  = tinselCycleCount();
+            #endif
                 return false;
             }
-        #endif
+        // #endif
     	    s->grand = rand(); // advance the random number
     	    uint32_t i = s->bslot;
     	    while(i){
@@ -389,11 +469,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // Vector3D<ptype> force = s->force_slot[ci];
             // #endif
                 Vector3D<ptype> acceleration = force / p_mass;
-                Vector3D<ptype> delta_v = acceleration * dt;
+                Vector3D<ptype> delta_v = acceleration * s->dt;
                 // update velocity
                 s->bead_slot[ci].velo = s->bead_slot[ci].velo + delta_v;
                 // update position
-                s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
+                s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*s->dt + acceleration*ptype(0.5)*s->dt*s->dt;
 
                 // ----- clear the forces ---------------
             // #ifdef TESTING
@@ -407,64 +487,64 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 unit_t d_loc; // the potential destination for this bead
 
                 //    migration in the x dim
-                if(s->bead_slot[ci].pos.x() >= s->unit_size){
+                if(s->bead_slot[ci].pos.x() >= s->unit_dimensions.x()){
                     migrating = true;
-                    if(s->loc.x == (s->N-1)){
+                    if(s->loc.x == (s->volume_dimensions.x() - 1)){
                         d_loc.x = 0;
                     } else {
                         d_loc.x = s->loc.x + 1;
                     }
-                    s->bead_slot[ci].pos.x(s->bead_slot[ci].pos.x() - s->unit_size); // make it relative to the dest
+                    s->bead_slot[ci].pos.x(s->bead_slot[ci].pos.x() - s->unit_dimensions.x()); // make it relative to the dest
                 } else if (s->bead_slot[ci].pos.x() < ptype(0.0)) {
                     migrating = true;
                     if(s->loc.x == 0) {
-                        d_loc.x = s->N - 1;
+                        d_loc.x = s->volume_dimensions.x() - 1;
                     } else {
                         d_loc.x = s->loc.x - 1;
                     }
-                   s->bead_slot[ci].pos.x(s->bead_slot[ci].pos.x() + s->unit_size); // make it relative to the dest
+                   s->bead_slot[ci].pos.x(s->bead_slot[ci].pos.x() + s->unit_dimensions.x()); // make it relative to the dest
                 } else {
                     d_loc.x = s->loc.x;
                 }
 
 	            //    migration in the y dim
-	            if(s->bead_slot[ci].pos.y() >= s->unit_size){
+	            if(s->bead_slot[ci].pos.y() >= s->unit_dimensions.y()){
 		            migrating = true;
-		            if(s->loc.y == (s->N-1)){
+		            if(s->loc.y == (s->volume_dimensions.y() - 1)){
                         d_loc.y = 0;
 		            } else {
 			            d_loc.y = s->loc.y + 1;
     		        }
-    		        s->bead_slot[ci].pos.y(s->bead_slot[ci].pos.y() - s->unit_size); // make it relative to the dest
+    		        s->bead_slot[ci].pos.y(s->bead_slot[ci].pos.y() - s->unit_dimensions.y()); // make it relative to the dest
 	            } else if (s->bead_slot[ci].pos.y() < ptype(0.0)) {
                     migrating = true;
 		            if(s->loc.y == 0) {
-			            d_loc.y = s->N - 1;
+			            d_loc.y = s->volume_dimensions.y() - 1;
     		        } else {
 			            d_loc.y = s->loc.y - 1;
 		            }
-		            s->bead_slot[ci].pos.y(s->bead_slot[ci].pos.y() + s->unit_size); // make it relative to the dest
+		            s->bead_slot[ci].pos.y(s->bead_slot[ci].pos.y() + s->unit_dimensions.y()); // make it relative to the dest
 	            } else {
                     d_loc.y = s->loc.y;
 	            }
 
     	        //    migration in the z dim
-    	        if(s->bead_slot[ci].pos.z() >= s->unit_size){
+    	        if(s->bead_slot[ci].pos.z() >= s->unit_dimensions.z()){
     		        migrating = true;
-    		        if(s->loc.z == (s->N-1)){
+    		        if(s->loc.z == (s->volume_dimensions.z() - 1)){
                         d_loc.z = 0;
     		        } else {
         			    d_loc.z = s->loc.z + 1;
     		        }
-		            s->bead_slot[ci].pos.z(s->bead_slot[ci].pos.z() - s->unit_size); // make it relative to the dest
+		            s->bead_slot[ci].pos.z(s->bead_slot[ci].pos.z() - s->unit_dimensions.z()); // make it relative to the dest
 	            } else if (s->bead_slot[ci].pos.z() < ptype(0.0)) {
                     migrating = true;
 		            if(s->loc.z == 0) {
-			            d_loc.z = s->N - 1;
+			            d_loc.z = s->volume_dimensions.z() - 1;
 		            } else {
 			            d_loc.z = s->loc.z - 1;
 		            }
-		            s->bead_slot[ci].pos.z(s->bead_slot[ci].pos.z() + s->unit_size); // make it relative to the dest
+		            s->bead_slot[ci].pos.z(s->bead_slot[ci].pos.z() + s->unit_dimensions.z()); // make it relative to the dest
 	            } else {
                     d_loc.z = s->loc.z;
 	            }
@@ -485,7 +565,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if(s->mode == MIGRATION) {
         	// do we want to export?
         #ifdef VISUALISE
-            if(s->emitcnt >= emitperiod) {
+            if(s->emitcnt >= s->display_period) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -502,7 +582,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
             return true;
         #elif defined(TESTING)
-            if (s->timestep >= s->max_time) {
+            if (s->timestep >= s->max_timestep) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -538,7 +618,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return true;
         }
     #elif defined(TESTING) || defined(STATS)
-        if (s->timestep >= s->max_time) {
+        if (s->timestep >= s->max_timestep) {
             return false;
         }
     #endif
@@ -566,9 +646,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->sentslot != 0) {
                 *readyToSend = Pin(0);
 	        } else {
-            #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
-                // s->local_slot_i = s->bslot;
-                // s->local_slot_j = s->bslot;
+            #ifndef ONE_BY_ONE
+                s->local_slot_i = s->bslot;
+                s->local_slot_j = s->bslot;
                 *readyToSend = No;
                 local_calcs();
             #else
@@ -627,6 +707,19 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return;
 	    }
     #endif
+
+    #ifdef TIMER
+        if (s->timer) {
+            msg->type = 0xAB;
+            msg->from.x = s->loc.x;
+            msg->from.y = s->loc.y;
+            msg->from.z = s->loc.z;
+            msg->timestep = tinselCycleCountU();
+            msg->extra = tinselCycleCount();
+            *readyToSend = No;
+            return;
+        }
+    #endif
 	}
 
 	// used to help adjust the relative positions for the periodic boundary
@@ -662,26 +755,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        uint32_t i = s->bslot;
 	        while(i) {
                 int ci = get_next_slot(i);
-            #ifdef SEND_TO_SELF
-                if(s->bead_slot[ci].id != b.id) {
-                #ifndef ACCELERATE
-                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
-                #else
-                    return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                     b.pos.x(), b.pos.y(), b.pos.z(),
-                                                     s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                     b.velo.x(), b.velo.y(), b.velo.z(),
-                                                     s->bead_slot[ci].id, b.id,
-                                                     s->bead_slot[ci].pos.sq_dist(b.pos),
-                                                     r_c, A[s->bead_slot[ci].type][b.type], s->grand);
-                    Vector3D<ptype> f;
-                    f.set(r.x, r.y, r.z);
-                #endif
-
-                    Vector3D<int32_t> x = f.floatToFixed();
-                    s->force_slot[ci] = s->force_slot[ci] + x;
-                }
-            #else
             #ifndef ACCELERATE
                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
             #else
@@ -691,17 +764,21 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                                                  b.velo.x(), b.velo.y(), b.velo.z(),
                                                  s->bead_slot[ci].id, b.id,
                                                  s->bead_slot[ci].pos.sq_dist(b.pos),
-                                                 r_c, A[s->bead_slot[ci].type][b.type], s->grand);
+                                                 r_c, s->a[s->bead_slot[ci].type][b.type], s->grand);
                 Vector3D<ptype> f;
                 f.set(r.x, r.y, r.z);
             #endif
 
                 Vector3D<int32_t> x = f.floatToFixed();
                 s->force_slot[ci] = s->force_slot[ci] + x;
-            #endif
 
 	            i = clear_slot(i, ci);
 	        }
+        #ifndef ONE_BY_ONE
+            if (s->sentslot == 0) {
+                local_calcs();
+            }
+        #endif
 	    } else if (s->mode == MIGRATION) {
             // we are in the MIGRATION mode beads we receive here _may_ be added to our state
 	        // when we receive a message it _may_ contain a bead that we need to add to our state
@@ -710,7 +787,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            // looks like we are getting a new addition to our family
 	            uint32_t ci = get_next_free_slot(s->bslot); // I hope we have space...
                 if (ci == 0xFFFFFFFF) {
-                    s->lost_beads++;
                 } else {
                     s->bslot = set_slot(s->bslot, ci);
     	            s->sentslot = s->bslot;
@@ -727,8 +803,29 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
+    #if defined(TESTING) || defined(STATS)
         msg->type = 0xAA;
-        msg->timestep = s->timestep;
+    #endif
+
+    #ifdef TIMER
+        if (s->timer)
+            msg->type = 0xAC;
+        else
+            msg->type = 0xAA;
+
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
+        msg->timestep = s->dpd_startU;
+        msg->extra = s->dpd_start;
+        msg->beads[0].id = s->dpd_endU;
+        msg->beads[0].type = s->dpd_end;
+        msg->beads[0].pos.set((float)s->wraps, 0, 0);
+    #endif
+
+    #ifdef VISUALISE
+        msg->type = 0xFE;
+    #endif
 	    return true;
     }
 

@@ -3,26 +3,22 @@
 cd ./bin
 
 i=0
-s=33
-while [[ $s -le 50 ]]
+s=3
+while [[ $s -le 60 ]]
 do
-    num=0
-    while [[ $i -lt 5 ]]
+    echo -n "$s, " >> ../timing_results.csv
+    while [[ $i -lt 3 ]]
     do
-        if [[ $i -eq 0 ]] ; then
-            if [[ $num -eq 0 ]] ; then
-                echo -n "$s, " >> ../timing_results.csv
-                num=1
-            fi
-        fi
-        timeout 200s ./run $s -k
-        if [[ $? -gt 0 ]] ; then
+        t=$((s*30))
+        echo "Timeout: $t seconds"
+        timeout $t ./run $s
+        if [[ $? -ne 0 ]] ; then
             i=$((i - 1))
-        elif [[ $i -lt 4 ]] ; then
+        elif [[ $i -lt 2 ]] ; then
             echo -n ", " >> ../timing_results.csv
         fi
         i=$((i + 1))
-        sleep 30s
+        sleep 10s
     done
     i=0
     echo >> ../timing_results.csv

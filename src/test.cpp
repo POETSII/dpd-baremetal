@@ -4,7 +4,11 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
+#ifndef GALS
 #include "dpd.h"
+#else
+#include "dpdGALS.h"
+#endif
 #include "universe.hpp"
 #include <map>
 #include <math.h>
@@ -24,10 +28,14 @@ int main() {
     int N = 25;
 #endif
 
+#ifndef GALS
     printf("Testing the DPD application\n");
+#else
+    printf("Testing the GALS DPD application\n");
+#endif
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N);
+    Universe<ptype> uni(problem_size, N, 1000);
 
     std::cerr << "Universe setup -- loading beads from " << bead_file << "\n";
 

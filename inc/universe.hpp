@@ -4,15 +4,16 @@
 #ifndef _SIM_UNIVERSE_H
 #define _SIM_UNIVERSE_H
 
+#ifndef GALS
 #include "dpd.h"
+#else
+#include "dpdGALS.h"
+#endif
 #include "POLite.h"
 #include "HostLink.h"
 #include <sys/time.h>
 #include <map>
 #include "ExternalServer.hpp"
-#ifdef TIMER
-    #include "timer.h"
-#endif
 
 const uint8_t max_beads_per_dev = 7;
 
@@ -20,7 +21,7 @@ template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
 class Universe {
     public:
     // constructors and destructors
-    Universe(S size, unsigned D);
+    Universe(S size, unsigned D, uint32_t max_time);
     ~Universe();
 
     // setup
@@ -33,7 +34,7 @@ class Universe {
     // simulation control
     void write(); // writes the simulation env onto the POETS system
     PThreadId get_thread_from_loc(unit_t loc); // Use unit_t location to acquire thread id
-    void run(bool printBeadNum, uint32_t beadNum); // runs the simulation
+    void run(uint32_t max_time); // runs the simulation
     std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
 
     // bead slot management
@@ -54,6 +55,9 @@ class Universe {
         S _size;
         unsigned _D;
 	S _unit_size;
+
+    uint32_t _boxesX = 1;
+    uint32_t _boxesY = 1;
 
 	// POLite related stuff
 	PGraph<DPDDevice, DPDState, None, DPDMessage> * _g; // the graph
