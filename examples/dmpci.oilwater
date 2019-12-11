@@ -34,7 +34,7 @@ Temp        1
 RNGSeed		-26784
 Lambda		0.5
 Step		0.02
-Time		0
+Time		1000
 SamplePeriod     100
 AnalysisPeriod	 10000
 DensityPeriod    100000
