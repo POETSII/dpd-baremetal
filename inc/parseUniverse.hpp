@@ -11,9 +11,6 @@
 #include <map>
 #include "ExternalServer.hpp"
 #include "DPDSimulation.hpp"
-#ifdef TIMER
-    #include "timer.h"
-#endif
 
 const uint8_t max_beads_per_dev = 15;
 
@@ -75,6 +72,8 @@ class Universe {
 
     // Box mesh dimensions
     uint32_t _boxesX, _boxesY;
+
+    uint32_t _max_time;
 
     void createDevices();
     void connectDevices();

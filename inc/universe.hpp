@@ -56,9 +56,6 @@ class Universe {
         unsigned _D;
 	S _unit_size;
 
-    uint32_t _boxesX = 1;
-    uint32_t _boxesY = 1;
-
 	// POLite related stuff
 	PGraph<DPDDevice, DPDState, None, DPDMessage> * _g; // the graph
         HostLink *_hostLink; // the hostlink

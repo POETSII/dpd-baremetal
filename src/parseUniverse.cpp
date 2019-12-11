@@ -236,7 +236,7 @@ void Universe<S>::addBeads(DPDSimulation sim) {
     uint totalBeads = 0, beadID = 0;
     float numberDensity = sim.getDensity();
     uint maxBeads = numberDensity * _volume.x() * _volume.y() * _volume.z();
-    std::cout << "Desnity = " << numberDensity << ", Max beads = " << maxBeads << "\n";
+    std::cout << "Density = " << numberDensity << ", Max beads = " << maxBeads << "\n";
 
     for (std::vector<Polymer>::iterator p = polymers.begin(); p != polymers.end(); ++p) {
         std::vector<bead_t> beads = expandPolymer(p->structure, sim);
@@ -303,15 +303,8 @@ Universe<S>::Universe(DPDSimulation sim) {
 
     // Optional - Mapping vertices to DRAM allows for more devices, at the cost of slower to read from DRAM.
     // _g->mapVerticesToDRAM = true;
-#ifndef TIMER
     // Map the graph into hardware calling the POLite placer
     _g->map();
-#else
-    // Map the graph into hardware, but add "Timer" devices to the mapping also, which synchronise TinselCycleCount across all available boards
-    // This allows for more accurate timing, from when the first device starts to the first device finishes.
-    // This mapper copies PGraph's map(), but adds timers and maps these separately.
-    timerMap(_g, _boxesX, _boxesY); // 4 POETS Boxes
-#endif
 
     // Initialise all the devices with necessary data to run a simulation
     initialiseCells(sim);
@@ -319,6 +312,8 @@ Universe<S>::Universe(DPDSimulation sim) {
     // Add beads
     addBeads(sim);
 
+    // Set max_time
+    _max_time = sim.getTime();
     std::cout << "Universe setup is complete\n";
 }
 
@@ -408,17 +403,10 @@ void Universe<S>::run() {
     _hostLink->go();
     std::cout << "Application has been started.\n";
 
-#ifdef TIMER
-    uint32_t devices = 0;
-    uint32_t timers = 0;
-    std::map<uint32_t,uint64_t> board_start;
-    std::map<uint32_t,uint32_t> board_wrap;
-    std::map<unit_t, uint64_t> dpd_start;
-    std::map<unit_t, uint64_t> dpd_end;
-    std::map<unit_t, uint32_t> locToThread;
-    uint64_t earliest_start = 0xFFFFFFFFFFFFFFFF;
-    uint64_t earliest_end = 0xFFFFFFFFFFFFFFFF;
-#elif defined(STATS)
+    struct timeval start, finish, elapsedTime;
+    gettimeofday(&start, NULL);
+
+#if defined(STATS)
     uint32_t stats_finished = 0;
     uint32_t lost_beads = 0;
     uint32_t migrations = 0;
@@ -431,51 +419,24 @@ void Universe<S>::run() {
         PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
-        if (msg.payload.type == 0xAB) {
-            timers++;
-            uint64_t t = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            unit_t timer_loc;
-            timer_loc.x = msg.payload.from.x;
-            timer_loc.y = msg.payload.from.y;
-            timer_loc.z = msg.payload.from.z;
-            PThreadId timer_thread = get_thread_from_loc(timer_loc);
-            board_start[(uint32_t)timer_thread/1024] = t;
-        } else if (msg.payload.type == 0xAA || msg.payload.type == 0xAC) {
-            devices++;
-            unit_t cell_loc;
-            cell_loc.x = msg.payload.from.x;
-            cell_loc.y = msg.payload.from.y;
-            cell_loc.z = msg.payload.from.z;
-            uint32_t wraps = (uint32_t) msg.payload.beads[0].pos.x();
-            uint32_t thread = get_thread_from_loc(cell_loc);
-            board_wrap[thread/1024] = wraps;
-            uint64_t s = (uint64_t) msg.payload.timestep << 32 | msg.payload.extra;
-            uint64_t e = (uint64_t) msg.payload.beads[0].id << 32 | msg.payload.beads[0].type;
-            PThreadId threadId = get_thread_from_loc(cell_loc);
-            dpd_start[cell_loc] = s;
-            dpd_end[cell_loc] = e;
-            locToThread[cell_loc] = threadId;
-        }
-        if (devices >= (_numCells) && timers >= (_boxesX * 3 * _boxesY * 2)) {
-            for(std::map<unit_t, uint64_t>::iterator i = dpd_start.begin(); i!=dpd_start.end(); ++i) {
-                uint32_t threadId = locToThread[i->first];
-                uint32_t board = (uint32_t) threadId/1024;
-                uint64_t s = dpd_start[i->first] - board_start[board];
-                uint64_t e = (uint64_t) board_wrap[board] << 40 | dpd_end[i->first];
-                e = e - board_start[board];
-                if (s < earliest_start) {
-                    earliest_start = s;
-                }
-                if (e < earliest_end) {
-                    earliest_end = e;
-                }
+        if (msg.payload.type != 0xBB) {
+            if (msg.payload.timestep >= _max_time) {
+                gettimeofday(&finish, NULL);
+                timersub(&finish, &start, &elapsedTime);
+                double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+                printf("Runtime = %1.10f\n", duration);
+                FILE* f = fopen("../mega_results.csv", "a+");
+                // FILE* f = fopen("../timing_results.csv", "a+");
+                fprintf(f, "%1.10f", duration);
+                fclose(f);
+                return;
+            } else {
+                std::cerr << "ERROR: Received finish message at early timestep: " << msg.payload.timestep << "\n";
+                std::cerr << "Expected: " << _max_time << "\n";
+                return;
             }
-            uint64_t diff = earliest_end - earliest_start;
-            double time = (double)diff/250000000;
-            printf("Runtime = %f\n", time);
-            FILE* f = fopen("../timing_results.csv", "a+");
-            fprintf(f, "%1.10f", time);
-            fclose(f);
+        } else {
+            std::cerr << "ERROR: finish received when not expected\n";
             return;
         }
     #elif defined(STATS)
@@ -498,6 +459,7 @@ void Universe<S>::run() {
             if (cellsFinished++ == _numCells) {
                 return;
             }
+            continue;
         }
         pts_to_extern_t eMsg;
         eMsg.timestep = msg.payload.timestep;

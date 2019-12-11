@@ -37,12 +37,6 @@
 #define EMIT 2
 #endif
 
-// #if defined(TESTING) || defined(STATS)
-// #define TEST_LENGTH 1000
-// #elif defined(TIMER)
-// #define TEST_LENGTH 10000
-// #endif
-
 typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
