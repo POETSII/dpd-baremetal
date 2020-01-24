@@ -476,8 +476,9 @@ void Universe<S>::run(uint32_t max_time) {
     gettimeofday(&start, NULL);
 
 #if defined(STATS)
-    uint32_t stats_finished = 0;
+    politeSaveStats(_hostLink, "stats.txt");
 #endif
+
     uint32_t devices = 0;
     int32_t timestep = -1;
     // enter the main loop
@@ -506,7 +507,6 @@ void Universe<S>::run(uint32_t max_time) {
         }
     #elif defined(STATS)
         if (msg.payload.type == 0xAA) {
-            politeSaveStats(_hostLink, "stats.txt");
             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
             return;
         }
