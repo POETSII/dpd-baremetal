@@ -116,7 +116,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 2;//TinselBoxMeshXLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     std::cout << "Running on " << _boxesX * _boxesY << " box";
     if ((_boxesX * _boxesY) != 1) {
@@ -124,7 +124,9 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     }
     std::cout << ".\n";
 
+#ifndef OUTPUT_MAPPING
     _hostLink = new HostLink(_boxesX, _boxesY);
+#endif
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
     // create the devices
@@ -324,6 +326,29 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     std::cout << "Mapping vertices to DRAM\n";
 #endif
     _g->map(); // map the graph into hardware calling the POLite placer
+
+#ifdef OUTPUT_MAPPING
+    std::string fileName = "../DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
+    std::string output = "";
+    // Open JSON
+    output = "{\n";
+    output += "\t\"vertices\": {\n";
+    for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+        PDeviceId cId = i->first;
+        unit_t loc = i->second;
+        std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
+        PDeviceAddr cellAddr = _g->toDeviceAddr[i->first];
+        output += "\t\t" + cellName +": " + std::to_string(cellAddr) + ", \n";
+    }
+    output = output.substr(0, output.length() - 3);
+    // Close JSON
+    output += "\n\t}\n}\n";
+    std::cout << output;
+    FILE* f = fopen(fileName.c_str(), "w+");
+    fprintf(f, "%s", output.c_str());
+    fclose(f);
+    exit(0);
+#endif
 
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {

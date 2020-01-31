@@ -109,6 +109,10 @@ timed-run: run
 timed-dram-run: DFLAGS=-DTIMER -DDRAM
 timed-dram-run: run
 
+# ------------- Output mapping for analysis ---------
+output-mapping: DFLAGS=-DOUTPUT_MAPPING
+output-mapping: run
+
 # ------------- Do local calculations one bead at a time ------------
 onebyone: DFLAGS=-DTIMER -DONE_BY_ONE
 onebyone: run
@@ -273,3 +277,4 @@ clean:
 	rm -rf _meta.json
 	rm -rf _state.json
 	rm -rf node_modules
+	rm -rf DPD_mapping*.json
