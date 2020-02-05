@@ -110,7 +110,7 @@ timed-dram-run: DFLAGS=-DTIMER -DDRAM
 timed-dram-run: run
 
 # ------------- Output mapping for analysis ---------
-output-mapping: DFLAGS=-DOUTPUT_MAPPING
+output-mapping: DFLAGS=-DOUTPUT_MAPPING -DDRAM
 output-mapping: run
 
 # ------------- Do local calculations one bead at a time ------------

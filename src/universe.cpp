@@ -116,7 +116,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesX = 2;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     std::cout << "Running on " << _boxesX * _boxesY << " box";
     if ((_boxesX * _boxesY) != 1) {
@@ -328,7 +328,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _g->map(); // map the graph into hardware calling the POLite placer
 
 #ifdef OUTPUT_MAPPING
-    std::string fileName = "../DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
+    std::string fileName = "../mapping/DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
     std::string output = "";
     // Open JSON
     output = "{\n";
@@ -343,7 +343,6 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     output = output.substr(0, output.length() - 3);
     // Close JSON
     output += "\n\t}\n}\n";
-    std::cout << output;
     FILE* f = fopen(fileName.c_str(), "w+");
     fprintf(f, "%s", output.c_str());
     fclose(f);
