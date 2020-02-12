@@ -26,7 +26,7 @@ all: run
 
 run: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run
 
-bridge: $(DPD_BIN)/dpd-bridge
+bridge: $(INC)/config.h $(DPD_BIN)/dpd-bridge
 
 # ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
 LOCAL_SOCKET=./_external.sock
