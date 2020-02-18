@@ -108,30 +108,30 @@ uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, co
 
 // Recursively find the link and add an edge to it
 template<class S>
-void Universe<S>::followEdge(uint32_t links_e[6][8], uint32_t links_n[6][8], int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
+void Universe<S>::followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
     if (x0 > x1) {
-        links_e[x0 - 1][y0]++;
-        followEdge(links_e, links_n, x0 - 1, y0, x1, y1);
+        _links[x0 - 1][y0].east++;
+        followEdge(x0 - 1, y0, x1, y1);
         return;
     } else if (x0 < x1) {
-        links_e[x0][y0]++;
-        followEdge(links_e, links_n, x0 + 1, y0, x1, y1);
+        _links[x0][y0].east++;
+        followEdge(x0 + 1, y0, x1, y1);
         return;
     }
     if (y0 > y1) {
-        links_n[x0][y0 - 1]++;
-        followEdge(links_e, links_n, x0, y0 - 1, x1, y1);
+        _links[x0][y0 - 1].north++;
+        followEdge(x0, y0 - 1, x1, y1);
         return;
     } else if (y0 < y1) {
-        links_n[x0][y0]++;
-        followEdge(links_e, links_n, x0, y0 + 1, x1, y1);
+        _links[x0][y0].north++;
+        followEdge(x0, y0 + 1, x1, y1);
         return;
     }
 }
 
 // Find the number of edges which cross links
 template<class S>
-void Universe<S>::updateLinkInfo(uint32_t links_e[6][8], uint32_t links_n[6][8], uint32_t c_addr, unit_t c_loc) {
+void Universe<S>::updateLinkInfo(uint32_t c_addr, unit_t c_loc) {
     uint32_t xmask = ((1<<TinselMeshXBits)-1);
     // Get FPGA coordinates of origin cell
     int32_t c_FPGA_y = c_addr >> (TinselLogThreadsPerBoard + TinselMeshXBits);
@@ -153,7 +153,7 @@ void Universe<S>::updateLinkInfo(uint32_t links_e[6][8], uint32_t links_n[6][8],
                 PDeviceAddr n_addr = _g->toDeviceAddr[nId];
                 int32_t n_FPGA_y = n_addr >> (TinselLogThreadsPerBoard + TinselMeshXBits);
                 int32_t n_FPGA_x = (n_addr >> TinselLogThreadsPerBoard) & xmask;
-                followEdge(links_e, links_n, c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y);
+                followEdge(c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y);
             }
         }
     }
@@ -163,15 +163,12 @@ void Universe<S>::updateLinkInfo(uint32_t links_e[6][8], uint32_t links_n[6][8],
 template<class S>
 void Universe<S>::outputMapping() {
     // Number of edges using the links in x and y direction for FPGAs
-    uint32_t links_e[6][8];// Super hacky way of getting the links to pass between functions.
-    uint32_t links_n[6][8];// while not causing a segfault
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 8; j++) {
-            links_e[i][j] = 0;
-            links_n[i][j] = 0;
+            _links[i][j].east = 0;
+            _links[i][j].north = 0;
         }
     }
-    std::cout << 1;
     // JSON file
     std::string fileName = "../mapping/DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
     std::string output = "";
@@ -184,7 +181,7 @@ void Universe<S>::outputMapping() {
         std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
         PDeviceAddr cellAddr = _g->toDeviceAddr[cId];
         output += "\t\t" + cellName +": " + std::to_string(cellAddr) + ", \n";
-        updateLinkInfo(links_e, links_n, cellAddr, loc);
+        updateLinkInfo(cellAddr, loc);
     }
     // Remove trailing comma
     output = output.substr(0, output.length() - 3);
@@ -196,8 +193,8 @@ void Universe<S>::outputMapping() {
     for (int i = 0; i < 6; i++) {
         output += "\t\t[ ";
         for (int j = 0; j < 8; j++) {
-            uint32_t link_e = links_e[i][j];
-            uint32_t link_n = links_n[i][j];
+            uint32_t link_e = _links[i][j].east;
+            uint32_t link_n = _links[i][j].north;
             output += "{\"x\": ";
             output += std::to_string(link_e);
             output += ", \"y\": ";

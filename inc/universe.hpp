@@ -33,8 +33,8 @@ class Universe {
 
 #ifdef OUTPUT_MAPPING
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float vol_max);
-    void followEdge(uint32_t links_e[6][8], uint32_t links_n[6][8], int32_t x0, int32_t y0, int32_t x1, int32_t y1);
-    void updateLinkInfo(uint32_t links_e[6][8], uint32_t links_n[6][8], uint32_t cellAddr, unit_t cellLoc);
+    void followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1);
+    void updateLinkInfo(uint32_t cellAddr, unit_t cellLoc);
     void outputMapping(); // Print mapping as JSON
 #endif
 
@@ -81,6 +81,14 @@ class Universe {
     uint32_t _boxesX, _boxesY;
     // Board mesh dimensions
     uint32_t _boardsX, _boardsY;
+
+#ifdef OUTPUT_MAPPING
+    typedef struct _FPGALinks {
+        uint32_t east;
+        uint32_t north;
+    } FPGALinks;
+    FPGALinks _links[6][8]; // Super hacky way of getting the links to pass between functions while not causing a segfault
+#endif
 };
 
 #include "../src/universe.cpp"
