@@ -31,6 +31,17 @@ class Universe {
     bool space(const bead_t* a, const bead_t *b); // checks to see if this pair of beads can be added to the universe
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
+#ifdef OUTPUT_MAPPING
+    typedef struct _fpga_links {
+        uint32_t x = 0;
+        uint32_t y = 0;
+    } FPGALinks;
+    uint16_t locOffset(const uint16_t current, const int16_t offset, const float vol_max);
+    void followEdge(FPGALinks links[6][8], const int32_t x0, const int32_t y0, const int32_t x1, const int32_t y1);
+    void updateLinkInfo(FPGALinks links[6][8], uint32_t cellAddr, unit_t cellLoc);
+    void outputMapping(); // Print mapping as JSON
+#endif
+
     // simulation control
     void write(); // writes the simulation env onto the POETS system
     PThreadId get_thread_from_loc(unit_t loc); // Use unit_t location to acquire thread id
@@ -72,6 +83,8 @@ class Universe {
 
     // Box mesh dimensions
     uint32_t _boxesX, _boxesY;
+    // Board mesh dimensions
+    uint32_t _boardsX, _boardsY;
 };
 
 #include "../src/universe.cpp"

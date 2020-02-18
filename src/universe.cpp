@@ -94,6 +94,125 @@ void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b) {
     //_g->addEdge(b,0,a);
 }
 
+#ifdef OUTPUT_MAPPING
+template<class S>
+uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, const float vol_max) {
+    if (offset == -1 && current == 0) {
+        return vol_max - 1;
+    } else if (offset == 1 && current == vol_max - 1) {
+        return 0;
+    } else {
+        return current + offset;
+    }
+}
+
+// Recursively find the link and add an edge to it
+template<class S>
+void Universe<S>::followEdge(FPGALinks links[6][8], const int32_t x0, const int32_t y0, const int32_t x1, const int32_t y1) {
+    if (x0 > x1) {
+        links[x0 - 1][y0].x++;
+        followEdge(links, x0 - 1, y0, x1, y1);
+        return;
+    } else if (x0 < x1) {
+        links[x0][y0].x++;
+        followEdge(links, x0 + 1, y0, x1, y1);
+        return;
+    }
+    if (y0 > y1) {
+        links[x0][y0 - 1].y++;
+        followEdge(links, x0, y0 - 1, x1, y1);
+        return;
+    } else if (y0 < y1) {
+        links[x0][y0].y++;
+        followEdge(links, x0, y0 + 1, x1, y1);
+        return;
+    }
+}
+
+// Find the number of edges which cross links
+template<class S>
+void Universe<S>::updateLinkInfo(FPGALinks links[6][8], uint32_t c_addr, unit_t c_loc) {
+    uint32_t xmask = ((1<<TinselMeshXBits)-1);
+
+    // Get FPGA coordinates of origin cell
+    int32_t c_FPGA_y = c_addr >> (TinselLogThreadsPerBoard + TinselMeshXBits);
+    int32_t c_FPGA_x = (c_addr >> TinselLogThreadsPerBoard) & xmask;
+    //Loop through all neighbours
+    for (int16_t x_off = -1; x_off <= 1; x_off++) {
+        for (int16_t y_off = -1; y_off <= 1; y_off++) {
+            for (int16_t z_off = -1; z_off <= 1; z_off++) {
+                if (x_off == 0 && y_off == 0 && z_off == 0) {
+                    continue;
+                }
+                // Get neighbour location
+                unit_t n_loc;
+                n_loc.x = locOffset(c_loc.x, x_off, _size);
+                n_loc.y = locOffset(c_loc.y, y_off, _size);
+                n_loc.z = locOffset(c_loc.z, z_off, _size);
+
+                PDeviceId nId = _locToId[n_loc];
+                PDeviceAddr n_addr = _g->toDeviceAddr[nId];
+                int32_t n_FPGA_y = n_addr >> (TinselLogThreadsPerBoard + TinselMeshXBits);
+                int32_t n_FPGA_x = (n_addr >> TinselLogThreadsPerBoard) & xmask;
+                followEdge(links, c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y);
+            }
+        }
+    }
+}
+
+// Output mapping info as JSON
+template<class S>
+void Universe<S>::outputMapping() {
+    // Number of edges using the links in x and y direction for FPGAs
+    FPGALinks links[6][8]; // Super hacky way of getting the links to pass between functions.
+    // JSON file
+    std::string fileName = "../mapping/DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
+    std::string output = "";
+    // Open JSON
+    output = "{\n";
+    output += "\t\"vertices\": {\n";
+    for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+        PDeviceId cId = i->first;
+        unit_t loc = i->second;
+        std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
+        PDeviceAddr cellAddr = _g->toDeviceAddr[cId];
+        output += "\t\t" + cellName +": " + std::to_string(cellAddr) + ", \n";
+        updateLinkInfo(links, cellAddr, loc);
+    }
+    // Remove trailing comma
+    output = output.substr(0, output.length() - 3);
+    // Close vertices section
+    output += "\n\t},\n";
+    // Open links section
+    output += "\t\"links\": [\n";
+    // For each FPGA print link information for it's x (east) and y (south) link.
+    for (int i = 0; i < 6; i++) {
+        output += "\t\t[ ";
+        for (int j = 0; j < 8; j++) {
+            FPGALinks link = links[i][j];
+            output += "{\"x\": ";
+            output += std::to_string(link.x);
+            output += ", \"y\": ";
+            output += std::to_string(link.y);
+            output += "}, ";
+        }
+        output = output.substr(0, output.length() - 2);
+        output += " ],\n";
+    }
+    output = output.substr(0, output.length() - 2);
+    // Close links section
+    output += "\n\t]\n";
+    // Close JSON
+    output += "}\n";
+    // Write to file
+    FILE* f = fopen(fileName.c_str(), "w+");
+    fprintf(f, "%s", output.c_str());
+    fclose(f);
+    // File closed
+    exit(0);
+}
+#endif
+
 // constructor
 template<class S>
 Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
@@ -117,7 +236,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     std::cout << "Test length = " << max_time << "\n";
 
     _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 1;//TinselBoxMeshYLen;
+    _boxesY = 4;//TinselBoxMeshYLen;
+    _boardsX = _boxesX * TinselMeshXLenWithinBox;
+    _boardsY = _boxesY * TinselMeshYLenWithinBox;
+
     std::cout << "Running on " << _boxesX * _boxesY << " box";
     if ((_boxesX * _boxesY) != 1) {
         std::cout << "es";
@@ -328,25 +450,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _g->map(); // map the graph into hardware calling the POLite placer
 
 #ifdef OUTPUT_MAPPING
-    std::string fileName = "../mapping/DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
-    std::string output = "";
-    // Open JSON
-    output = "{\n";
-    output += "\t\"vertices\": {\n";
-    for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
-        PDeviceId cId = i->first;
-        unit_t loc = i->second;
-        std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
-        PDeviceAddr cellAddr = _g->toDeviceAddr[i->first];
-        output += "\t\t" + cellName +": " + std::to_string(cellAddr) + ", \n";
-    }
-    output = output.substr(0, output.length() - 3);
-    // Close JSON
-    output += "\n\t}\n}\n";
-    FILE* f = fopen(fileName.c_str(), "w+");
-    fprintf(f, "%s", output.c_str());
-    fclose(f);
-    exit(0);
+    outputMapping();
 #endif
 
     // initialise all the devices with their position
