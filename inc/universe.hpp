@@ -32,13 +32,9 @@ class Universe {
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
 #ifdef OUTPUT_MAPPING
-    typedef struct _fpga_links {
-        uint32_t x = 0;
-        uint32_t y = 0;
-    } FPGALinks;
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float vol_max);
-    void followEdge(FPGALinks links[6][8], const int32_t x0, const int32_t y0, const int32_t x1, const int32_t y1);
-    void updateLinkInfo(FPGALinks links[6][8], uint32_t cellAddr, unit_t cellLoc);
+    void followEdge(uint32_t links_e[6][8], uint32_t links_n[6][8], int32_t x0, int32_t y0, int32_t x1, int32_t y1);
+    void updateLinkInfo(uint32_t links_e[6][8], uint32_t links_n[6][8], uint32_t cellAddr, unit_t cellLoc);
     void outputMapping(); // Print mapping as JSON
 #endif
 
