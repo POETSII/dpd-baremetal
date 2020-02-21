@@ -42,8 +42,8 @@ class Universe {
 
 #if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
     void clearLinks(FPGALinks* links);
-    void followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1, FPGALinks* links);
-    void updateLinkInfo(uint32_t cellAddr, unit_t cellLoc, FPGALinks* links);
+    void followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, FPGALinks* links);
+    void updateLinkInfo(PThreadId cellAddr, unit_t cellLoc, FPGALinks* links);
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float vol_max);
 #endif
 
@@ -99,7 +99,7 @@ class Universe {
     // Board mesh dimensions
     uint32_t _boardsX, _boardsY;
 
-    FPGALinks *_link_messages, *_link_edges;
+    FPGALinks _link_messages, _link_edges;
 };
 
 #include "../src/universe.cpp"
