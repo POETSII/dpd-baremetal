@@ -17,9 +17,18 @@
 
 const uint8_t max_beads_per_dev = 7;
 
+#if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
+    typedef struct _FPGALinks {
+        std::vector<std::vector<uint32_t>> x;
+        std::vector<std::vector<uint32_t>> y;
+    } FPGALinks;
+
+#endif
+
 template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
 class Universe {
     public:
+
     // constructors and destructors
     Universe(S size, unsigned D, uint32_t max_time);
     ~Universe();
@@ -31,11 +40,19 @@ class Universe {
     bool space(const bead_t* a, const bead_t *b); // checks to see if this pair of beads can be added to the universe
     void addNeighbour(PDeviceId a, PDeviceId b); // make these two devices neighbours
 
-#ifdef OUTPUT_MAPPING
+#if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
+    void clearLinks(FPGALinks* links);
+    void followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1, FPGALinks* links);
+    void updateLinkInfo(uint32_t cellAddr, unit_t cellLoc, FPGALinks* links);
     uint16_t locOffset(const uint16_t current, const int16_t offset, const float vol_max);
-    void followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1);
-    void updateLinkInfo(uint32_t cellAddr, unit_t cellLoc);
+#endif
+
+#ifdef OUTPUT_MAPPING
     void outputMapping(); // Print mapping as JSON
+#endif
+
+#ifdef MESSAGE_COUNTER
+    void calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messages);
 #endif
 
     // simulation control
@@ -82,13 +99,7 @@ class Universe {
     // Board mesh dimensions
     uint32_t _boardsX, _boardsY;
 
-#ifdef OUTPUT_MAPPING
-    typedef struct _FPGALinks {
-        uint32_t east;
-        uint32_t north;
-    } FPGALinks;
-    FPGALinks _links[6][8]; // Super hacky way of getting the links to pass between functions while not causing a segfault
-#endif
+    FPGALinks *_link_messages, *_link_edges;
 };
 
 #include "../src/universe.cpp"

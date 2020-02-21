@@ -94,7 +94,7 @@ void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b) {
     //_g->addEdge(b,0,a);
 }
 
-#ifdef OUTPUT_MAPPING
+#if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
 template<class S>
 uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, const float vol_max) {
     if (offset == -1 && current == 0) {
@@ -106,32 +106,75 @@ uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, co
     }
 }
 
-// Recursively find the link and add an edge to it
-template<class S>
-void Universe<S>::followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
-    if (x0 > x1) {
-        _links[x0 - 1][y0].east++;
-        followEdge(x0 - 1, y0, x1, y1);
-        return;
-    } else if (x0 < x1) {
-        _links[x0][y0].east++;
-        followEdge(x0 + 1, y0, x1, y1);
-        return;
+template<class S> void Universe<S>::clearLinks(FPGALinks* links) {
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 8; j++) {
+            links->x[i][j] = 0;
+            links->y[i][j] = 0;
+        }
     }
-    if (y0 > y1) {
-        _links[x0][y0 - 1].north++;
-        followEdge(x0, y0 - 1, x1, y1);
-        return;
-    } else if (y0 < y1) {
-        _links[x0][y0].north++;
-        followEdge(x0, y0 + 1, x1, y1);
-        return;
+}
+
+// Find the link and add an edge to it
+template<class S>
+void Universe<S>::followEdge(int32_t x0, int32_t y0, int32_t x1, int32_t y1, FPGALinks* links) {
+
+    while (x0 != x1) {
+        if (x0 > x1) {
+            links->x[x0 - 1][y0]++;
+            std::cout << "x0 = " << x0 << " x1 = " << x1 << "\n";
+    for (int j = 7; j >= 0; j--) {
+        for (int i = 0; i < 6; i++) {
+            std::cout << "(" << links->x[i][j] << ", " << links->y[i][j] << "), ";
+        }
+        std::cout << "\n";
+    }
+    // std::cin.get();
+            x0--;
+        } else if (x0 < x1) {
+            links->x[x0][y0]++;
+            std::cout << "x0 = " << x0 << " x1 = " << x1 << "\n";
+    for (int j = 7; j >= 0; j--) {
+        for (int i = 0; i < 6; i++) {
+            std::cout << "(" << links->x[i][j] << ", " << links->y[i][j] << "), ";
+        }
+        std::cout << "\n";
+    }
+    // std::cin.get();
+            x0++;
+        }
+    }
+    while (y0 != y1) {
+        if (y0 > y1) {
+            links->y[x0][y0 - 1]++;
+            std::cout << "y0 = " << y0 << " y1 = " << y1 << "\n";
+    for (int j = 7; j >= 0; j--) {
+        for (int i = 0; i < 6; i++) {
+            std::cout << "(" << links->x[i][j] << ", " << links->y[i][j] << "), ";
+        }
+        std::cout << "\n";
+    }
+    // std::cin.get();
+            y0--;
+        } else if (y0 < y1) {
+            links->y[x0][y0]++;
+            std::cout << "y0 = " << y0 << " y1 = " << y1 << "\n";
+    for (int j = 7; j >= 0; j--) {
+        for (int i = 0; i < 6; i++) {
+            std::cout << "(" << links->x[i][j] << ", " << links->y[i][j] << "), ";
+        }
+        std::cout << "\n";
+    }
+    // std::cin.get();
+            y0++;
+        }
     }
 }
 
 // Find the number of edges which cross links
 template<class S>
-void Universe<S>::updateLinkInfo(uint32_t c_addr, unit_t c_loc) {
+void Universe<S>::updateLinkInfo(uint32_t c_addr, unit_t c_loc, FPGALinks* links) {
+
     uint32_t xmask = ((1<<TinselMeshXBits)-1);
     // Get FPGA coordinates of origin cell
     int32_t c_FPGA_y = c_addr >> (TinselLogThreadsPerBoard + TinselMeshXBits);
@@ -152,13 +195,24 @@ void Universe<S>::updateLinkInfo(uint32_t c_addr, unit_t c_loc) {
                 PDeviceId nId = _locToId[n_loc];
                 PDeviceAddr n_addr = _g->toDeviceAddr[nId];
                 int32_t n_FPGA_y = n_addr >> (TinselLogThreadsPerBoard + TinselMeshXBits);
+                std::cout << "n_addr = " << n_addr << ", n_FPGA_y = " << n_FPGA_y << "\n";
                 int32_t n_FPGA_x = (n_addr >> TinselLogThreadsPerBoard) & xmask;
-                followEdge(c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y);
+                std::cout << c_FPGA_x << ", " << c_FPGA_y << ", " << n_FPGA_x << ", " << n_FPGA_y << "\n";
+                followEdge(c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y, links);
+    // for (int j = 7; j >= 0; j--) {
+    //     for (int i = 0; i < 6; i++) {
+    //         std::cout << "(" << links->x[i][j] << ", " << links->y[i][j] << "), ";
+    //     }
+    //     std::cout << "\n";
+    // }
+    // std::cin.get();
             }
         }
     }
 }
+#endif
 
+#ifdef OUTPUT_MAPPING
 // Output mapping info as JSON
 template<class S>
 void Universe<S>::outputMapping() {
@@ -224,6 +278,9 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _size = size;
     _D = D;
     _unit_size = _size / S(D);
+    _link_messages = (FPGALinks*)malloc(sizeof(FPGALinks));
+    _link_edges = (FPGALinks*)malloc(sizeof(FPGALinks));
+
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
 #endif
@@ -240,8 +297,8 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 4;//TinselBoxMeshYLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -599,6 +656,58 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
     return thread_id;
 }
 
+#ifdef MESSAGE_COUNTER
+template<class S>
+void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messages) {
+    clearLinks(_link_messages);
+    for (std::map<unit_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
+        clearLinks(_link_edges);
+    //         for (int j = 7; j >= 0; j--) {
+    //     for (int i = 0; i < 6; i++) {
+    //         std::cout << "(" << _link_edges->x[i][j] << ", " << _link_edges->y[i][j] << "), ";
+    //     }
+    //     std::cout << "\n";
+    // }
+    // std::cin.get();
+        unit_t loc = i->first;
+        uint32_t cellAddr = _locToId[loc];
+        uint32_t messages = i->second;
+        updateLinkInfo(cellAddr, loc, _link_edges);
+    // for (int j = 7; j >= 0; j--) {
+    //     for (int i = 0; i < 6; i++) {
+    //         std::cout << "(" << _link_edges->x[i][j] << ", " << _link_edges->y[i][j] << "), ";
+    //     }
+    //     std::cout << "\n";
+    // }
+    // std::cin.get();
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (_link_edges->x[i][j] > 0) {
+                    uint32_t messages_before_x = _link_messages->x[i][j];
+                    _link_messages->x[i][j] += (messages * _link_edges->x[i][j]);
+                    // Overflow check - if messages_before is less, we've gone back to 0
+                    assert(messages_before_x <= _link_messages->x[i][j]);
+                }
+                if (_link_edges->y[i][j] > 0) {
+                    uint32_t messages_before_y = _link_messages->y[i][j];
+                    _link_messages->y[i][j] += (messages * _link_edges->y[i][j]);
+                    // Overflow check - if messages_before is less, we've gone back to 0
+                    assert(messages_before_y <= _link_messages->y[i][j]);
+                }
+            }
+        }
+    }
+
+    // DEBUG: Print link message numbers to screen - link (0, 0) is bottom left corner of printed
+    for (int j = 7; j >= 0; j--) {
+        for (int i = 0; i < 6; i++) {
+            std::cout << "(" << _link_messages->x[i][j] << ", " << _link_messages->y[i][j] << "), ";
+        }
+        std::cout << "\n";
+    }
+}
+#endif
+
 // starts the simulation
 template<class S>
 void Universe<S>::run(uint32_t max_time) {
@@ -614,6 +723,9 @@ void Universe<S>::run(uint32_t max_time) {
 
     uint32_t devices = 0;
     int32_t timestep = -1;
+#ifdef MESSAGE_COUNTER
+    std::map<unit_t, uint32_t> cell_messages;
+#endif
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
@@ -642,6 +754,16 @@ void Universe<S>::run(uint32_t max_time) {
         if (msg.payload.type == 0xAA) {
             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
             return;
+        }
+    #elif defined(MESSAGE_COUNTER)
+        if (msg.payload.type != 0xBB) {
+            devices++;
+            // std::cout << devices << " devices: " << msg.payload.timestep << "\n";
+            cell_messages[msg.payload.from] = msg.payload.timestep;
+            if (devices >= (_D*_D*_D)) {
+                calculateMessagesPerLink(cell_messages);
+                return;
+            }
         }
     #else
         pts_to_extern_t eMsg;

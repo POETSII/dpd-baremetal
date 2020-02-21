@@ -150,6 +150,10 @@ struct DPDState {
 
     uint32_t lost_beads;
     uint32_t max_time;
+
+#ifdef MESSAGE_COUNTER
+    uint32_t message_counter;
+#endif
 };
 
 // DPD Device code
@@ -342,6 +346,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline void init() {
     #if defined(TESTING) || defined(STATS)
         s->max_time = 1000;
+    #elif defined(MESSAGE_COUNTER)
+        s->message_counter = 0;
     #endif
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
@@ -365,7 +371,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
-        #if defined(TIMER) || defined(STATS)
+        #if defined(TIMER) || defined(STATS) || defined(MESSAGE_COUNTER)
             // Timed run has ended
             if (s->timestep >= s->max_time) {
                 return false;
@@ -542,6 +548,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
+    #ifdef MESSAGE_COUNTER
+        s->message_counter++;
+    #endif
 	    if(s->mode == UPDATE) {
 	        uint32_t ci = get_next_slot(s->sentslot);
         #ifdef ONE_BY_ONE
@@ -723,6 +732,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline bool finish(volatile DPDMessage* msg) {
         msg->type = 0xAA;
         msg->timestep = s->timestep;
+    #ifdef MESSAGE_COUNTER
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
+        msg->timestep = s->message_counter;
+    #endif
 	    return true;
     }
 

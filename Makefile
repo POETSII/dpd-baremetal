@@ -113,6 +113,10 @@ timed-dram-run: run
 output-mapping: DFLAGS=-DOUTPUT_MAPPING -DDRAM
 output-mapping: run
 
+# ------------- Cells output messages sent (not including number of edges) ---------
+count-messages: DFLAGS=-DMESSAGE_COUNTER
+count-messages: run
+
 # ------------- Do local calculations one bead at a time ------------
 onebyone: DFLAGS=-DTIMER -DONE_BY_ONE
 onebyone: run
