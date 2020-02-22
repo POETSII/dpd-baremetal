@@ -117,6 +117,9 @@ output-mapping: run
 count-messages: DFLAGS=-DMESSAGE_COUNTER
 count-messages: run
 
+count-messages-dram: DFLAGS=-DMESSAGE_COUNTER -DDRAM
+count-messages-dram: run
+
 # ------------- Do local calculations one bead at a time ------------
 onebyone: DFLAGS=-DTIMER -DONE_BY_ONE
 onebyone: run

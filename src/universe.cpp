@@ -126,50 +126,18 @@ void Universe<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
     while (x0 != x1) {
         if (x0 > x1) {
             links->x.at(x0 - 1).at(y0)++;
-            // std::cout << "x0 = " << x0 << " x1 = " << x1 << "\n";
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << links->x.at(i).at(j) << ", " << links->y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
             x0--;
         } else if (x0 < x1) {
             links->x.at(x0).at(y0)++;
-            // std::cout << "x0 = " << x0 << " x1 = " << x1 << "\n";
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << links->x.at(i).at(j) << ", " << links->y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
             x0++;
         }
     }
     while (y0 != y1) {
         if (y0 > y1) {
             links->y.at(x0).at(y0 - 1)++;
-            // std::cout << "y0 = " << y0 << " y1 = " << y1 << "\n";
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << links->x.at(i).at(j) << ", " << links->y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
             y0--;
         } else if (y0 < y1) {
             links->y.at(x0).at(y0)++;
-            // std::cout << "y0 = " << y0 << " y1 = " << y1 << "\n";
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << links->x.at(i).at(j) << ", " << links->y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
             y0++;
         }
     }
@@ -203,13 +171,6 @@ void Universe<S>::updateLinkInfo(PThreadId c_thread, unit_t c_loc, FPGALinks* li
                 uint32_t n_FPGA_x = (n_thread >> TinselLogThreadsPerBoard) & xmask;
 
                 followEdge(c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y, links);
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << links->x.at(i).at(j) << ", " << links->y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
             }
         }
     }
@@ -284,10 +245,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _unit_size = _size / S(D);
 
 // Prep link 2D vectors
-    _link_messages.x = std::vector<std::vector<uint32_t>>(6);
-    _link_messages.y = std::vector<std::vector<uint32_t>>(6);
-    _link_edges.x = std::vector<std::vector<uint32_t>>(6);
-    _link_edges.y = std::vector<std::vector<uint32_t>>(6);
+    _link_messages.x = std::vector<std::vector<uint64_t>>(6);
+    _link_messages.y = std::vector<std::vector<uint64_t>>(6);
+    _link_edges.x = std::vector<std::vector<uint64_t>>(6);
+    _link_edges.y = std::vector<std::vector<uint64_t>>(6);
     for (int i = 0; i < 6; i++) {
         _link_messages.x.at(i).resize(8);
         _link_messages.y.at(i).resize(8);
@@ -676,26 +637,12 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
     clearLinks(&_link_messages);
     for (std::map<unit_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
         clearLinks(&_link_edges);
-    //         for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << _link_edges.x.at(i).at(j) << ", " << _link_edges.y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
         unit_t loc = i->first;
         uint32_t cellId = _locToId[loc];
         PDeviceAddr cellAddr = _g->toDeviceAddr[cellId];
         PThreadId cellThread = getThreadId(cellAddr);
         uint32_t messages = i->second;
         updateLinkInfo(cellThread, loc, &_link_edges);
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << _link_edges.x.at(i).at(j) << ", " << _link_edges.y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 8; j++) {
                 if (_link_edges.x.at(i).at(j) > 0) {
@@ -712,14 +659,6 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
                 }
             }
         }
-    // std::cout << messages << "\n";
-    // for (int j = 7; j >= 0; j--) {
-    //     for (int i = 0; i < 6; i++) {
-    //         std::cout << "(" << _link_messages.x.at(i).at(j) << ", " << _link_messages.y.at(i).at(j) << "), ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    // std::cin.get();
     }
 
     // DEBUG: Print link message numbers to screen - link (0, 0) is bottom left corner of printed
@@ -729,9 +668,24 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
         }
         std::cout << "\n";
     }
-    std::string s = "../link_messages_" + std::to_string(_D) + ".csv";
+    std::string s = "../link_messages/link_messages_" + std::to_string(_D) + ".csv";
     FILE* f = fopen(s.c_str(), "w+");
-    for (int i = 0)
+
+    fprintf(f, "%u\n", _D);
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 8; j++) {
+            std::string x_name = "(" + std::to_string(i) + "," + std::to_string(j) + ")E - W(" + std::to_string(i+1) + "," + std::to_string(j) + ")";
+            std::string y_name = "(" + std::to_string(i) + "," + std::to_string(j) + ")N - S(" + std::to_string(i) + "," + std::to_string(j+1) + ")";
+
+            if (i < 5) {
+                fprintf(f, "%s, %lu\n", x_name.c_str(), _link_messages.x.at(i).at(j));
+            }
+            if (j < 7) {
+                fprintf(f, "%s, %lu\n", y_name.c_str(), _link_messages.y.at(i).at(j));
+            }
+        }
+    }
+
     fclose(f);
 }
 #endif

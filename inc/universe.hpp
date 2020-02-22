@@ -19,8 +19,8 @@ const uint8_t max_beads_per_dev = 7;
 
 #if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
     typedef struct _FPGALinks {
-        std::vector<std::vector<uint32_t>> x;
-        std::vector<std::vector<uint32_t>> y;
+        std::vector<std::vector<uint64_t>> x;
+        std::vector<std::vector<uint64_t>> y;
     } FPGALinks;
 
 #endif
