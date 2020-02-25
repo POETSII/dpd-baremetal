@@ -120,6 +120,13 @@ count-messages: run
 count-messages-dram: DFLAGS=-DMESSAGE_COUNTER -DDRAM
 count-messages-dram: run
 
+# ------------- Link messages analysis util -------------------------
+$(DPD_BIN)/linkAnalysis: $(DPD_BIN) $(DPD_UTILS)/linkAnalysis.cpp
+	g++ -O2 -std=c++11 $(DPD_UTILS)/linkAnalysis.cpp -o $(DPD_BIN)/linkAnalysis -lboost_filesystem
+
+link-analysis: $(DPD_BIN)/linkAnalysis
+
+
 # ------------- Do local calculations one bead at a time ------------
 onebyone: DFLAGS=-DTIMER -DONE_BY_ONE
 onebyone: run

@@ -21,6 +21,7 @@ const uint8_t max_beads_per_dev = 7;
     typedef struct _FPGALinks {
         std::vector<std::vector<uint64_t>> x;
         std::vector<std::vector<uint64_t>> y;
+        std::vector<std::vector<uint64_t>> intra;
     } FPGALinks;
 
 #endif
@@ -98,8 +99,9 @@ class Universe {
     uint32_t _boxesX, _boxesY;
     // Board mesh dimensions
     uint32_t _boardsX, _boardsY;
-
+#if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
     FPGALinks _link_messages, _link_edges;
+#endif
 };
 
 #include "../src/universe.cpp"

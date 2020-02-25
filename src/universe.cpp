@@ -111,6 +111,7 @@ template<class S> void Universe<S>::clearLinks(FPGALinks* links) {
         for (int j = 0; j < 8; j++) {
             links->x.at(i).at(j) = 0;
             links->y.at(i).at(j) = 0;
+            links->intra.at(i).at(j) = 0;
         }
     }
 }
@@ -118,9 +119,9 @@ template<class S> void Universe<S>::clearLinks(FPGALinks* links) {
 // Find the link and add an edge to it
 template<class S>
 void Universe<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, FPGALinks* links) {
-    if (x0 >= 6 || y0 >= 8 || x1 >= 6 || y1 >= 8) {
-        std::cout << "x0 = " << x0 << ", y0 = " << y0 << ", x1 = " << x1 << ", y1 = " << y1 << "\n";
-        std::cin.get();
+    if (x0 == x1 && y0 == y1) {
+        links->intra.at(x0).at(y0)++;
+        return;
     }
 
     while (x0 != x1) {
@@ -182,12 +183,7 @@ void Universe<S>::updateLinkInfo(PThreadId c_thread, unit_t c_loc, FPGALinks* li
 template<class S>
 void Universe<S>::outputMapping() {
     // Number of edges using the links in x and y direction for FPGAs
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 8; j++) {
-            _links[i][j].east = 0;
-            _links[i][j].north = 0;
-        }
-    }
+    clearLinks(&_link_edges);
     // JSON file
     std::string fileName = "../mapping/DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
     std::string output = "";
@@ -199,8 +195,9 @@ void Universe<S>::outputMapping() {
         unit_t loc = i->second;
         std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
         PDeviceAddr cellAddr = _g->toDeviceAddr[cId];
-        output += "\t\t" + cellName +": " + std::to_string(cellAddr) + ", \n";
-        updateLinkInfo(cellAddr, loc);
+        PThreadId cellThread = getThreadId(cellAddr);
+        output += "\t\t" + cellName +": " + std::to_string(cellThread) + ", \n";
+        updateLinkInfo(cellThread, loc, &_link_edges);
     }
     // Remove trailing comma
     output = output.substr(0, output.length() - 3);
@@ -212,8 +209,8 @@ void Universe<S>::outputMapping() {
     for (int i = 0; i < 6; i++) {
         output += "\t\t[ ";
         for (int j = 0; j < 8; j++) {
-            uint32_t link_e = _links[i][j].east;
-            uint32_t link_n = _links[i][j].north;
+            uint64_t link_e = _link_edges.x.at(i).at(j);
+            uint64_t link_n = _link_edges.y.at(i).at(j);
             output += "{\"x\": ";
             output += std::to_string(link_e);
             output += ", \"y\": ";
@@ -244,17 +241,23 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _D = D;
     _unit_size = _size / S(D);
 
-// Prep link 2D vectors
+#if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
+    // Prep link 2D vectors
     _link_messages.x = std::vector<std::vector<uint64_t>>(6);
     _link_messages.y = std::vector<std::vector<uint64_t>>(6);
+    _link_messages.intra = std::vector<std::vector<uint64_t>>(6);
     _link_edges.x = std::vector<std::vector<uint64_t>>(6);
     _link_edges.y = std::vector<std::vector<uint64_t>>(6);
+    _link_edges.intra = std::vector<std::vector<uint64_t>>(6);
     for (int i = 0; i < 6; i++) {
         _link_messages.x.at(i).resize(8);
         _link_messages.y.at(i).resize(8);
+        _link_messages.intra.at(i).resize(8);
         _link_edges.x.at(i).resize(8);
         _link_edges.y.at(i).resize(8);
+        _link_edges.intra.at(i).resize(8);
     }
+#endif
 
 #ifdef VISUALISE
     _extern = new ExternalServer("_external.sock");
@@ -657,6 +660,12 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
                     // Overflow check - if messages_before is less, we've gone back to 0
                     assert(messages_before_y <= _link_messages.y.at(i).at(j));
                 }
+                if (_link_edges.intra.at(i).at(j) > 0) {
+                    uint32_t messages_before_intra = _link_messages.intra.at(i).at(j);
+                    _link_messages.intra.at(i).at(j) += (messages * _link_edges.intra.at(i).at(j));
+                    // Overflow check - if messages_before is less, we've gone back to 0
+                    assert(messages_before_intra <= _link_messages.intra.at(i).at(j));
+                }
             }
         }
     }
@@ -664,7 +673,7 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
     // DEBUG: Print link message numbers to screen - link (0, 0) is bottom left corner of printed
     for (int j = 7; j >= 0; j--) {
         for (int i = 0; i < 6; i++) {
-            std::cout << "(" << _link_messages.x.at(i).at(j) << ", " << _link_messages.y.at(i).at(j) << "), ";
+            std::cout <<_link_messages.intra.at(i).at(j) << " (" << _link_messages.x.at(i).at(j) << ", " << _link_messages.y.at(i).at(j) << "), ";
         }
         std::cout << "\n";
     }
@@ -674,8 +683,11 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
     fprintf(f, "%u\n", _D);
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 8; j++) {
-            std::string x_name = "(" + std::to_string(i) + "," + std::to_string(j) + ")E - W(" + std::to_string(i+1) + "," + std::to_string(j) + ")";
-            std::string y_name = "(" + std::to_string(i) + "," + std::to_string(j) + ")N - S(" + std::to_string(i) + "," + std::to_string(j+1) + ")";
+            std::string intra_name = "intra (" + std::to_string(i) + " " + std::to_string(j) + ")";
+            std::string x_name = "(" + std::to_string(i) + " " + std::to_string(j) + ")E - W(" + std::to_string(i+1) + " " + std::to_string(j) + ")";
+            std::string y_name = "(" + std::to_string(i) + " " + std::to_string(j) + ")N - S(" + std::to_string(i) + " " + std::to_string(j+1) + ")";
+
+            fprintf(f, "%s, %lu\n", intra_name.c_str(), _link_messages.intra.at(i).at(j));
 
             if (i < 5) {
                 fprintf(f, "%s, %lu\n", x_name.c_str(), _link_messages.x.at(i).at(j));
