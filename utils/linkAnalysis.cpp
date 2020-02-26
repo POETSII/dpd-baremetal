@@ -78,6 +78,18 @@ void prepareTimeMap() {
 }
 
 int main(int argc, char *argv[]) {
+
+    bool totals = false;
+
+    if (argc > 1) {
+        std::string arg(argv[1]);
+        if (arg == "--totals") {
+            totals = true;
+        } else {
+            std::cerr << "Unrecognised argument: " << argv[1] << "\n";
+        }
+
+    }
     // Put the standard DPD times into a map for reference
     prepareTimeMap();
     // Populate link map with data from all available files
@@ -120,13 +132,23 @@ int main(int argc, char *argv[]) {
         for (std::map<std::string, uint64_t>:: iterator j = messageMap.begin(); j != messageMap.end(); ++j) {
             std::string linkId = j->first;
             // Calculate million messages per second
-            double mps = j->second / time / 1000000;
-            mpsMap[width][linkId] = mps;
+            if (!totals) {
+                double mps = j->second / time / 1000000;
+                mpsMap[width][linkId] = mps;
+            } else {
+                double total = j->second;
+                mpsMap[width][linkId] = total;
+            }
         }
     }
 
     // Open a new file to store all the new information in
-    FILE* f = fopen("../link_messages/range_of_links.csv", "w+");
+    FILE* f;
+    if (!totals) {
+        f = fopen("../link_messages/range_of_links.csv", "w+");
+    } else {
+        f = fopen("../link_messages/link_totals.csv", "w+");
+    }
 
     // Format the file nicely on the top row
     fprintf(f, "Volume width, ");
