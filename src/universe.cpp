@@ -12,7 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
 
-
 // helper functions for managing bead slots
 template<class S>
 uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
@@ -271,6 +270,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     std::cout << "Running GALS implementation\n";
 #else
     std::cout << "Running standard\n";
+#endif
+
+#ifdef MESSAGE_MANAGEMENT
+    std::cout << "Message management is enabled for this run\n";
 #endif
 
     std::cout << "Test length = " << max_time << "\n";

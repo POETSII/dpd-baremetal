@@ -39,6 +39,15 @@
 
 typedef float ptype;
 
+#ifdef MESSAGE_MANAGEMENT
+  #ifndef SEND_TO_SELF
+    const uint8_t NEIGHBOURS = 26;
+  #else
+    const uint8_t NEIGHBOURS = 27;
+  #endif
+#endif
+
+
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
 // const float problem_size = 18.0; // total size of the sim universe in one dimension
@@ -131,13 +140,8 @@ struct DPDState {
     unit_t loc; // the location of this cube
     uint32_t bslot; // a bitmap of which bead slot is occupied
     uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    uint16_t num_beads; // the number of beads in this device
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-// #ifdef TESTING
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
-// #else
-    // Vector3D<ptype> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
-// #endif
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
@@ -148,8 +152,13 @@ struct DPDState {
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
 
-    uint32_t lost_beads;
-    uint32_t max_time;
+    uint32_t lost_beads; // Beads lost due to the cell having a full bead_slot
+    uint32_t max_time; // Maximum timestep for this run
+
+#ifdef MESSAGE_MANAGEMENT
+    int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
+    uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
+#endif
 
 #ifdef MESSAGE_COUNTER
     uint32_t message_counter;
@@ -159,11 +168,6 @@ struct DPDState {
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
-    inline void clear_seen(uint32_t* seen) {
-        for (int i = 0; i < 100; i++) {
-            seen[i] = 0;
-        }
-    }
     // ----------------- bead slots ---------------------------
     // helper functions for managing bead slots
     inline uint32_t clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
@@ -192,19 +196,21 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         return 0xFFFFFFFF; // error there are no free slots!
     }
 
+// =============== MAY BE NEEDED FOR DEBUG, NOT NEEDED FOR RUNS ===============
     // get the number of beads occupying a slot
-    inline uint32_t get_num_beads(uint32_t slotlist){
-        uint32_t cnt = 0;
-        uint32_t mask = 0x1;
-        for(int i=0; i<MAX_BEADS; i++){
-                if(slotlist & mask) {
-                      cnt++;
-                }
-                mask = mask << 1;
-        }
-        return cnt; // error there are no free slots!
-    }
+    // inline uint32_t get_num_beads(uint32_t slotlist){
+    //     uint32_t cnt = 0;
+    //     uint32_t mask = 0x1;
+    //     for(int i=0; i<MAX_BEADS; i++){
+    //             if(slotlist & mask) {
+    //                   cnt++;
+    //             }
+    //             mask = mask << 1;
+    //     }
+    //     return cnt; // error there are no free slots!
+    // }
     // --------------------------------------------------------
+// ============================================================================
 
     // dt10's random number generator
 	uint32_t rand() {
@@ -215,8 +221,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     // dt10's hash based random num gen
     uint32_t pairwise_rand(uint32_t pid1, uint32_t pid2){
-        // uint32_t la= MIN(pid1, pid2);
-        // uint32_t lb= MAX(pid1, pid2);
         uint32_t s0 = (pid1 ^ s->grand)*pid2;
         uint32_t s1 = (pid2 ^ s->grand)*pid1;
         return s0 + s1;
@@ -241,11 +245,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
 
         ptype a_ij = A[a->type][b->type];
-        // Vector3D<ptype> r_ij = r_i - r_j;
         Vector3D<ptype> r_ij = a->pos - b->pos;
-        // Vector3D<ptype> v_i = a->velo;
-        // Vector3D<ptype> v_j = b->velo;
-        // Vector3D<ptype> v_ij = v_i - v_j;
         Vector3D<ptype> v_ij = a->velo - b->velo;
         const ptype drag_coef(4.5); // the drag coefficient
         const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
@@ -263,13 +263,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         force = force + ((r_ij / (r_ij_dist_sq)) * drag);
 
         // get the pairwise random number
-        //ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX)) * 0.5);
         ptype r_t((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
         ptype r = (r_t - ptype(1.0)) * 0.5;
         ptype w_r = (ptype(1.0) - r_ij_dist);
 
         // random force
-        //force = (r_ij / r_ij_dist)*sqrt_dt*r*w_r*sigma_ij*ptype(-1.0);
         ptype ran = sqrt_dt*r*w_r*sigma_ij;
         force = force - ((r_ij / r_ij_dist) * ran);
 
@@ -312,7 +310,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
             i = clear_slot(i, ci);
         }
-        s->sentslot = s->bslot;
     }
 #elif defined(ONE_BY_ONE)
     void local_calcs(uint32_t ci) {
@@ -351,15 +348,23 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
-		s->sentslot = s->bslot;
     #ifdef VISUALISE
 		s->emitcnt = emitperiod;
     #endif
 		s->mode = UPDATE;
-		if(get_num_beads(s->bslot) > 0)
+        s->sentslot = s->bslot;
+    #ifndef MESSAGE_MANAGEMENT
+		if (s->sentslot) {
 		    *readyToSend = Pin(0);
-        else
+        }
+        else {
 		    *readyToSend = No;
+        }
+    #else
+        *readyToSend = Pin(0);
+        s->nbs_complete = 0;
+        s->msgs_to_recv = 0;
+    #endif
 	}
 
 	// idle handler -- called once the system is idle with messages
@@ -383,11 +388,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 int ci = get_next_slot(i);
 
                 // ------ velocity verlet ------
-            // #ifdef TESTING
                 Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
-            // #else
-                // Vector3D<ptype> force = s->force_slot[ci];
-            // #endif
                 Vector3D<ptype> acceleration = force / p_mass;
                 Vector3D<ptype> delta_v = acceleration * dt;
                 // update velocity
@@ -396,11 +397,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
 
                 // ----- clear the forces ---------------
-            // #ifdef TESTING
                 s->force_slot[ci].set(0, 0, 0);
-            // #else
-                // s->force_slot[ci].set(ptype(0.0), ptype(0.0), ptype(0.0));
-            // #endif
 
                 // ----- migration code ------
                 bool migrating = false; // flag that says whether this particle needs to migrate
@@ -495,10 +492,16 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             } else {
                 s->emitcnt++;
                 s->mode = UPDATE;
-                if(get_num_beads(s->bslot) > 0){
-                    s->sentslot = s->bslot;
+                s->sentslot = s->bslot;
+            #ifndef MESSAGE_MANAGEMENT
+                if(s->sentslot){
                     *readyToSend = Pin(0);
                 }
+            #else
+                *readyToSend = Pin(0);
+                s->nbs_complete = 0;
+                s->msgs_to_recv = 0;
+            #endif
             }
             return true;
         #elif defined(TESTING)
@@ -510,18 +513,30 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 }
             } else {
                 s->mode = UPDATE;
-                if(get_num_beads(s->bslot) > 0){
-                    s->sentslot = s->bslot;
+                s->sentslot = s->bslot;
+            #ifndef MESSAGE_MANAGEMENT
+                if(s->sentslot){
                     *readyToSend = Pin(0);
                 }
+            #else
+                *readyToSend = Pin(0);
+                s->nbs_complete = 0;
+                s->msgs_to_recv = 0;
+            #endif
             }
             return true;
         #else
             s->mode = UPDATE;
-            if(get_num_beads(s->bslot) > 0){
-                s->sentslot = s->bslot;
+            s->sentslot = s->bslot;
+        #ifndef MESSAGE_MANAGEMENT
+            if(s->sentslot){
                 *readyToSend = Pin(0);
             }
+        #else
+            *readyToSend = Pin(0);
+            s->nbs_complete = 0;
+            s->msgs_to_recv = 0;
+        #endif
             return true;
         #endif
 
@@ -532,9 +547,16 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if (s->mode == EMIT) {
             s->mode = UPDATE;
             s->sentslot = s->bslot;
-            if(get_num_beads(s->bslot) > 0){
+        #ifndef MESSAGE_MANAGEMENT
+            if(s->sentslot){
                 *readyToSend = Pin(0);
             }
+        #else
+            *readyToSend = Pin(0);
+            s->nbs_complete = 0;
+            s->msgs_to_recv = 0;
+        #endif
+
             return true;
         }
     #elif defined(TESTING) || defined(STATS)
@@ -552,7 +574,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         s->message_counter++;
     #endif
 	    if(s->mode == UPDATE) {
+        #ifdef MESSAGE_MANAGEMENT
+            s->msgs_to_recv += NEIGHBOURS - s->nbs_complete; // Only expect messages from neighbours who have beads
+            if (s->sentslot == 0) {
+                msg->type = 0xBB; // 0xBB represents I have no beads to send
+                *readyToSend = No;
+                return;
+            }
+            msg->type = 0x00; // 0 represents a standard update message
+        #endif
+
 	        uint32_t ci = get_next_slot(s->sentslot);
+
         #ifdef ONE_BY_ONE
             local_calcs(ci);
         #endif
@@ -566,18 +599,28 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
-	        if(s->sentslot != 0) {
+        #ifndef MESSAGE_MANAGEMENT
+	        if(s->sentslot) {
                 *readyToSend = Pin(0);
 	        } else {
+                *readyToSend = No;
             #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
-                // s->local_slot_i = s->bslot;
-                // s->local_slot_j = s->bslot;
-                *readyToSend = No;
                 local_calcs();
-            #else
-                *readyToSend = No;
             #endif
 	        }
+        #else
+            if (s->sentslot == 0) {
+                *readyToSend = No; // No more beads to send
+                msg->type = 0xBC; // 0xBC represents this is my last bead.
+            #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
+                local_calcs();
+            #endif
+            } else if (s->msgs_to_recv <= 0 || s->nbs_complete == NEIGHBOURS) {
+                *readyToSend = Pin(0); // We have beads to send, and we've received a round of messages from all neighbours
+            } else {
+                *readyToSend = No; // We need to wait for a full round of messages from neighbours
+            }
+        #endif
 	        return;
 	    }
 
@@ -596,8 +639,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        s->migrateslot = clear_slot(s->migrateslot, ci);
 	        // clear the bead slot -- it no longer belongs to us
 	        s->bslot = clear_slot(s->bslot, ci);
-	        s->sentslot = s->bslot;
-	        if(s->migrateslot != 0) {
+
+	        if(s->migrateslot) {
                 *readyToSend = Pin(0);
 	        } else {
                 *readyToSend = No;
@@ -621,10 +664,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        msg->beads[0].type = s->bead_slot[ci].type;
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
-	        if(s->sentslot != 0) {
+	        if(s->sentslot) {
                 *readyToSend = HostPin;
 	        } else {
-	            s->sentslot = s->bslot;
 	            *readyToSend = No;
 	        }
             return;
@@ -643,9 +685,32 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
     }
 
+#ifdef MESSAGE_MANAGEMENT
+    inline void set_rts() {
+        if (s->sentslot) {
+            if (s->msgs_to_recv <= 0 || s->nbs_complete == NEIGHBOURS) {
+                *readyToSend = Pin(0); // We have beads to send, and we've received a round of messages from all neighbours
+            }
+        }
+    }
+#endif
+
 	// recv handler -- called when the device has received a message
 	inline void recv(DPDMessage *msg, None* edge) {
         if(s->mode == UPDATE) {
+
+        #ifdef MESSAGE_MANAGEMENT
+            s->msgs_to_recv--; // We expect a message from every neighbour
+            if (msg->type == 0xBB) {
+                s->nbs_complete++; // The sender had no beads and wont send any more
+                set_rts();
+                return; // We're done with this message - No beads from this neighbour
+            } else if (msg->type == 0xBC) {
+                s->nbs_complete++; // This is the senders last message, but the bead in it is useful
+            }
+            set_rts();
+        #endif
+
             bead_t b;
             b.id = msg->beads[0].id;
             b.type = msg->beads[0].type;
@@ -685,9 +750,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->force_slot[ci] = s->force_slot[ci] + x;
                 }
             #else
-            #ifndef ACCELERATE
+              #ifndef ACCELERATE
                 Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
-            #else
+              #else
                 return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
                                                  b.pos.x(), b.pos.y(), b.pos.z(),
                                                  s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
@@ -697,7 +762,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                                                  r_c, A[s->bead_slot[ci].type][b.type], s->grand);
                 Vector3D<ptype> f;
                 f.set(r.x, r.y, r.z);
-            #endif
+              #endif
 
                 Vector3D<int32_t> x = f.floatToFixed();
                 s->force_slot[ci] = s->force_slot[ci] + x;
