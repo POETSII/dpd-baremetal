@@ -18,24 +18,37 @@
 
 int main() {
 
-#ifndef BOND_TESTING
-    std::string bead_file = "../tests/beads_in_18.csv";
-    float problem_size = 18;
-    int N = 18;
-#else
+#ifdef BOND_TESTING
     std::string bead_file = "../tests/beads_bonds_in_25.csv";
+    std::string expected = "../tests/beads_bonds_out_25.csv";
     float problem_size = 25;
     int N = 25;
+    uint32_t test_length = 1000;
+#elif defined(LARGE_TEST)
+    std::string bead_file = "../tests/beads_in_44.csv";
+    std::string expected = "../tests/beads_out_44.csv";
+    float problem_size = 44;
+    int N = 44;
+    uint32_t test_length = 100;
+#else
+    std::string bead_file = "../tests/beads_in_18.csv";
+    std::string expected = "../tests/beads_out_18.csv";
+    float problem_size = 18;
+    int N = 18;
+    uint32_t test_length = 1000;
 #endif
 
-#ifndef GALS
-    printf("Testing the DPD application\n");
-#else
+#ifdef GALS
     printf("Testing the GALS DPD application\n");
+#else
+    printf("Testing the DPD application\n");
+#endif
+#if defined(LARGE_TEST)
+    printf("Testing a larger volume in the DPD application (no bonds)\n");
 #endif
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, 1000);
+    Universe<ptype> uni(problem_size, N, test_length);
 
     std::cerr << "Universe setup -- loading beads from " << bead_file << "\n";
 
@@ -78,12 +91,7 @@ int main() {
     // Store the expected bead positions in a map of bead ID to bead information
     std::map<uint32_t, bead_t> expected_beads_map;
     std::map<uint32_t, unit_t> expected_cell_map;
-    // Open expected bead file
-#ifndef BOND_TESTING
-    std::string expected = "../tests/beads_out_18.csv";
-#else
-    std::string expected = "../tests/beads_bonds_out_25.csv";
-#endif
+
     std::ifstream expected_out(expected);
     // Reuse line from above
     // Loop through and add the beads to the expected output map
@@ -122,12 +130,24 @@ int main() {
     // uni.print_occupancy();
 
     printf("running...\n");
+
+    struct timeval start, finish, elapsedTime; // Time the test
+
+    // Time it for interest
+    gettimeofday(&start, NULL);
+
     // Run the test and get the result
     std::map<uint32_t, DPDMessage> actual_out = uni.test();
 
+    // Get the finish time
+    gettimeofday(&finish, NULL);
+    // Calculate the elapsed time
+    timersub(&finish, &start, &elapsedTime);
+    double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+
     bool fail = false;
 
-    // FILE* newFile = fopen("../tests/beads_bonds_out_25.csv", "w");
+    // FILE* newFile = fopen("../tests/beads_out_44.csv", "w");
 
     for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
         // Actual values
@@ -150,31 +170,48 @@ int main() {
         expected_cell.z = expected_cell_map[i->first].z;
 
         // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
-
+    #ifndef LARGE_TEST
         std::cerr << "ID: " << expected_id << "\n";
 
         std::cerr << "Type: Expected " << expected_type << " Actual " << actual_type << " ";
+    #endif
         if (expected_type == actual_type) {
+        #ifndef LARGE_TEST
             std::cerr << "PASS\n";
+        #endif
         } else {
+        #ifndef LARGE_TEST
             std::cerr << "FAIL\n";
+        #endif
             fail = true;
         }
 
+    #ifndef LARGE_TEST
         std::cerr << "Cell: Expected (" << expected_cell.x << ", " << expected_cell.y << ", " << expected_cell.z << ") Actual (" << actual_cell.x << ", " << actual_cell.y << ", " << actual_cell.z << ") ";
+    #endif
         if (expected_cell.x == actual_cell.x && expected_cell.y == actual_cell.y && expected_cell.z == actual_cell.z) {
+        #ifndef LARGE_TEST
             std::cerr << "PASS\n";
+        #endif
         } else {
+        #ifndef LARGE_TEST
             std::cerr << "FAIL\n";
+        #endif
             fail = true;
         }
 
+    #ifndef LARGE_TEST
         printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
         printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
+    #endif
         if (expected_pos.x() == actual_pos.x() && expected_pos.y() == actual_pos.y() && expected_pos.z() == actual_pos.z()) {
+        #ifndef LARGE_TEST
             printf("PASS\n");
+        #endif
         } else {
+        #ifndef LARGE_TEST
             printf("FAIL\n");
+        #endif
             fail = true;
         }
 
@@ -185,9 +222,11 @@ int main() {
     printf("TESTING HAS ");
     if (fail) {
         printf("FAILED\n");
+        printf("Runtime = %1.10f\n", duration);
         return 1;
     } else {
         printf("PASSED\n");
+        printf("Runtime = %1.10f\n", duration);
         return 0;
     }
 
