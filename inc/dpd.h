@@ -356,8 +356,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #ifndef MESSAGE_MANAGEMENT
 		if (s->sentslot) {
 		    *readyToSend = Pin(0);
-        }
-        else {
+        } else {
 		    *readyToSend = No;
         }
     #else
