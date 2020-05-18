@@ -276,6 +276,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     std::cout << "Message management is enabled for this run\n";
 #endif
 
+#ifdef DOUBLE_SQRT
+    std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing" << "\n";
+#endif
+
     std::cout << "Test length = " << max_time << "\n";
 
     _boxesX = 2;//TinselBoxMeshXLen;

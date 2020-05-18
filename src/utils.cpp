@@ -18,13 +18,13 @@ float inv_sqrt(float x) {
 // sqrt using the inverse square root function
 float newt_sqrt(float x) {
    //return 1.0/inv_sqrt(x);
-   
+
    // https://www.codeproject.com/Articles/69941/Best-Square-Root-Method-Algorithm-Function-Precisi
    // We have more integer than float isue bandwidth, plus fast divides (well, same speed as anything else),
    // so might as well use this one.
-   
+
    //tinselAssert(x>=0);
-   
+
    union
    {
        int i;
@@ -32,18 +32,24 @@ float newt_sqrt(float x) {
    } u;
    u.x = x;
    u.i = (1<<29) + (u.i >> 1) - (1<<22);
-   
+
    // Two Babylonian Steps (simplified from:)
    // u.x = 0.5f * (u.x + x/u.x);
    // u.x = 0.5f * (u.x + x/u.x);
-   
+
    //u.x =       u.x + x/u.x;
    //u.x = 0.25f*u.x + x/u.x;
-   
+
    u.x = 0.5f * (u.x + x/u.x);
    u.x = 0.5f * (u.x + x/u.x);
    u.x = 0.5f * (u.x + x/u.x);
-   
-   return u.x; 
+
+#ifdef DOUBLE_SQRT
+   u.x = 0.5f * (u.x + x/u.x);
+   u.x = 0.5f * (u.x + x/u.x);
+   u.x = 0.5f * (u.x + x/u.x);
+#endif
+
+   return u.x;
 }
 
