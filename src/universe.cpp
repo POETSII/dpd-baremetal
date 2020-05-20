@@ -262,12 +262,16 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     _extern = new ExternalServer("_external.sock");
 #endif
 
-#ifdef ONE_BY_ONE
+#ifdef GALS
+    std::cout << "Running GALS implementation ";
+  #ifdef ONE_BY_ONE
+    std::cout << "using One by One";
+  #endif
+    std::cout << "\n";
+#elif defined(ONE_BY_ONE)
     std::cout << "Running one by one version\n";
 #elif defined(SEND_TO_SELF)
     std::cout << "Running send to self version\n";
-#elif defined(GALS)
-    std::cout << "Running GALS implementation\n";
 #else
     std::cout << "Running standard\n";
 #endif
@@ -363,7 +367,9 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
                 unit_t n_loc;
                 PDeviceId nId;
 
-            #if defined(GALS) || defined(SEND_TO_SELF)
+            #ifdef SEND_TO_SELF
+                addNeighbour(cId, cId);
+            #elif defined(GALS) && !defined(ONE_BY_ONE)
                 addNeighbour(cId, cId);
             #endif
 
@@ -729,7 +735,7 @@ void Universe<S>::run(uint32_t max_time) {
 #endif
     // enter the main loop
     while(1) {
-        PMessage<None, DPDMessage> msg;
+        PMessage<DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
         if (msg.payload.type != 0xBB) {
@@ -786,7 +792,7 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
 
     // enter the main loop
     while(1) {
-        PMessage<None, DPDMessage> msg;
+        PMessage<DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
         if (msg.payload.type == 0xAA) {
             finish++;

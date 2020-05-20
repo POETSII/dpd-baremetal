@@ -39,7 +39,11 @@
 #define START 6
 #define END 7
 
+#ifndef ONE_BY_ONE
 const uint8_t NEIGHBOURS = 27;
+#else
+const uint8_t NEIGHBOURS = 26;
+#endif
 
 typedef float ptype;
 
@@ -158,9 +162,10 @@ struct DPDState {
     uint8_t update_completes_received;
     uint8_t migrations_received;
     uint8_t migration_completes_received;
+    bool    emit_complete_sent;
     uint8_t emit_completes_received;
-    bool first_update;
-    bool first_migration;
+    uint8_t updates_sent;
+    uint8_t migrates_sent;
     int32_t total_update_beads;
     int32_t total_migration_beads;
 
@@ -168,7 +173,7 @@ struct DPDState {
     int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
     uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
 #endif
-
+    uint8_t error;
 };
 
 // DPD Device code
@@ -287,18 +292,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 #endif
 
     __attribute__((noinline)) bool update_complete() {
-    // #ifndef MESSAGE_MANAGEMENT
-        if (!(s->update_completes_received == NEIGHBOURS && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == NEIGHBOURS)) {
+        if (!(s->update_completes_received == NEIGHBOURS && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == NEIGHBOURS && s->updates_sent == 2)) {
             return false;
         }
         s->update_completes_received = 0;
-        s->first_update = false;
+        s->updates_sent = 0;
         s->updates_received = 0;
-    // #else
-    //     if (!(s->nbs_complete == NEIGHBOURS && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0)) {
-    //         return false;
-    //     }
-    // #endif
+
     #ifdef MESSAGE_MANAGEMENT
         s->nbs_complete = 0;
         s->msgs_to_recv = 0;
@@ -420,11 +420,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     __attribute__((noinline)) bool migration_complete() {
-        if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == NEIGHBOURS && s->migrations_received == NEIGHBOURS) {
+        if (s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == NEIGHBOURS && s->migrations_received == NEIGHBOURS && s->migrates_sent == 2) {
         // we have just finished a particle migration step
             s->migration_completes_received = 0;
             s->migrations_received = 0;
-            s->first_migration = false;
+            s->migrates_sent = 0;
             // Add new beads to bead_slot and update bslot
             s->bslot = s->newBeadMap;
             s->newBeadMap = 0;
@@ -471,8 +471,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     bool emit_complete() {
-        if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE) {
+        if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE && s->emit_complete_sent) {
             s->emit_completes_received = 0;
+            s->emit_complete_sent = false;
         #if defined(TESTING) || defined(STATS)
             if (s->timestep >= s->max_time) {
                 s->mode = END;
@@ -491,6 +492,34 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return false;
         }
     }
+
+#ifdef ONE_BY_ONE
+    void local_calcs(uint32_t ci) {
+        uint32_t j = s->bslot;
+        while(j) {
+            uint32_t cj = get_next_slot(j);
+            if(ci != cj) {
+                #ifndef ACCELERATE
+                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
+                #else
+                    return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                    s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                                    s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                    s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                                    s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                                    s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+                                                    A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                    Vector3D<ptype> f;
+                    f.set(r.x, r.y, r.z);
+                #endif
+
+                    Vector3D<int32_t> x = f.floatToFixed();
+                    s->force_slot[ci] = s->force_slot[ci] + x;
+            }
+            j = clear_slot(j, cj);
+        }
+    }
+#endif
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
@@ -513,7 +542,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
-        return true;
+        return false;
     }
 
 	// send handler -- called when the ready to send flag has been set
@@ -527,15 +556,19 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->type = 0x00; // 0 represents a standard update message
         #endif
 
-            if (!s->first_update) {
+            if (!s->updates_sent) {
                 s->sentslot = s->bslot;
                 msg->total_beads = get_num_beads(s->bslot);
-                s->first_update = true;
+                s->updates_sent = 1;
             } else {
                 msg->total_beads = 0;
             }
 
 	        uint32_t ci = get_next_slot(s->sentslot);
+
+        #ifdef ONE_BY_ONE
+            local_calcs(ci);
+        #endif
 	        // send all of our beads to neighbours
 	        msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
@@ -571,12 +604,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if(s->mode == UPDATE_COMPLETE) {
             msg->mode = UPDATE_COMPLETE;
-            msg->total_beads = s->first_update;
-        // #ifdef MESSAGE_MANAGEMENT
-        //     if (s->first_update) {
-        //         msg->type = 0xBB; // 0xBB represents I have no beads to send
-        //     }
-        // #endif
+            msg->total_beads = s->updates_sent;
+            s->updates_sent = 2;
             if (!update_complete()) {
                 *readyToSend = No;
             }
@@ -586,9 +615,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    if(s->mode == MIGRATION) { // we are in the MIGRATION mode we want to send beads to our neighbours
 	        // overload from with the dst filtering will happen on the recv side
             msg->mode = MIGRATION;
-            if (!s->first_migration) {
+            if (!s->migrates_sent) {
                 msg->total_beads = get_num_beads(s->migrateslot);
-                s->first_migration = true;
+                s->migrates_sent = 1;
             } else {
                 msg->total_beads = 0;
             }
@@ -618,7 +647,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if (s->mode == MIGRATION_COMPLETE) {
             msg->mode = MIGRATION_COMPLETE;
-            msg->total_beads = s->first_migration;
+            msg->total_beads = s->migrates_sent;
+            s->migrates_sent = 2;
             // s->migration_completes_received++;
             if (!migration_complete()) {
                 *readyToSend = No;
@@ -631,6 +661,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    if(s->mode==EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
+            msg->timestep = s->timestep;
             msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
             msg->from.z = s->loc.z;
@@ -663,6 +694,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if (s->mode==EMIT_COMPLETE) {
             // Tell neighbours I have finished emitting.
             msg->mode = EMIT_COMPLETE;
+            s->emit_complete_sent = true;
             // s->emit_completes_received++;
             if (!emit_complete()) {
                 *readyToSend = No;
@@ -736,7 +768,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     uint32_t i = s->bslot;
                     while(i) {
                         int ci = get_next_slot(i);
-                            if(s->bead_slot[ci].id != b.id) {
+                    #ifndef ONE_BY_ONE
+                        if(s->bead_slot[ci].id != b.id) {
+                    #endif
                         #ifndef ACCELERATE
                             Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
                         #else
@@ -753,7 +787,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
                             Vector3D<int32_t> x = f.floatToFixed();
                             s->force_slot[ci] = s->force_slot[ci] + x;
-                            }
+                    #ifndef ONE_BY_ONE
+                        }
+                    #endif
                         i = clear_slot(i, ci);
                     }
                     s->total_update_beads--;
@@ -842,7 +878,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        msg->type = 0xAA;
+        // msg->type = 0xAA;
+        msg->type = s->mode;
         msg->timestep = s->timestep;
 	    return true;
     }
