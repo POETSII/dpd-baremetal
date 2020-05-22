@@ -342,7 +342,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
     #if defined(TESTING) || defined(STATS)
-        s->max_time = 1000;
+        // s->max_time = 1000;
     #elif defined(MESSAGE_COUNTER)
         s->message_counter = 0;
     #endif

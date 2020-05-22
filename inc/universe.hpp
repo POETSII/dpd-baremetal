@@ -76,10 +76,14 @@ class Universe {
     // debugging
     void print_occupancy(); // prints the number of beads assigned to each devices
 
+    void set_beads_added(uint32_t beads_added);
+
     private:
-        S _size;
-        unsigned _D;
+    S _size;
+    unsigned _D;
 	S _unit_size;
+
+    uint32_t _beads_added;
 
 	// POLite related stuff
 	PGraph<DPDDevice, DPDState, None, DPDMessage> * _g; // the graph
