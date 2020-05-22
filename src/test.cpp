@@ -29,7 +29,7 @@ int main() {
     std::string expected = "../tests/beads_out_44.csv";
     float problem_size = 44;
     int N = 44;
-    uint32_t test_length = 100;
+    uint32_t test_length = 1000;
 #else
     std::string bead_file = "../tests/beads_in_18.csv";
     std::string expected = "../tests/beads_out_18.csv";
