@@ -524,7 +524,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
     #if defined(TESTING) || defined(STATS)
-        s->max_time = 1000;
+        // s->max_time = 1000;
     #endif
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
@@ -704,7 +704,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if (s->mode == END) {
             msg->type = 0xAA;
+        #ifndef BEAD_COUNTER
             msg->timestep = s->timestep;
+        #else
+            msg->timestep = get_num_beads(s->bslot);
+        #endif
             *readyToSend = No;
             return;
         }
@@ -878,10 +882,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        // msg->type = 0xAA;
-        msg->type = s->mode;
-        msg->timestep = s->timestep;
-	    return true;
+        // #ifndef BEAD_COUNTER
+        //     msg->timestep = s->timestep;
+        // #else
+        //     msg->type = 0xAA;
+        //     msg->timestep = get_num_beads(s->bslot);
+        // #endif
+	    return false;
     }
 
 };

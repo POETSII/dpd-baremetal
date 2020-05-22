@@ -233,6 +233,11 @@ void Universe<S>::outputMapping() {
 }
 #endif
 
+template<class S>
+void Universe<S>::set_beads_added(uint32_t beads_added) {
+    _beads_added = beads_added;
+}
+
 // constructor
 template<class S>
 Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
@@ -286,8 +291,8 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 4;//TinselBoxMeshYLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -730,6 +735,10 @@ void Universe<S>::run(uint32_t max_time) {
 
     uint32_t devices = 0;
     int32_t timestep = -1;
+#ifdef BEAD_COUNTER
+    uint32_t beads_out = 0;
+#endif
+
 #ifdef MESSAGE_COUNTER
     std::map<unit_t, uint32_t> cell_messages;
 #endif
@@ -738,6 +747,20 @@ void Universe<S>::run(uint32_t max_time) {
         PMessage<DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
+      #ifdef BEAD_COUNTER
+        if (msg.payload.type == 0xAA) {
+            devices++;
+            beads_out += msg.payload.timestep;
+            if (devices >= _D*_D*_D) { // All devices reported
+                std::cerr << "Beads in  = " << _beads_added << "\n";
+                std::cerr << "Beads out = " << beads_out << "\n";
+                FILE *f = fopen("../bead_count.csv", "a+");
+                fprintf(f, "%u, %u, %u\n", _D, _beads_added, beads_out);
+                fclose(f);
+                return;
+            }
+        }
+      #else
         if (msg.payload.type != 0xBB) {
             if (msg.payload.timestep >= max_time) {
                 gettimeofday(&finish, NULL);
@@ -757,6 +780,7 @@ void Universe<S>::run(uint32_t max_time) {
             std::cerr << "ERROR: finish received when not expected\n";
             return;
         }
+      #endif
     #elif defined(STATS)
         if (msg.payload.type == 0xAA) {
             printf("Stat collection complete, run \"make print-stats -C ..\"\n");

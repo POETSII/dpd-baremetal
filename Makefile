@@ -399,6 +399,18 @@ test-bonds: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
 
+# --------------- BEAD COUNTER -------------------------
+bead-count: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DBEAD_COUNTER
+bead-count: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
+bead-count-dram: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DBEAD_COUNTER -DDRAM
+bead-count-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
 
 # ------------- FILE PARSING AND RUNNING ---------------
 $(DPD_BIN)/parsedCode.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)

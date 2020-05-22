@@ -239,6 +239,8 @@ int main(int argc, char *argv[]) {
         bonded_world_3D();
     }
 
+    uni.set_beads_added(beads_added);
+
     uni.write(); // write the universe into the POETS memory
 
     // uni.print_occupancy();
