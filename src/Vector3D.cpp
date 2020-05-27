@@ -44,19 +44,19 @@ void Vector3D<S>::clear() {
 
 // getters
 template<class S>
-S Vector3D<S>::x() const { return _x; }
+S Vector3D<S>::x() const volatile { return _x; }
 template<class S>
-S Vector3D<S>::y() const { return _y; }
+S Vector3D<S>::y() const volatile { return _y; }
 template<class S>
-S Vector3D<S>::z() const { return _z; }
+S Vector3D<S>::z() const volatile { return _z; }
 
 // setters
 template<class S>
-void Vector3D<S>::x(S in) { _x = in; }
+void Vector3D<S>::x(S in) volatile { _x = in; }
 template<class S>
-void Vector3D<S>::y(S in) { _y = in; }
+void Vector3D<S>::y(S in) volatile { _y = in; }
 template<class S>
-void Vector3D<S>::z(S in) { _z = in; }
+void Vector3D<S>::z(S in) volatile { _z = in; }
 
 // setter
 template<class S>

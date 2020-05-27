@@ -744,7 +744,7 @@ void Universe<S>::run(uint32_t max_time) {
 #endif
     // enter the main loop
     while(1) {
-        PMessage<DPDMessage> msg;
+        PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
       #ifdef BEAD_COUNTER
@@ -816,7 +816,7 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
 
     // enter the main loop
     while(1) {
-        PMessage<DPDMessage> msg;
+        PMessage<None, DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
         if (msg.payload.type == 0xAA) {
             finish++;
