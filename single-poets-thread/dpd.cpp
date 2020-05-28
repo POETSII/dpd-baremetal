@@ -3,7 +3,7 @@
 #include <tinsel.h>
 #include "dpd.h"
 
-uint32_t get_next_free_slot(uint32_t slotlist) {
+inline uint32_t get_next_free_slot(uint32_t slotlist) {
     uint32_t mask = 0x1;
     for(int i=0; i<31; i++){
         if(!(slotlist & mask)) {
@@ -14,9 +14,9 @@ uint32_t get_next_free_slot(uint32_t slotlist) {
     return 0xFFFFFFFF; // error there are no free slots!
 }
 
-uint32_t set_slot(uint32_t slotlist, uint32_t pos){ return slotlist | (1 << pos); }
+inline uint32_t set_slot(uint32_t slotlist, uint32_t pos){ return slotlist | (1 << pos); }
 
-uint32_t get_next_slot(uint32_t slotlist) {
+inline uint32_t get_next_slot(uint32_t slotlist) {
     uint32_t mask = 0x1;
     for(int i=0; i<31; i++) {
         if(slotlist & mask) {
@@ -27,10 +27,127 @@ uint32_t get_next_slot(uint32_t slotlist) {
     return 0xFFFFFFFF; // we are empty
 }
 
-uint32_t clear_slot(uint32_t slotlist, uint32_t pos){  return slotlist & ~(1 << pos);  }
+inline uint32_t clear_slot(uint32_t slotlist, uint32_t pos){  return slotlist & ~(1 << pos); }
+
+inline unit_t get_neighbour_unit(unit_t current_cell, int16_t n_x, int16_t n_y, int16_t n_z) {
+    unit_t neighbour;
+    // X DIMENSION
+    if (n_x == -1) { // If neighbour is negative
+        if (current_cell.x == 0) { // If this neighbour is on min boundary
+            neighbour.x = VOL_SIZE - 1; // This neighbour is on the max boundary
+        } else { // Cell is not on a boundary or on max boundary
+            neighbour.x = current_cell.x - 1;
+        }
+    } else if (n_x == 0) { // If neighbour is the same, the value is the same
+        neighbour.x = current_cell.x;
+    } else if (n_x == 1) { // If neighbour is positive
+        if (current_cell.x == (VOL_SIZE - 1)) { // If neighbour is on max boundary
+            neighbour.x = 0; // This neighbour is on the min boundary
+        } else { // Cell is not on a boundary or is on min boundary
+            neighbour.x = current_cell.x + 1;
+        }
+    }
+    // Y DIMENSION
+    if (n_y == -1) { // If neighbour is negative
+        if (current_cell.y == 0) { // If this neighbour is on min boundary
+            neighbour.y = VOL_SIZE - 1; // This neighbour is on the max boundary
+        } else { // Cell is not on a boundary or on max boundary
+            neighbour.y = current_cell.y - 1;
+        }
+    } else if (n_y == 0) { // If neighbour is the same, the value is the same
+        neighbour.y = current_cell.y;
+    } else if (n_y == 1) { // If neighbour is positive
+        if (current_cell.y == (VOL_SIZE - 1)) { // If neighbour is on max boundary
+            neighbour.y = 0; // This neighbour is on the min boundary
+        } else { // Cell is not on a boundary or is on min boundary
+            neighbour.y = current_cell.y + 1;
+        }
+    }
+    // Z DIMENSION
+    if (n_z == -1) { // If neighbour is negative
+        if (current_cell.z == 0) { // If this neighbour is on min boundary
+            neighbour.z = VOL_SIZE - 1; // This neighbour is on the max boundary
+        } else { // Cell is not on a boundary or on max boundary
+            neighbour.z = current_cell.z - 1;
+        }
+    } else if (n_z == 0) { // If neighbour is the same, the value is the same
+        neighbour.z = current_cell.z;
+    } else if (n_z == 1) { // If neighbour is positive
+        if (current_cell.z == (VOL_SIZE - 1)) { // If neighbour is on max boundary
+            neighbour.z = 0; // This neighbour is on the min boundary
+        } else { // Cell is not on a boundary or is on min boundary
+            neighbour.z = current_cell.z + 1;
+        }
+    }
+
+    return neighbour;
+}
+
+// dt10's random number generator
+inline uint32_t dt10_rand(uint64_t* rngstate) {
+    uint32_t c = (*rngstate)>>32, x=(*rngstate)&0xFFFFFFFF;
+    *rngstate = x*((uint64_t)429488355U) + c;
+    return x^c;
+}
+
+// dt10's hash based random num gen
+inline uint32_t pairwise_rand(uint32_t pid1, uint32_t pid2, uint32_t grand){
+    uint32_t s0 = (pid1 ^ grand)*pid2;
+    uint32_t s1 = (pid2 ^ grand)*pid1;
+    return s0 + s1;
+}
+
+Vector3D<float> force_update(bead_t *a, bead_t *b, uint32_t grand) {
+
+    float r_ij_dist_sq = a->pos.sq_dist(b->pos);
+
+    Vector3D<float> force(0.0,0.0,0.0); // accumulate the force here
+
+    if (r_ij_dist_sq > sq_r_c) {
+        return force;
+    }
+
+    float r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
+
+    float a_ij = A[a->type][b->type];
+    Vector3D<float> r_ij = a->pos - b->pos;
+    Vector3D<float> v_ij = a->velo - b->velo;
+    const float drag_coef(4.5); // the drag coefficient
+    const float sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
+    const float sqrt_dt(0.1414); // sqrt(0.02)
+
+    // switching function
+    float w_d = (float(1.0) - r_ij_dist)*(float(1.0) - r_ij_dist);
+
+    //Conservative force: Equation 8.5 in the dl_meso manual
+    float con = a_ij * (float(1.0) - (r_ij_dist/r_c));
+    force = (r_ij/r_ij_dist) * con;
+
+    // Drag force
+    float drag = w_d * r_ij.dot(v_ij) * (float(-1.0) * drag_coef);
+    force = force + ((r_ij / (r_ij_dist_sq)) * drag);
+
+    // get the pairwise random number
+    float r_t((pairwise_rand(a->id, b->id, grand) / (float)(DT10_RAND_MAX/2)));
+    float r = (r_t - float(1.0)) * 0.5;
+    float w_r = (float(1.0) - r_ij_dist);
+
+    // random force
+    float ran = sqrt_dt*r*w_r*sigma_ij;
+    force = force - ((r_ij / r_ij_dist) * ran);
+
+    // if(are_beads_bonded(a->id, b->id)) {
+    //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
+    // }
+
+    return force;
+}
 
 int main()
 {
+    uint64_t rngstate = 1234; // Random seed
+    uint32_t grand = dt10_rand(&rngstate); // the global random number at this timestep
+
     cell_t cells[VOL_SIZE][VOL_SIZE][VOL_SIZE];
     tinselSetLen(3);
 // INIT
@@ -45,6 +162,7 @@ int main()
                 cells[x][y][z].loc = {x, y, z};
                 cells[x][y][z].bslot = 0;
                 for (int i = 0; i < MAX_BEADS; i++) {
+                    // Clear bead slots
                     cells[x][y][z].bead_slot[i].id = 0;
                     cells[x][y][z].bead_slot[i].type = 0;
                     cells[x][y][z].bead_slot[i].pos.x(0);
@@ -53,6 +171,10 @@ int main()
                     cells[x][y][z].bead_slot[i].velo.x(0);
                     cells[x][y][z].bead_slot[i].velo.y(0);
                     cells[x][y][z].bead_slot[i].velo.z(0);
+                    // Clear forces
+                    cells[x][y][z].force_slot[i].x(0);
+                    cells[x][y][z].force_slot[i].y(0);
+                    cells[x][y][z].force_slot[i].z(0);
                 }
             }
         }
@@ -111,39 +233,131 @@ int main()
         }
     }
 
-// Pass beads back to host to check they're stored correctly
-    for (uint16_t x = 0; x < VOL_SIZE; x++) {
-        for (uint16_t y = 0; y < VOL_SIZE; y++) {
-            for (uint16_t z = 0; z < VOL_SIZE; z++) {
-                uint32_t bslot = cells[x][y][z].bslot;
-                while (bslot) {
-                    msg->type = 0x0B;
-                    msg->from.x = cells[x][y][z].loc.x;
-                    msg->from.y = cells[x][y][z].loc.y;
-                    msg->from.z = cells[x][y][z].loc.z;
+    // Run the actual simulation. The end time is handled later
+    uint32_t timestep = 0;
+    while (true) {
+        // For each cell
+        for (uint16_t x = 0; x < VOL_SIZE; x++) {
+            for (uint16_t y = 0; y < VOL_SIZE; y++) {
+                for (uint16_t z = 0; z < VOL_SIZE; z++) {
+// UPDATE
+                    unit_t c = {x, y, z};
+                    // For each neighbour
+                    for (int16_t n_x = -1; n_x <= 1; n_x++) {
+                        for (int16_t n_y = -1; n_y <= 1; n_y++) {
+                            for (int16_t n_z = -1; n_z <= 1; n_z++) {
+                                // Find the neighbours coordinates
+                                unit_t n = get_neighbour_unit(c, n_x, n_y, n_z);
+                                // Bitmap of current cell
+                                uint32_t current_bslot = cells[c.x][c.y][c.z].bslot;
+                                // For each bead in this cell
+                                while (current_bslot) {
+                                    // Index of bead
+                                    uint32_t ci = get_next_slot(current_bslot);
+                                    // Bitmap of neighbour cell
+                                    uint32_t neighbour_bslot = cells[n.x][n.y][n.z].bslot;
+                                    // For each bead in neighbour cell
+                                    while(neighbour_bslot) {
+                                        // Index of neighbour bead
+                                        uint32_t cj = get_next_slot(neighbour_bslot);
+                                        // Cells calculate local interactions within here. The same bead cannot interact with itself
+                                        // If the beads are not the same
+                                        if(cells[c.x][c.y][c.z].bead_slot[ci].id != cells[n.x][n.y][n.z].bead_slot[cj].id) {
+                                            Vector3D<float> f = force_update(&cells[c.x][c.y][c.z].bead_slot[ci], &cells[n.x][n.y][n.z].bead_slot[cj], grand);
+                                            Vector3D<int32_t> x = f.floatToFixed();
+                                            cells[c.x][c.y][c.z].force_slot[ci] = cells[c.x][c.y][c.z].force_slot[ci] + x;
+                                        }
+                                        neighbour_bslot = clear_slot(neighbour_bslot, cj);
+                                    }
 
-                    uint32_t ci = get_next_slot(bslot);
-
-                    // msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
-                    msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
-                    msg->beads[0].type = cells[x][y][z].bead_slot[ci].type;
-                    msg->beads[0].pos.x(cells[x][y][z].bead_slot[ci].pos.x());
-                    msg->beads[0].pos.y(cells[x][y][z].bead_slot[ci].pos.y());
-                    msg->beads[0].pos.z(cells[x][y][z].bead_slot[ci].pos.z());
-                    msg->beads[0].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
-                    msg->beads[0].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
-                    msg->beads[0].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
-
-                    bslot = clear_slot(bslot, ci);
-
-                    // Wait until we can send
-                    tinselWaitUntil(TINSEL_CAN_SEND);
-                    // Send to host
-                    tinselSend(hostId, msg);
+                                    current_bslot = clear_slot(current_bslot, ci);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
+// EMIT
+// Pass beads to host
+        for (uint16_t x = 0; x < VOL_SIZE; x++) {
+            for (uint16_t y = 0; y < VOL_SIZE; y++) {
+                for (uint16_t z = 0; z < VOL_SIZE; z++) {
+                    uint32_t bslot = cells[x][y][z].bslot;
+                    while (bslot) {
+                        msg->type = 0x0F;
+                        msg->from.x = cells[x][y][z].loc.x;
+                        msg->from.y = cells[x][y][z].loc.y;
+                        msg->from.z = cells[x][y][z].loc.z;
+
+                        uint32_t ci = get_next_slot(bslot);
+
+                        // msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
+                        msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
+                        msg->beads[0].type = cells[x][y][z].bead_slot[ci].type;
+                        msg->beads[0].pos.x(cells[x][y][z].force_slot[ci].x());
+                        msg->beads[0].pos.y(cells[x][y][z].force_slot[ci].y());
+                        msg->beads[0].pos.z(cells[x][y][z].force_slot[ci].z());
+                        // msg->beads[0].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
+                        // msg->beads[0].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
+                        // msg->beads[0].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
+
+                        bslot = clear_slot(bslot, ci);
+
+                        // Wait until we can send
+                        tinselWaitUntil(TINSEL_CAN_SEND);
+                        // Send to host
+                        tinselSend(hostId, msg);
+                    }
+                }
+            }
+        }
+        break;
+// VELOCITY VERLET
+        // Increment timestep
+        timestep++;
+        // Timed run has ended
+        if (timestep >= TEST_LENGTH) {
+            break;
+        }
+        // Advance the random number
+        grand = dt10_rand(&rngstate);
     }
+
+// EMIT
+// // Pass beads to host
+//     for (uint16_t x = 0; x < VOL_SIZE; x++) {
+//         for (uint16_t y = 0; y < VOL_SIZE; y++) {
+//             for (uint16_t z = 0; z < VOL_SIZE; z++) {
+//                 uint32_t bslot = cells[x][y][z].bslot;
+//                 while (bslot) {
+//                     msg->type = 0x0B;
+//                     msg->from.x = cells[x][y][z].loc.x;
+//                     msg->from.y = cells[x][y][z].loc.y;
+//                     msg->from.z = cells[x][y][z].loc.z;
+
+//                     uint32_t ci = get_next_slot(bslot);
+
+//                     // msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
+//                     msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
+//                     msg->beads[0].type = cells[x][y][z].bead_slot[ci].type;
+//                     msg->beads[0].pos.x(cells[x][y][z].bead_slot[ci].pos.x());
+//                     msg->beads[0].pos.y(cells[x][y][z].bead_slot[ci].pos.y());
+//                     msg->beads[0].pos.z(cells[x][y][z].bead_slot[ci].pos.z());
+//                     msg->beads[0].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
+//                     msg->beads[0].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
+//                     msg->beads[0].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
+
+//                     bslot = clear_slot(bslot, ci);
+
+//                     // Wait until we can send
+//                     tinselWaitUntil(TINSEL_CAN_SEND);
+//                     // Send to host
+//                     tinselSend(hostId, msg);
+//                 }
+//             }
+//         }
+//     }
 
 // FINISH
     // Message to be sent to the host
