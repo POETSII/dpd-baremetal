@@ -363,6 +363,7 @@ int main()
             std::cerr << "\tBead id   = " << b.id << ", bead type = " << b.type << "\n";
             std::cerr << "\tBead pos  = (" << b.pos.x() << ", " << b.pos.y() << ", " << b.pos.z() << ")\n";
             std::cerr << "\tBead velo = (" << b.velo.x() << ", " << b.velo.y() << ", " << b.velo.z() << ")\n";
+            assert(b.pos.x() > 0 && b.pos.x() < 1 && b.pos.y() > 0 && b.pos.y() < 1 && b.pos.z() > 0 && b.pos.z() < 1);
         }
     }
 
