@@ -117,20 +117,20 @@ Vector3D<float> force_update(bead_t *a, bead_t *b, uint32_t grand) {
     const float sqrt_dt(0.1414); // sqrt(0.02)
 
     // switching function
-    float w_d = (float(1.0) - r_ij_dist)*(float(1.0) - r_ij_dist);
+    float w_d = (1.0 - r_ij_dist)*(1.0 - r_ij_dist);
 
     //Conservative force: Equation 8.5 in the dl_meso manual
-    float con = a_ij * (float(1.0) - (r_ij_dist/r_c));
+    float con = a_ij * (1.0 - (r_ij_dist/r_c));
     force = (r_ij/r_ij_dist) * con;
 
     // Drag force
-    float drag = w_d * r_ij.dot(v_ij) * (float(-1.0) * drag_coef);
+    float drag = w_d * r_ij.dot(v_ij) * (-1.0 * drag_coef);
     force = force + ((r_ij / (r_ij_dist_sq)) * drag);
 
     // get the pairwise random number
     float r_t((pairwise_rand(a->id, b->id, grand) / (float)(DT10_RAND_MAX/2)));
-    float r = (r_t - float(1.0)) * 0.5;
-    float w_r = (float(1.0) - r_ij_dist);
+    float r = (r_t - 1.0) * 0.5;
+    float w_r = (1.0 - r_ij_dist);
 
     // random force
     float ran = sqrt_dt*r*w_r*sigma_ij;
@@ -161,6 +161,7 @@ int main()
             for (uint16_t z = 0; z < VOL_SIZE; z++) {
                 cells[x][y][z].loc = {x, y, z};
                 cells[x][y][z].bslot = 0;
+                cells[x][y][z].migrateslot = 0;
                 for (int i = 0; i < MAX_BEADS; i++) {
                     // Clear bead slots
                     cells[x][y][z].bead_slot[i].id = 0;
@@ -175,6 +176,10 @@ int main()
                     cells[x][y][z].force_slot[i].x(0);
                     cells[x][y][z].force_slot[i].y(0);
                     cells[x][y][z].force_slot[i].z(0);
+                    // Clear migrate loc
+                    cells[x][y][z].migrate_loc[i].x = 0;
+                    cells[x][y][z].migrate_loc[i].y = 0;
+                    cells[x][y][z].migrate_loc[i].z = 0;
                 }
             }
         }
@@ -278,41 +283,6 @@ int main()
                 }
             }
         }
-// EMIT
-// Pass beads to host
-        for (uint16_t x = 0; x < VOL_SIZE; x++) {
-            for (uint16_t y = 0; y < VOL_SIZE; y++) {
-                for (uint16_t z = 0; z < VOL_SIZE; z++) {
-                    uint32_t bslot = cells[x][y][z].bslot;
-                    while (bslot) {
-                        msg->type = 0x0F;
-                        msg->from.x = cells[x][y][z].loc.x;
-                        msg->from.y = cells[x][y][z].loc.y;
-                        msg->from.z = cells[x][y][z].loc.z;
-
-                        uint32_t ci = get_next_slot(bslot);
-
-                        // msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
-                        msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
-                        msg->beads[0].type = cells[x][y][z].bead_slot[ci].type;
-                        msg->beads[0].pos.x(cells[x][y][z].force_slot[ci].x());
-                        msg->beads[0].pos.y(cells[x][y][z].force_slot[ci].y());
-                        msg->beads[0].pos.z(cells[x][y][z].force_slot[ci].z());
-                        // msg->beads[0].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
-                        // msg->beads[0].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
-                        // msg->beads[0].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
-
-                        bslot = clear_slot(bslot, ci);
-
-                        // Wait until we can send
-                        tinselWaitUntil(TINSEL_CAN_SEND);
-                        // Send to host
-                        tinselSend(hostId, msg);
-                    }
-                }
-            }
-        }
-        break;
 // VELOCITY VERLET
         // Increment timestep
         timestep++;
@@ -322,42 +292,171 @@ int main()
         }
         // Advance the random number
         grand = dt10_rand(&rngstate);
+
+        // For each cell
+        for (uint16_t x = 0; x < VOL_SIZE; x++) {
+            for (uint16_t y = 0; y < VOL_SIZE; y++) {
+                for (uint16_t z = 0; z < VOL_SIZE; z++) {
+                    uint32_t i = cells[x][y][z].bslot;
+                    // For each bead in this cell
+                    while(i){
+                        int ci = get_next_slot(i);
+
+                        // ------ velocity verlet ------
+                        Vector3D<float> force = cells[x][y][z].force_slot[ci].fixedToFloat();
+                        Vector3D<float> acceleration = force / p_mass;
+                        Vector3D<float> delta_v = acceleration * dt;
+                        // update velocity
+                        cells[x][y][z].bead_slot[ci].velo = cells[x][y][z].bead_slot[ci].velo + delta_v;
+                        // update position
+                        cells[x][y][z].bead_slot[ci].pos = cells[x][y][z].bead_slot[ci].pos + cells[x][y][z].bead_slot[ci].velo*dt + acceleration*0.5*dt*dt;
+
+                        // ----- clear the forces ---------------
+                        cells[x][y][z].force_slot[ci].set(0, 0, 0);
+
+                        // ----- migration code ------
+                        bool migrating = false; // flag that says whether this particle needs to migrate
+                        unit_t d_loc; // the potential destination for this bead
+
+                        //    migration in the x dim
+                        if(cells[x][y][z].bead_slot[ci].pos.x() >= CELL_SIZE){
+                            migrating = true;
+                            if(cells[x][y][z].loc.x == (VOL_SIZE - 1)){
+                                d_loc.x = 0;
+                            } else {
+                                d_loc.x = cells[x][y][z].loc.x + 1;
+                            }
+                            cells[x][y][z].bead_slot[ci].pos.x(cells[x][y][z].bead_slot[ci].pos.x() - CELL_SIZE); // make it relative to the dest
+                        } else if (cells[x][y][z].bead_slot[ci].pos.x() < 0.0) {
+                            migrating = true;
+                            if(cells[x][y][z].loc.x == 0) {
+                                d_loc.x = VOL_SIZE - 1;
+                            } else {
+                                d_loc.x = cells[x][y][z].loc.x - 1;
+                            }
+                           cells[x][y][z].bead_slot[ci].pos.x(cells[x][y][z].bead_slot[ci].pos.x() + CELL_SIZE); // make it relative to the dest
+                        } else {
+                            d_loc.x = cells[x][y][z].loc.x;
+                        }
+
+                        //    migration in the y dim
+                        if(cells[x][y][z].bead_slot[ci].pos.y() >= CELL_SIZE){
+                            migrating = true;
+                            if(cells[x][y][z].loc.y == (VOL_SIZE - 1)){
+                                d_loc.y = 0;
+                            } else {
+                                d_loc.y = cells[x][y][z].loc.y + 1;
+                            }
+                            cells[x][y][z].bead_slot[ci].pos.y(cells[x][y][z].bead_slot[ci].pos.y() - CELL_SIZE); // make it relative to the dest
+                        } else if (cells[x][y][z].bead_slot[ci].pos.y() < 0.0) {
+                            migrating = true;
+                            if(cells[x][y][z].loc.y == 0) {
+                                d_loc.y = VOL_SIZE - 1;
+                            } else {
+                                d_loc.y = cells[x][y][z].loc.y - 1;
+                            }
+                            cells[x][y][z].bead_slot[ci].pos.y(cells[x][y][z].bead_slot[ci].pos.y() + CELL_SIZE); // make it relative to the dest
+                        } else {
+                            d_loc.y = cells[x][y][z].loc.y;
+                        }
+
+                        //    migration in the z dim
+                        if(cells[x][y][z].bead_slot[ci].pos.z() >= CELL_SIZE){
+                            migrating = true;
+                            if(cells[x][y][z].loc.z == (VOL_SIZE - 1)){
+                                d_loc.z = 0;
+                            } else {
+                                d_loc.z = cells[x][y][z].loc.z + 1;
+                            }
+                            cells[x][y][z].bead_slot[ci].pos.z(cells[x][y][z].bead_slot[ci].pos.z() - CELL_SIZE); // make it relative to the dest
+                        } else if (cells[x][y][z].bead_slot[ci].pos.z() < 0.0) {
+                            migrating = true;
+                            if(cells[x][y][z].loc.z == 0) {
+                                d_loc.z = VOL_SIZE - 1;
+                            } else {
+                                d_loc.z = cells[x][y][z].loc.z - 1;
+                            }
+                            cells[x][y][z].bead_slot[ci].pos.z(cells[x][y][z].bead_slot[ci].pos.z() + CELL_SIZE); // make it relative to the dest
+                        } else {
+                            d_loc.z = cells[x][y][z].loc.z;
+                        }
+
+                        if(migrating) {
+                            cells[x][y][z].migrateslot = set_slot(cells[x][y][z].migrateslot, ci);
+                            cells[x][y][z].migrate_loc[ci] = d_loc; // set the destination
+                        }
+                        i = clear_slot(i, ci);
+                    }
+                }
+            }
+        }
+// MIGRATE
+        // For each cell
+        for (uint16_t x = 0; x < VOL_SIZE; x++) {
+            for (uint16_t y = 0; y < VOL_SIZE; y++) {
+                for (uint16_t z = 0; z < VOL_SIZE; z++) {
+                    // For each migrating bead in this cell
+                    while (cells[x][y][z].migrateslot) {
+                        uint32_t ci = get_next_slot(cells[x][y][z].migrateslot);
+                        // Get destination
+                        unit_t d = cells[x][y][z].migrate_loc[ci];
+                        // Find space in destination
+                        uint32_t di = get_next_free_slot(cells[d.x][d.y][d.z].bslot);
+                        if (di != 0xFFFFFFFF) {
+                            // Copy the bead data
+                            cells[d.x][d.y][d.z].bead_slot[di].id = cells[x][y][z].bead_slot[ci].id;
+                            cells[d.x][d.y][d.z].bead_slot[di].type = cells[x][y][z].bead_slot[ci].type;
+                            cells[d.x][d.y][d.z].bead_slot[di].pos.x(cells[x][y][z].bead_slot[ci].pos.x());
+                            cells[d.x][d.y][d.z].bead_slot[di].pos.y(cells[x][y][z].bead_slot[ci].pos.y());
+                            cells[d.x][d.y][d.z].bead_slot[di].pos.z(cells[x][y][z].bead_slot[ci].pos.z());
+                            cells[d.x][d.y][d.z].bead_slot[di].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
+                            cells[d.x][d.y][d.z].bead_slot[di].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
+                            cells[d.x][d.y][d.z].bead_slot[di].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
+                            // Update the destinations bitmap
+                            cells[d.x][d.y][d.z].bslot = set_slot(cells[d.x][d.y][d.z].bslot, di);
+                        }
+                        // The bead no longer needs migrating, and doesn't belong to us
+                        cells[x][y][z].migrateslot = clear_slot(cells[x][y][z].migrateslot, ci);
+                        cells[x][y][z].bslot = clear_slot(cells[x][y][z].bslot, ci);
+                    }
+                }
+            }
+        }
     }
 
 // EMIT
-// // Pass beads to host
-//     for (uint16_t x = 0; x < VOL_SIZE; x++) {
-//         for (uint16_t y = 0; y < VOL_SIZE; y++) {
-//             for (uint16_t z = 0; z < VOL_SIZE; z++) {
-//                 uint32_t bslot = cells[x][y][z].bslot;
-//                 while (bslot) {
-//                     msg->type = 0x0B;
-//                     msg->from.x = cells[x][y][z].loc.x;
-//                     msg->from.y = cells[x][y][z].loc.y;
-//                     msg->from.z = cells[x][y][z].loc.z;
+// Pass beads to host
+    for (uint16_t x = 0; x < VOL_SIZE; x++) {
+        for (uint16_t y = 0; y < VOL_SIZE; y++) {
+            for (uint16_t z = 0; z < VOL_SIZE; z++) {
+                uint32_t bslot = cells[x][y][z].bslot;
+                while (bslot) {
+                    msg->type = 0x0B;
+                    msg->from.x = cells[x][y][z].loc.x;
+                    msg->from.y = cells[x][y][z].loc.y;
+                    msg->from.z = cells[x][y][z].loc.z;
 
-//                     uint32_t ci = get_next_slot(bslot);
+                    uint32_t ci = get_next_slot(bslot);
 
-//                     // msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
-//                     msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
-//                     msg->beads[0].type = cells[x][y][z].bead_slot[ci].type;
-//                     msg->beads[0].pos.x(cells[x][y][z].bead_slot[ci].pos.x());
-//                     msg->beads[0].pos.y(cells[x][y][z].bead_slot[ci].pos.y());
-//                     msg->beads[0].pos.z(cells[x][y][z].bead_slot[ci].pos.z());
-//                     msg->beads[0].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
-//                     msg->beads[0].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
-//                     msg->beads[0].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
+                    msg->beads[0].id = cells[x][y][z].bead_slot[ci].id;
+                    msg->beads[0].type = cells[x][y][z].bead_slot[ci].type;
+                    msg->beads[0].pos.x(cells[x][y][z].bead_slot[ci].pos.x());
+                    msg->beads[0].pos.y(cells[x][y][z].bead_slot[ci].pos.y());
+                    msg->beads[0].pos.z(cells[x][y][z].bead_slot[ci].pos.z());
+                    msg->beads[0].velo.x(cells[x][y][z].bead_slot[ci].velo.x());
+                    msg->beads[0].velo.y(cells[x][y][z].bead_slot[ci].velo.y());
+                    msg->beads[0].velo.z(cells[x][y][z].bead_slot[ci].velo.z());
 
-//                     bslot = clear_slot(bslot, ci);
+                    bslot = clear_slot(bslot, ci);
 
-//                     // Wait until we can send
-//                     tinselWaitUntil(TINSEL_CAN_SEND);
-//                     // Send to host
-//                     tinselSend(hostId, msg);
-//                 }
-//             }
-//         }
-//     }
+                    // Wait until we can send
+                    tinselWaitUntil(TINSEL_CAN_SEND);
+                    // Send to host
+                    tinselSend(hostId, msg);
+                }
+            }
+        }
+    }
 
 // FINISH
     // Message to be sent to the host

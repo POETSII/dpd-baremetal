@@ -333,7 +333,7 @@ int main()
   hostLink.send(0, 3, &msg);
   std::cerr << "Sent end of transfer message\n";
 
-    std::map<unit_t, std::map<uint32_t, Vector3D<float>>> force_map;
+    std::map<unit_t, std::map<uint32_t, bead_t>> bead_map;
 
     uint32_t beads_recv = 0;
 
@@ -351,23 +351,18 @@ int main()
         t.z = msg.from.z;
 
         uint32_t bead_id = msg.beads[0].id;
-        Vector3D<float> force;
-        force.x(msg.beads[0].pos.x());
-        force.y(msg.beads[0].pos.y());
-        force.z(msg.beads[0].pos.z());
-        force_map[t][bead_id] = force;
+
+        bead_map[t][bead_id] = msg.beads[0];
     }
 
-    for (std::map<unit_t, std::map<uint32_t, Vector3D<float>>>::iterator i = force_map.begin(); i != force_map.end(); ++i) {
+    for (std::map<unit_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
         unit_t t = i->first;
-        std::map<uint32_t, Vector3D<float>> f_map = i->second;
-        std::cerr << "Cell: " << t.x << ", " << t.y << ", " << t.z << "\n";
-        for (std::map<uint32_t, Vector3D<float>>::iterator j = f_map.begin(); j != f_map.end(); ++j) {
-            uint32_t bead_id = j->first;
-            Vector3D<float> force = j->second;
-
-            std::cerr << "\tID: " << bead_id << "\n";
-            std::cerr << "\tForce: (" << force.x() << ", " << force.y() << ", " << force.z() << ")\n\n";
+        std::cerr << "Cell " << t.x << ", " << t.y << ", " << t.z << "\n";
+        for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
+            bead_t b = j->second;
+            std::cerr << "\tBead id   = " << b.id << ", bead type = " << b.type << "\n";
+            std::cerr << "\tBead pos  = (" << b.pos.x() << ", " << b.pos.y() << ", " << b.pos.z() << ")\n";
+            std::cerr << "\tBead velo = (" << b.velo.x() << ", " << b.velo.y() << ", " << b.velo.z() << ")\n";
         }
     }
 

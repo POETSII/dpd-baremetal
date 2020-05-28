@@ -12,8 +12,9 @@
 #define MAX_BEADS 31
 #define VOL_SIZE 3
 #define BEAD_DENSITY 3
-#define TEST_LENGTH 10000
+#define TEST_LENGTH 10
 #define DT10_RAND_MAX 4294967295
+#define CELL_SIZE 1.0
 
 // cut-off radius
 const float r_c = 1.0;
@@ -23,6 +24,10 @@ const float sq_r_c = r_c * r_c;
 const float A[3][3] = {  {25.0, 75.0, 35.0},
                          {75.0, 25.0, 50.0},
                          {35.0, 50.0, 25.0}}; // interaction matrix
+// Bead mass
+const float p_mass = 1.0;
+// timestep value
+const float dt = 0.02;
 
 typedef uint32_t bead_class_t; // the type of the bead, we are not expecting too many
 typedef uint32_t bead_id_t; // the ID for the bead
@@ -69,6 +74,8 @@ typedef struct _cell_t {
     uint32_t bslot; // a bitmap of which bead slot is occupied
     bead_t bead_slot[MAX_BEADS]; // Array of beads
     Vector3D<int32_t> force_slot[MAX_BEADS]; // Force for each bead, matching bitmap
+    uint32_t migrateslot;
+    unit_t migrate_loc[MAX_BEADS];
 } cell_t; // 32 bytes
 
 // Format of messages sent to host
