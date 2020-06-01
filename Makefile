@@ -102,6 +102,12 @@ $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
 	g++ -O2 -std=c++17 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
 		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
 
+# ------------- Run with live visualisations
+visual: all
+
+visual-dram: DFLAGS=-DDRAM -DVISUALISE
+visual-dram: run
+
 # ------------- Run with wallclock timer ------------
 timed-run: DFLAGS=-DTIMER
 timed-run: run
