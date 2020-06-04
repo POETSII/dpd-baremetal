@@ -94,27 +94,21 @@ for timestep in range(min_timestep, max_timestep):
     r = 0
     index = 0
     while r < rmax:
-        print("r = " + str(r))
         # r is inner radius, r_dr is outer radius
         r_dr = r + dr
         # Average of total beads
         avg = float(beads_within_shells[index]) / float(total_beads)
-        print("Avg = " + str(avg))
         # Volume of shell: Volume of outer sphere - volume of inner sphere
         volume = (4 / 3) * math.pi * (r_dr**3 - r**3)
-        print("Volume = " + str(volume))
         # Divide average by volume - Accounts for volumes being larger the further out you look
         g1 = avg / volume
-        print("g1 = " + str(g1))
         # Divide by number density
         g2 = g1 / number_density
-        print("g2 = " + str(g2))
         # Print this to the file
         f.write(str(g2) + ",")
         # Next shell
         r = r + dr
         index = index + 1
-        print()
 
     # End of timestep, move to next line
     f.write("\n")
