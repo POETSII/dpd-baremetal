@@ -27,7 +27,6 @@ for timestep in range(min_timestep, max_timestep):
     # Iterate over all values of r in rs
     r = 0.0
     while r < (rmax - dr):
-        print(r)
         beads_within_shells = 0
         max_r = r + dr;
         for x in range(0, vol_width):
