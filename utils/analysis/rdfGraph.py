@@ -4,7 +4,7 @@ import numpy as np
 import csv
 
 # Read all data from file and generate axes and series
-filepath = "3_rdf_dr_0.05.csv"
+filepath = "50_rdf_dr_0.05.csv"
 
 X = []
 Y = []
