@@ -14,9 +14,9 @@ f.write("Timestep, Temp\n")
 
 total_beads = 0
 divisor = 0
-
+timestep = min_timestep
 # For each timestep calculate the average bead velocity magnitude
-for timestep in range(min_timestep, max_timestep):
+while timestep <= max_timestep:
     # Print timestep so we can see the progress
     print("Timestep: " + str(timestep))
     # Put timestep in the csv file
@@ -40,6 +40,10 @@ for timestep in range(min_timestep, max_timestep):
                     temp = temp + (((i.velo.x * i.velo.x) + (i.velo.y * i.velo.y) + (i.velo.z * i.velo.z)) / divisor)
     f.write(str(temp) + "\n")
     # End of timestep, move to next line
+    if (timestep < 9999):
+        timestep = min(timestep + 50, 9999)
+    else:
+        break
 
 # Close file
 f.close()
