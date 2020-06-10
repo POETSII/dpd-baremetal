@@ -64,6 +64,9 @@ class Vector:
         self.y = y
         self.z = z
 
+    def addVec(self, vec):
+        return Vector(self.x + vec.x, self.y + vec.y, self.z + vec.z)
+
     def subtractVec(self, pos):
         return Vector(self.x - pos.x, self.y - pos.y, self.z - pos.z)
 

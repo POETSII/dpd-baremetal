@@ -2,7 +2,6 @@ from cell import *
 import math
 
 vol_width = 3 # Constant for each run
-number_density = 3
 
 max_timestep = 10000
 min_timestep = 1
@@ -11,9 +10,10 @@ min_timestep = 1
 outputFile = str(vol_width) + "_temp.csv"
 f = open(outputFile, "w")
 
-f.write("Timestep, Total velocity magnitude, Average velocity magnitude, Temp (Average velocity / number density),\n")
+f.write("Timestep, Temp\n")
 
 total_beads = 0
+divisor = 0
 
 # For each timestep calculate the average bead velocity magnitude
 for timestep in range(min_timestep, max_timestep):
@@ -26,8 +26,9 @@ for timestep in range(min_timestep, max_timestep):
     # Count the total beads for averaging (done once)
     if (total_beads == 0):
         total_beads = getTotalBeads(cells)
+        divisor = 3 * total_beads
     # Accumulator for magnitude of velocities
-    total_magnitude_velocity = 0
+    temp = 0
     # Iterate through each cell
     for x in range(0, vol_width):
         for y in range(0, vol_width):
@@ -36,15 +37,7 @@ for timestep in range(min_timestep, max_timestep):
                 c = cells[x][y][z]
                 # For each local bead
                 for i in c.beads:
-                    total_magnitude_velocity = total_magnitude_velocity + i.velo.mag()
-    # Accumulated total magnitude.
-    f.write(str(total_magnitude_velocity) + ",")
-    # Now find average per bead
-    average_velocity = total_magnitude_velocity / total_beads
-    # Print this to file
-    f.write(str(average_velocity) + ",")
-    # Divide by number density to get temp
-    temp = average_velocity / number_density
+                    temp = temp + (((i.velo.x * i.velo.x) + (i.velo.y * i.velo.y) + (i.velo.z * i.velo.z)) / divisor)
     f.write(str(temp) + "\n")
     # End of timestep, move to next line
 
