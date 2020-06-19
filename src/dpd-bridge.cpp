@@ -19,6 +19,8 @@ int main(){
     // do this for the first one while to figure out the starting timestep
     out << "{ \n";
     out << "  \"beads\":[\n";
+    // std::cerr << "{ \n";
+    // std::cerr << "  \"beads\":[\n";
     while(!dpd_pipe.tryRecv(&msg)) { }
     timestep = msg.timestep;
 
@@ -26,8 +28,10 @@ int main(){
     float y_off = msg.from.y;// * (problem_size/(float)N);
     float z_off = msg.from.z;// * (problem_size/(float)N);
 
-    out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x() + x_off<<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<msg.bead.type<<"}";
+    out << "\t{\"id\":" << msg.bead.id <<", \"x\":"<< msg.bead.pos.x() + x_off <<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<< (uint32_t) msg.bead.type <<"}";
     out << ",\n";
+    // std::cerr << "\t{\"id\":" << msg.bead.id <<", \"x\":"<< msg.bead.pos.x() + x_off <<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<< (uint32_t) msg.bead.type <<"}";
+    // std::cerr << ",\n";
 
     // for rate limiting the output
     clock_t last_emit = clock();
@@ -40,6 +44,8 @@ int main(){
              out.seekp(-2,std::ios::end);
              out << "  \n";
              out << "]}\n";
+             // std::cerr << "  \n";
+             // std::cerr << "]}\n";
              out.close();
              // copy the file into state.json
              fs::copy("_state.json", "state.json", fs::copy_options::overwrite_existing);
@@ -54,14 +60,18 @@ int main(){
              out.open("_state.json");
              out << "{ \n";
              out << "  \"beads\":[\n";
+             // std::cerr << "{ \n";
+             // std::cerr << "  \"beads\":[\n";
          }
 
          x_off = msg.from.x; // * (problem_size/(float)N);
          y_off = msg.from.y; // * (problem_size/(float)N);
          z_off = msg.from.z; // * (problem_size/(float)N);
 
-         out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x() + x_off<<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<msg.bead.type<<"}";
+         out << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x() + x_off<<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<(uint32_t)msg.bead.type<<"}";
          out << ",\n";
+         // std::cerr << "\t{\"id\":" << msg.bead.id<<", \"x\":"<<msg.bead.pos.x() + x_off<<", \"y\":"<<msg.bead.pos.y() + y_off<<", \"z\":"<<msg.bead.pos.z() + z_off<<", \"vx\":"<<msg.bead.velo.x()<<", \"vy\":"<<msg.bead.velo.y()<<", \"vz\":"<<msg.bead.velo.z()<<", \"type\":"<<(uint32_t)msg.bead.type<<"}";
+         // std::cerr << ",\n";
 	    }
 
     }
