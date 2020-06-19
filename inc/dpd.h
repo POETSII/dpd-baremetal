@@ -50,19 +50,28 @@ typedef float ptype;
 
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
-// const float problem_size = 18.0; // total size of the sim universe in one dimension
-// const unsigned N = 18; // the size of the sim universe in each dimension
-
+// Cut-off radius
 const ptype r_c(1.0);
+// Square of cutoff radius (to reduce number of sqrt)
 const ptype sq_r_c(r_c * r_c);
-
-// interaction matrix
+// Interaction matrix
 const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
                          {ptype(75.0), ptype(25.0), ptype(50.0)},
-                         {ptype(35.0), ptype(50.0), ptype(25.0)}}; // interaction matrix
-
-const ptype dt = 0.02; // the timestep
-const ptype p_mass = 1.0; // the mass of all beads (not currently configurable per bead)
+                         {ptype(35.0), ptype(50.0), ptype(25.0)}};
+// Timestep value
+const ptype dt = 0.02;
+// Mass of all beads
+const ptype p_mass = 1.0;
+// Drag coefficient
+const ptype drag_coef = 4.5;
+// Temperature
+// const ptype temp = 1.0;
+// Random coefficient. Related to drag_coef and temperature - sigma = sqrt(2 * drag_coef * temp)
+const ptype sigma_ij = 3;
+// Inverse square root of dt - dt^(-1/2)
+const ptype inv_sqrt_dt = 7.071067812;
+// Lambda used in verlet
+const ptype lambda = 0.5;
 
 /* DT10: Playing with bonds.
     Particles of any species are bonded if:
@@ -86,7 +95,7 @@ const uint32_t emitperiod = 0;
 
 // ---------------------------------------------------------------------------------------
 
-typedef uint32_t bead_class_t; // the type of the bead, we are not expecting too many
+typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
 typedef uint32_t bead_id_t; // the ID for the bead
 
 // defines a bead type
@@ -95,7 +104,8 @@ typedef struct _bead_t {
     bead_class_t type;
     Vector3D<ptype> pos;
     Vector3D<ptype> velo;
-} bead_t; // 32 bytes
+    Vector3D<ptype> acc;
+} bead_t; // 44 bytes
 
 typedef uint16_t unit_pos_t;
 
@@ -142,6 +152,7 @@ struct DPDState {
     uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
+    Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
@@ -236,7 +247,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
-        Vector3D<ptype> force(0.0,0.0,0.0); // accumulate the force here
+        Vector3D<ptype> force = Vector3D<ptype>(0.0, 0.0, 0.0); // accumulate the force here
 
         if (r_ij_dist_sq > sq_r_c) {
             return force;
@@ -244,36 +255,54 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
 
+        // Switching function - w_r is used for conservative too
+        ptype w_r = (ptype(1.0) - r_ij_dist/r_c);
+        // Drag switching function is equal to random switching function squared
+        ptype w_d = w_r * w_r;
+
+        // Conservative magnitude for these bead types
         ptype a_ij = A[a->type][b->type];
+
+        // Vector difference in position
         Vector3D<ptype> r_ij = a->pos - b->pos;
+        // Vector difference in velocity
         Vector3D<ptype> v_ij = a->velo - b->velo;
-        const ptype drag_coef(4.5); // the drag coefficient
-        const ptype sigma_ij(160.0); // sqrt(2*drag_coef*KBt) assumed same for all
-        const ptype sqrt_dt(0.1414); // sqrt(0.02)
 
-        // switching function
-        ptype w_d = (ptype(1.0) - r_ij_dist)*(ptype(1.0) - r_ij_dist);
+        // Calculate magnitudes of all forces
+        // But multiply them by vector distance at the end
 
-        //Conservative force: Equation 8.5 in the dl_meso manual
-        ptype con = a_ij * (ptype(1.0) - (r_ij_dist/r_c));
-        force = (r_ij/r_ij_dist) * con;
+        // Conservative force: Equation 8.5 in the dl_meso manual
+        ptype con = a_ij * w_r;
 
-        // Drag force
-        ptype drag = w_d * r_ij.dot(v_ij) * (ptype(-1.0) * drag_coef);
-        force = force + ((r_ij / (r_ij_dist_sq)) * drag);
+        // Vector distance difference and Vector velocity difference dot product
+        ptype dotProd = r_ij.dot(v_ij);
+        // Divide this by r_ij_dist as the equation is divided by r_ij_dist squared
+        dotProd /= r_ij_dist;
+        // Get the drag force
+        ptype drag = ptype(-1.0) * drag_coef * w_d * dotProd;
 
-        // get the pairwise random number
-        ptype r_t((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
-        ptype r = (r_t - ptype(1.0)) * 0.5;
-        ptype w_r = (ptype(1.0) - r_ij_dist);
+        // Get the pairwise random number
+        // ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
+        const ptype test = 3.466008;
+        ptype r = (pairwise_rand(a->id, b->id) / float(DT10_RAND_MAX)) * test;
+        r = ((test/2) - r);
 
+// ************************** NEW ****************************************************
         // random force
-        ptype ran = sqrt_dt*r*w_r*sigma_ij;
-        force = force - ((r_ij / r_ij_dist) * ran);
+        ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
 
-        if(are_beads_bonded(a->id, b->id)) {
-            force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
-        }
+// ************************** OLD ****************************************************
+        // random force
+        // ptype ran = inv_sqrt_dt * r * w_r * sigma_ij;
+        // force = force - ((r_ij / r_ij_dist) * ran);
+
+// ************************** END ****************************************************
+        // // if(are_beads_bonded(a->id, b->id)) {
+        // //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
+        // // }
+
+        force = (r_ij / r_ij_dist) * (con + drag + ran);
+        // force = force + ((r_ij / r_ij_dist) * (con + drag));
 
         return force;
     }
@@ -386,12 +415,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
                 // ------ velocity verlet ------
                 Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
-                Vector3D<ptype> acceleration = force / p_mass;
-                Vector3D<ptype> delta_v = acceleration * dt;
-                // update velocity
-                s->bead_slot[ci].velo = s->bead_slot[ci].velo + delta_v;
-                // update position
-                s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
+                Vector3D<ptype> new_acc = force / p_mass;
+                                // ------ End of previous velocity Verlet -----
+                s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * dt * ptype(0.5));
+                // Store old velocity
+                s->old_velo[ci].set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+                // Store old Force
+                s->bead_slot[ci].acc.set(new_acc.x(), new_acc.y(), new_acc.z());
+
+                // ------ Start of new velocity Verlet ------
+
+                // Update position
+                s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * dt) + (new_acc * ptype(0.5) * dt * dt);
 
                 // ----- clear the forces ---------------
                 s->force_slot[ci].set(0, 0, 0);
@@ -463,12 +498,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     d_loc.z = s->loc.z;
 	            }
 
-	            if(migrating) {
+                if(migrating) {
                     s->migrateslot = set_slot(s->migrateslot, ci);
                     s->migrate_loc[ci] = d_loc; // set the destination
-		            *readyToSend = Pin(0);
-    	        }
-    	        i = clear_slot(i, ci);
+                    *readyToSend = Pin(0);
+                } else {
+                    // Update intermediate velocity - If a bead migrates, this is done when received
+                    s->bead_slot[ci].velo = s->old_velo[ci] + new_acc * lambda * dt;
+                }
+                i = clear_slot(i, ci);
 	        }
 	        // we have finished updating -- now we want to migrate
 	        return true;
@@ -485,7 +523,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->sentslot = s->bslot;
                     *readyToSend = HostPin;
                 }
-                s->emitcnt = 0;
+                s->emitcnt = 1;
             } else {
                 s->emitcnt++;
                 s->mode = UPDATE;
@@ -778,13 +816,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->lost_beads++;
                 } else {
                     s->bslot = set_slot(s->bslot, ci);
-    	            s->sentslot = s->bslot;
+                    s->sentslot = s->bslot;
 
-    	            // welcome the new little bead
-    	            s->bead_slot[ci].type = msg->beads[0].type;
-    	            s->bead_slot[ci].id = msg->beads[0].id;
-    	            s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-    	            s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                    // Welcome the new little bead
+                    s->bead_slot[ci].type = msg->beads[0].type;
+                    s->bead_slot[ci].id = msg->beads[0].id;
+                    s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+                    s->bead_slot[ci].acc.set(msg->beads[0].acc.x(), msg->beads[0].acc.y(), msg->beads[0].acc.z());
+
+                    // Store old velocity
+                    s->old_velo[ci].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                    // Update velocity
+                    s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * dt);
                 }
 	        }
         }
