@@ -19,7 +19,6 @@ class Cell:
         elif r_x >= 0:
             if r_x >= vol_width:
                 r_x = r_x - vol_width
-            else:
         else:
             r_x = self.x + r_x
 

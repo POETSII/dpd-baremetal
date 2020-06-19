@@ -1,7 +1,7 @@
 from cell import *
 import math
 
-vol_width = 3 # Constant for each run
+vol_width = 50 # Constant for each run
 
 max_timestep = 10000
 min_timestep = 1

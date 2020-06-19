@@ -33,12 +33,12 @@ def convertArraysToNumpy(X, Y, Z):
     return (X, Y, Z)
 
 # Read all data from files and generate axes and series
-waterWater = "3_rdf_water_water_dr_0.015.csv"
-oil1Oil1 = "3_rdf_oil1_oil1_dr_0.015.csv"
-oil2Oil2 = "3_rdf_oil2_oil2_dr_0.015.csv"
-waterOil1 = "3_rdf_water_oil1_dr_0.015.csv"
-waterOil2 = "3_rdf_water_oil2_dr_0.015.csv"
-oil1Oil2 = "3_rdf_oil1_oil2_dr_0.015.csv"
+waterWater = "50_rdf_water_water_dr_0.625.csv"
+oil1Oil1 = "50_rdf_oil1_oil1_dr_0.625.csv"
+oil2Oil2 = "50_rdf_oil2_oil2_dr_0.625.csv"
+waterOil1 = "50_rdf_water_oil1_dr_0.625.csv"
+waterOil2 = "50_rdf_water_oil2_dr_0.625.csv"
+oil1Oil2 = "50_rdf_oil1_oil2_dr_0.625.csv"
 
 waterWaterX = []
 waterWaterY = []

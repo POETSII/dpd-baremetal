@@ -7,22 +7,23 @@ def clearArray(array):
 
 # Used to help adjust the relative positions for the periodic boundary
 def period_bound_adj(dim):
-    if dim > 1:
-        return -1;
-    elif dim < -1:
-        return 1;
+    if dim > 13:
+        return -(vol_width - dim)
+    elif dim < -13:
+        return vol_width + dim
     else:
-        return dim;
+        return dim
 
-
-vol_width = 3 # Constant for each run
+vol_width = 50 # Constant for each run
 number_density = 3
 
 max_timestep = 10000
 min_timestep = 1
 
-rmax = vol_width / 2
-dr = rmax / 100
+rmax = vol_width / 8
+min_r = -math.ceil(vol_width / 8)
+max_r = math.ceil(vol_width / 8) + 1
+dr = rmax / 10
 
 # File paths
 waterWater = str(vol_width) + "_rdf_water_water_dr_" + str(dr) +".csv"
@@ -110,10 +111,11 @@ while timestep <= max_timestep:
             for z in range(0, vol_width):
                 # Current cell
                 c = cells[x][y][z]
+                print("Current cell: " + str(x) + ", " + str(y) + ", " + str(z))
                 # Iterate through all neighbours of this cell
-                for n_x in [-1, 0, 1]:
-                    for n_y in [-1, 0, 1]:
-                        for n_z in [-1, 0, 1]:
+                for n_x in range(min_r, max_r):
+                    for n_y in range(min_r, max_r):
+                        for n_z in range(min_r, max_r):
                             # Neighbour of current cell
                             n = c.getNeighbourLoc(n_x, n_y, n_z, cells, vol_width)
                             # For each local bead
@@ -196,7 +198,7 @@ while timestep <= max_timestep:
 
     # End of timestep, calculate the next timestep
     if (timestep < 9999):
-        timestep = min(timestep + 50, 9999)
+        timestep = min(timestep + 100, 9999)
     else:
         break
 
