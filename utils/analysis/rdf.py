@@ -200,10 +200,7 @@ while timestep <= max_timestep:
         index = index + 1
 
     # End of timestep, calculate the next timestep
-    if (timestep < 9999):
-        timestep = min(timestep + 100, 9999)
-    else:
-        break
+    timestep = timestep + 50
 
     # End of timestep, move to next line
     waterWaterFile.write("\n")
