@@ -58,6 +58,38 @@ void print_help() {
     std::cerr << "help                    - Optional. Print this help information\n";
 }
 
+float randf() {
+    return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+}
+
+// Generate some values for initial velocity (Maxwell distribution, courtesy of Julian)
+std::vector<float> maxwellDist(uint32_t n) {
+    long maxPoints;
+
+    const long m_MaxwellPointNo = 10000000;
+
+    if(n > m_MaxwellPointNo)
+        maxPoints = n;
+    else
+        maxPoints = m_MaxwellPointNo;
+
+    std::vector<float> velDist(maxPoints, 0.0);
+
+    float vel;
+    float factor = 1.0;
+    float dmaxPoints = static_cast<double>(maxPoints);
+
+    for(long j = 0; j < maxPoints - 1; j++) {
+        vel = sqrt(2.0 * log(dmaxPoints * factor / (dmaxPoints - factor)));
+        factor = exp(0.5 * vel * vel);
+        velDist.at(j) = vel;
+    }
+
+    velDist.at(maxPoints-1) = velDist.at(maxPoints-2);
+
+    return velDist;
+}
+
 int main(int argc, char *argv[]) {
 
     if (argc < 2) {
@@ -109,11 +141,70 @@ int main(int argc, char *argv[]) {
 
     printf("Universe setup -- adding beads\n");
 
-    int total_beads = N*N*N * BEAD_DENSITY;
+    int total_beads = N * N * N * BEAD_DENSITY;
     int w = 0.6 * total_beads;
     int r = 0.3 * total_beads;
     int o = 0.1 * total_beads;
 
+    // May lose one or two bead in conversion from float to int, so let's get the real number
+    total_beads = w + r + o;
+
+    // Declare temperature for simulation
+    const float temp = 1.0;
+
+    // Generate initial velocities (Maxwell distribution, courtesy of Julian)
+    std::vector<float> rvelDist = maxwellDist(total_beads);
+
+    //Initialise the vector size to the number of beads in advance to avoid allocation later
+    std::vector<Vector3D<float>> velDist(total_beads, Vector3D<float>(0.0, 0.0, 0.0));
+
+    // Accumulate the total initial velocity to remove this later
+    Vector3D<float> vcm(0.0, 0.0, 0.0);
+
+    for(int i=0; i < total_beads; i++) {
+        long index = static_cast<long>(rvelDist.size() * randf());
+        float vmag  = rvelDist.at(index);
+
+        float vtheta = acos(1.0-2.0 * randf());
+        float vphi   = M_PI * randf();
+
+        float vp_x   = vmag * sin(vtheta) * cos(vphi);
+        float vp_y   = vmag * sin(vtheta) * sin(vphi);
+        float vp_z   = vmag * cos(vtheta);
+
+        vcm.x(vcm.x() + vp_x);
+        vcm.y(vcm.y() + vp_y);
+        vcm.z(vcm.z() + vp_z);
+
+        velDist.at(i) = Vector3D<float>(vp_x, vp_y, vp_z); // store the components in vector for later use
+    }
+
+    // Get the total CM velocity in the 3 axes
+    vcm.x(vcm.x() / total_beads);
+    vcm.y(vcm.y() / total_beads);
+    vcm.z(vcm.z() / total_beads);
+
+    // remove CM velocity from bead velocities
+
+    float vtotal = 0.0;
+
+    for(int i=0; i < total_beads; i++) {
+        velDist.at(i) = Vector3D<float>(velDist.at(i).x() - vcm.x(), velDist.at(i).y() - vcm.y(), velDist.at(i).z() - vcm.z());
+
+        vtotal = vtotal + velDist.at(i).x() * velDist.at(i).x() + velDist.at(i).y() * velDist.at(i).y() + velDist.at(i).z() * velDist.at(i).z();
+    }
+
+    vtotal = sqrt(vtotal / static_cast<double>(3 * total_beads));
+
+    // finally normalize the velocities to the required temperature,
+    for(int i = 0; i < total_beads; i++)
+    {
+        velDist.at(i).x(sqrt(temp) * velDist.at(i).x() / vtotal);
+        velDist.at(i).y(sqrt(temp) * velDist.at(i).y() / vtotal);
+        velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
+    }
+
+    // Start to add beads
     auto default_3D_world = [&]() {
 
         uint32_t b_uid = 0;
@@ -124,8 +215,8 @@ int main(int argc, char *argv[]) {
                 b1->id = b_uid++;
                 b1->type = 0;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
-                // b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
-                b1->velo.set(0.0,0.0,0.0);
+                b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                b1->acc.set(0.0, 0.0, 0.0);
                 if(uni.space(b1)) {
                     uni.add(b1);
                     added = true;
@@ -141,8 +232,8 @@ int main(int argc, char *argv[]) {
                 b1->id = b_uid++;
                 b1->type = 1;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
-                // b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
-                b1->velo.set(0.0,0.0,0.0);
+                b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                b1->acc.set(0.0, 0.0, 0.0);
                 if(uni.space(b1)) {
                     uni.add(b1);
                     added = true;
@@ -158,8 +249,8 @@ int main(int argc, char *argv[]) {
                 b1->id = b_uid++;
                 b1->type = 2;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
-                // b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
-                b1->velo.set(0.0,0.0,0.0);
+                b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                b1->acc.set(0.0, 0.0, 0.0);
                 if(uni.space(b1)) {
                     uni.add(b1);
                     added = true;
@@ -183,8 +274,9 @@ int main(int argc, char *argv[]) {
             prev_bead->id = b_uid_bonded++;
             while(!added) {
                 prev_bead->type = 1;
-                prev_bead->velo.set(0.0, 0.0, 0.0);
                 prev_bead->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
+                prev_bead->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                prev_bead->acc.set(0.0, 0.0, 0.0);
                 if (uni.space(prev_bead.get())) {
                     uni.add(prev_bead.get());
                     added = true;
@@ -199,8 +291,9 @@ int main(int argc, char *argv[]) {
                     auto b1=std::make_shared<bead_t>();
                     b1->id = bid_a;
                     b1->type = 1;
-                    b1->velo.set(0.0,0.0,0.0);
                     b1->pos.set(((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.x(), ((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.y(), ((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.z());
+                    b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                    b1->acc.set(0.0, 0.0, 0.0);
                     if(uni.space(b1.get())) {
                         uni.add(b1.get());
                         added = true;
@@ -222,8 +315,8 @@ int main(int argc, char *argv[]) {
                 b1->id = b_uid++;
                 b1->type = 0;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
-                //b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), 0.0);
-                b1->velo.set(0.0,0.0,0.0);
+                b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                b1->acc.set(0.0, 0.0, 0.0);
                 if (uni.space(b1)) {
                     uni.add(b1);
                     added = true;

@@ -20,10 +20,6 @@ HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/Externa
 
 SOCAT_SCRIPT = ./scripts/socat_script
 
-.PHONY: all
-all: DFLAGS=-DVISUALISE
-all: run
-
 run: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run
 
 bridge: $(INC)/config.h $(DPD_BIN)/dpd-bridge
@@ -103,7 +99,8 @@ $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
 		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
 
 # ------------- Run with live visualisations
-visual: all
+visual: DFLAGS=-DVISUALISE -DSEND_TO_SELF
+visual: run
 
 visual-dram: DFLAGS=-DDRAM -DVISUALISE
 visual-dram: run
