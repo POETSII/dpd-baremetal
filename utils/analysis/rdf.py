@@ -5,25 +5,26 @@ def clearArray(array):
     for i in range(len(array)):
         array[i] = 0
 
+vol_width = 50 # Constant for each run
+number_density = 3
+total_cells = vol_width * vol_width * vol_width
+
+max_timestep = 10001
+min_timestep = 1
+
+rmax = vol_width / 2
+min_r = -math.ceil(vol_width / 2)
+max_r = math.ceil(vol_width / 2) + 1
+dr = rmax / 50
+
 # Used to help adjust the relative positions for the periodic boundary
 def period_bound_adj(dim):
-    if dim > 13:
+    if dim > min_r:
         return -(vol_width - dim)
-    elif dim < -13:
+    elif dim < max_r:
         return vol_width + dim
     else:
         return dim
-
-vol_width = 50 # Constant for each run
-number_density = 3
-
-max_timestep = 10000
-min_timestep = 1
-
-rmax = vol_width / 8
-min_r = -math.ceil(vol_width / 8)
-max_r = math.ceil(vol_width / 8) + 1
-dr = rmax / 10
 
 # File paths
 waterWater = str(vol_width) + "_rdf_water_water_dr_" + str(dr) +".csv"
@@ -58,7 +59,7 @@ oil2_oil2 = []
 water_oil1 = []
 water_oil2 = []
 oil1_oil2 = []
-while r < rmax:
+while r <= rmax:
     # r is inner radius, r_dr is outer radius
     r_dr = r + dr
     # Write r value as the top line of files
@@ -86,14 +87,12 @@ waterOil2File.write("\n")
 oil1Oil2File.write("\n")
 
 total_beads = 0
-
 timestep = min_timestep
 # For each timestep calculate the RDF for 10 shells between radius 0 and 1
 while timestep <= max_timestep:
     # Reset array
     clearArray(water_water)
     # Print timestep so we can see the progress
-    print("Timestep: " + str(timestep))
     # Put timestep in the files
     waterWaterFile.write(str(timestep) + ",")
     oil1Oil1File.write(str(timestep) + ",")
@@ -106,12 +105,14 @@ while timestep <= max_timestep:
     # Number of each bead considered
     reference_beads = [0, 0, 0]
     # Iterate through each cell
+    done_cells = 0
     for x in range(0, vol_width):
         for y in range(0, vol_width):
             for z in range(0, vol_width):
                 # Current cell
                 c = cells[x][y][z]
-                print("Current cell: " + str(x) + ", " + str(y) + ", " + str(z))
+                done_cells = done_cells + 1
+                print("Timestep " + str(timestep) + ": Cell " + str(done_cells) + "/" + str(total_cells))
                 # Iterate through all neighbours of this cell
                 for n_x in range(min_r, max_r):
                     for n_y in range(min_r, max_r):
@@ -130,15 +131,17 @@ while timestep <= max_timestep:
                                         z_rel = period_bound_adj(n.z - c.z)
                                         adj_j = Vector(j.pos.x + x_rel, j.pos.y + y_rel, j.pos.z + z_rel)
                                         # Get the Euclidean distance to between beads
-                                        dist = i.pos.getEuclideanDistance(adj_j)
+                                        dist2 = i.pos.getSquareEuclideanDistance(adj_j)
                                         # For each shell distance
                                         index = 0
                                         r = 0
-                                        while r < rmax:
+                                        while r <= rmax:
+                                            r2 = r*r
                                             # r is inner radius, r_dr is outer radius
                                             r_dr = r + dr
                                             # If distance between beads is within this shell
-                                            if dist > r and dist < r_dr:
+                                            r_dr2 = r_dr*r_dr
+                                            if dist2 > r2 and dist2 < r_dr2:
                                                 reference_beads[i.type] = reference_beads[i.type] + 1
                                                 if i.type == 0 and j.type == 0:
                                                     water_water[index] = water_water[index] + 1
@@ -159,7 +162,7 @@ while timestep <= max_timestep:
     # Now lets calculate the values
     r = 0
     index = 0
-    while r < rmax:
+    while r <= rmax:
         # r is inner radius, r_dr is outer radius
         r_dr = r + dr
         # Volume of shell: Volume of outer sphere - volume of inner sphere

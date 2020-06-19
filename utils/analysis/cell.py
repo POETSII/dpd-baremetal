@@ -105,6 +105,10 @@ class Vector:
         sub = self.subtractVec(pos)
         return sub.mag()
 
+    def getSquareEuclideanDistance(self, pos):
+        sub = self.subtractVec(pos)
+        return (sub.x * sub.x + sub.y * sub.y + sub.z * sub.z)
+
 def getUniverseAtTimestepForWidth(timestep, vol_width):
     cells = [[[0 for _ in range(vol_width)] for _ in range(vol_width)] for _ in range(vol_width)]
 
@@ -114,7 +118,7 @@ def getUniverseAtTimestepForWidth(timestep, vol_width):
                 c = Cell(x, y, z)
                 cells[x][y][z] = c
 
-    filepath = "/media/jrbeaumont/full_bead_info/50_50_50_time_" + str(timestep) + ".csv"
+    filepath = "full_bead_info/50_50_50_time_" + str(timestep) + ".csv"
 
     with open(filepath) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
