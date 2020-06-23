@@ -1,7 +1,7 @@
 from cell import *
 import math
 
-vol_width = 50 # Constant for each run
+vol_width = 10 # Constant for each run
 number_density = 3
 total_cells = vol_width * vol_width * vol_width
 
@@ -11,19 +11,9 @@ def clearArray(array):
 
 max_timestep = 10001
 min_timestep = 1
-
-def clearAlreadyDone(cells):
-    d = {}
-    for x in range(0, vol_width):
-        for y in range(0, vol_width):
-            for z in range(0, vol_width):
-                c = cells[x][y][z]
-                d[c] = []
-    return d
-
 rmax = vol_width / 2
 min_r = -math.ceil(vol_width / 2)
-max_r = math.ceil(vol_width / 2) + 1
+max_r = math.ceil(vol_width / 2)
 dr = rmax / 50
 
 # Used to help adjust the relative positions for the periodic boundary
@@ -122,7 +112,7 @@ while timestep <= max_timestep:
     # Count the cells so we can see how far through we are
     done_cells = 0
     # Each cell vs each cell need only be done once
-    alreadyDone = clearAlreadyDone(cells)
+    alreadyDone = []
     # Iterate through each cell
     for x in range(0, vol_width):
         for y in range(0, vol_width):
@@ -139,7 +129,7 @@ while timestep <= max_timestep:
                             # Neighbour of current cell
                             n = c.getNeighbourLoc(n_x, n_y, n_z, cells, vol_width)
                             # Check if the current cell has already been tested agains the neighbouring cell
-                            if n not in alreadyDone[c]:
+                            if n not in alreadyDone:
                                 # For each local bead
                                 for i in c.beads:
                                     # For each bead in neighbour
@@ -163,8 +153,6 @@ while timestep <= max_timestep:
                                                 # If distance between beads is within this shell
                                                 r_dr2 = r_dr*r_dr
                                                 if dist2 > r2 and dist2 < r_dr2:
-                                                    reference_beads[i.type] = reference_beads[i.type] + 1
-                                                    reference_beads[j.type] = reference_beads[j.type] + 1
                                                     if i.type == 0 and j.type == 0:
                                                         water_water[index] = water_water[index] + 2
                                                     elif i.type == 1 and j.type == 1:
@@ -182,9 +170,15 @@ while timestep <= max_timestep:
                                                 index = index + 1
                             else:
                                 done = done + 1
-                            # Add this cell to the neighbours "done" list
-                            alreadyDone[n].append(c)
+
+                # Every bead is used as a reference, so count these
+                for i in c.beads:
+                    reference_beads[i.type] = reference_beads[i.type] + 1
+                # Add this cell to the neighbours "done" list
+                alreadyDone.append(c)
                 print("Already done for this cell = " + str(done))
+                print("Ref beads = " + str(reference_beads[0] + reference_beads[1] + reference_beads[2]))
+                done = 0
     # All beads have had all shells checked
     # Now lets calculate the values
     r = 0
