@@ -128,8 +128,9 @@ while timestep <= max_timestep:
                         for n_z in range(min_r, max_r):
                             # Neighbour of current cell
                             n = c.getNeighbourLoc(n_x, n_y, n_z, cells, vol_width)
+                            ad = (n.x, n.y, n.z)
                             # Check if the current cell has already been tested agains the neighbouring cell
-                            if n not in alreadyDone:
+                            if ad not in alreadyDone:
                                 # For each local bead
                                 for i in c.beads:
                                     # For each bead in neighbour
@@ -175,7 +176,7 @@ while timestep <= max_timestep:
                 for i in c.beads:
                     reference_beads[i.type] = reference_beads[i.type] + 1
                 # Add this cell to the neighbours "done" list
-                alreadyDone.append(c)
+                alreadyDone.append((c.x, c.y, c.z))
                 print("Already done for this cell = " + str(done))
                 print("Ref beads = " + str(reference_beads[0] + reference_beads[1] + reference_beads[2]))
                 done = 0
