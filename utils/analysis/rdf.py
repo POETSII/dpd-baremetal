@@ -1,7 +1,7 @@
 from cell import *
 import math
 
-vol_width = 50 # Constant for each run
+vol_width = 10 # Constant for each run
 number_density = 3
 total_cells = vol_width * vol_width * vol_width
 max_timestep = 10001
@@ -27,9 +27,9 @@ def clearArray(array):
 
 # Used to help adjust the relative positions for the periodic boundary
 def period_bound_adj(dim):
-    if dim > min_r:
+    if dim > max_r:
         return -(vol_width - dim)
-    elif dim < max_r:
+    elif dim < min_r:
         return vol_width + dim
     else:
         return dim
@@ -98,7 +98,7 @@ oil1Oil2File.write("\n")
 total_beads = 0
 timestep = min_timestep
 # For each timestep calculate the RDF for 10 shells between radius 0 and 1
-while timestep <= max_timestep:
+while timestep < max_timestep:
     # Reset array
     clearArray(water_water)
     clearArray(oil1_oil1)
@@ -106,7 +106,6 @@ while timestep <= max_timestep:
     clearArray(water_oil1)
     clearArray(water_oil2)
     clearArray(oil1_oil2)
-    # Print timestep so we can see the progress
     # Put timestep in the files
     waterWaterFile.write(str(timestep) + ",")
     oil1Oil1File.write(str(timestep) + ",")
@@ -129,15 +128,16 @@ while timestep <= max_timestep:
                 # Current cell
                 c = cells[x][y][z]
                 done_cells = done_cells + 1
+                # Print the timestep to see progress
                 print("Timestep " + str(timestep) + ": Cell " + str(done_cells) + "/" + str(total_cells))
                 done = 0
                 # Iterate through all neighbours of this cell
-                for n_x in range(0, max_r):
-                    for n_y in range(0, max_r):
-                        for n_z in range(0, max_r):
+                for n_x in range(0, max_r + 1):
+                    for n_y in range(0, max_r + 1):
+                        for n_z in range(0, max_r + 1):
                             # Neighbour of current cell
                             n = c.getNeighbourLoc(n_x, n_y, n_z, cells, vol_width)
-                            # Check if the current cell has already been tested agains the neighbouring cell
+                            # Check if the current cell has already been tested against the neighbouring cell
                             if not alreadyDone[n.x][n.y][n.z]:
                                 # For each local bead
                                 for i in c.beads:
@@ -185,7 +185,6 @@ while timestep <= max_timestep:
                     reference_beads[i.type] = reference_beads[i.type] + 1
                 # Add this cell to the neighbours "done" list
                 alreadyDone[c.x][c.y][c.z] = True
-                print(str(c.x) + ", " + str(c.y) + ", " + str(c.z))
                 print("Already done for this cell = " + str(done))
                 print("Ref beads = " + str(reference_beads[0] + reference_beads[1] + reference_beads[2]))
                 done = 0
@@ -232,6 +231,7 @@ while timestep <= max_timestep:
 
     # End of timestep, calculate the next timestep
     timestep = timestep + 50
+    exit(0)
 
     # End of timestep, move to next line
     waterWaterFile.write("\n")
