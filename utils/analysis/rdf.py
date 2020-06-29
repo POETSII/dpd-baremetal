@@ -231,7 +231,6 @@ while timestep < max_timestep:
 
     # End of timestep, calculate the next timestep
     timestep = timestep + 50
-    exit(0)
 
     # End of timestep, move to next line
     waterWaterFile.write("\n")
