@@ -181,7 +181,6 @@ while timestep <= max_timestep:
                 print("Already done for this cell = " + str(done))
                 print("Ref beads = " + str(reference_beads[0] + reference_beads[1] + reference_beads[2]))
                 done = 0
-                input()
     # All beads have had all shells checked
     # Now lets calculate the values
     r = 0
