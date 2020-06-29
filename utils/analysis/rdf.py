@@ -123,9 +123,9 @@ while timestep <= max_timestep:
                 print("Timestep " + str(timestep) + ": Cell " + str(done_cells) + "/" + str(total_cells))
                 done = 0
                 # Iterate through all neighbours of this cell
-                for n_x in range(min_r, max_r):
-                    for n_y in range(min_r, max_r):
-                        for n_z in range(min_r, max_r):
+                for n_x in range(0, max_r):
+                    for n_y in range(0, max_r):
+                        for n_z in range(0, max_r):
                             # Neighbour of current cell
                             n = c.getNeighbourLoc(n_x, n_y, n_z, cells, vol_width)
                             ad = (n.x, n.y, n.z)
@@ -177,9 +177,11 @@ while timestep <= max_timestep:
                     reference_beads[i.type] = reference_beads[i.type] + 1
                 # Add this cell to the neighbours "done" list
                 alreadyDone.append((c.x, c.y, c.z))
+                print(str(c.x) + ", " + str(c.y) + ", " + str(c.z))
                 print("Already done for this cell = " + str(done))
                 print("Ref beads = " + str(reference_beads[0] + reference_beads[1] + reference_beads[2]))
                 done = 0
+                input()
     # All beads have had all shells checked
     # Now lets calculate the values
     r = 0
