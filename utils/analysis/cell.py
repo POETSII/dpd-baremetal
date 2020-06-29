@@ -118,7 +118,7 @@ def getUniverseAtTimestepForWidth(timestep, vol_width):
                 c = Cell(x, y, z)
                 cells[x][y][z] = c
 
-    filepath = "10_full_bead_info/10_10_10_time_" + str(timestep) + ".csv"
+    filepath = "/media/jrbeaumont/full_bead_info/" + str(vol_width) + "_" + str(vol_width) + "_" + str(vol_width) + "_time_" + str(timestep) + ".csv"
 
     with open(filepath) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
