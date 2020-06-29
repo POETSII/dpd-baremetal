@@ -1,20 +1,29 @@
 from cell import *
 import math
 
-vol_width = 10 # Constant for each run
+vol_width = 50 # Constant for each run
 number_density = 3
 total_cells = vol_width * vol_width * vol_width
-
-def clearArray(array):
-    for i in range(len(array)):
-        array[i] = 0
-
 max_timestep = 10001
 min_timestep = 1
 rmax = vol_width / 2
 min_r = -math.ceil(vol_width / 2)
 max_r = math.ceil(vol_width / 2)
-dr = rmax / 50
+dr = rmax / 100
+
+def clearAlreadyDone():
+    a = []
+    for i in range(0, vol_width):
+        a.append([])
+        for j in range(0, vol_width):
+            a[i].append([])
+            for k in range(0, vol_width):
+                a[i][j].append(False)
+    return a
+
+def clearArray(array):
+    for i in range(len(array)):
+        array[i] = 0
 
 # Used to help adjust the relative positions for the periodic boundary
 def period_bound_adj(dim):
@@ -112,7 +121,7 @@ while timestep <= max_timestep:
     # Count the cells so we can see how far through we are
     done_cells = 0
     # Each cell vs each cell need only be done once
-    alreadyDone = []
+    alreadyDone = clearAlreadyDone()
     # Iterate through each cell
     for x in range(0, vol_width):
         for y in range(0, vol_width):
@@ -128,9 +137,8 @@ while timestep <= max_timestep:
                         for n_z in range(0, max_r):
                             # Neighbour of current cell
                             n = c.getNeighbourLoc(n_x, n_y, n_z, cells, vol_width)
-                            ad = (n.x, n.y, n.z)
                             # Check if the current cell has already been tested agains the neighbouring cell
-                            if ad not in alreadyDone:
+                            if not alreadyDone[n.x][n.y][n.z]:
                                 # For each local bead
                                 for i in c.beads:
                                     # For each bead in neighbour
@@ -176,7 +184,7 @@ while timestep <= max_timestep:
                 for i in c.beads:
                     reference_beads[i.type] = reference_beads[i.type] + 1
                 # Add this cell to the neighbours "done" list
-                alreadyDone.append((c.x, c.y, c.z))
+                alreadyDone[c.x][c.y][c.z] = True
                 print(str(c.x) + ", " + str(c.y) + ", " + str(c.z))
                 print("Already done for this cell = " + str(done))
                 print("Ref beads = " + str(reference_beads[0] + reference_beads[1] + reference_beads[2]))
