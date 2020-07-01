@@ -105,7 +105,7 @@ typedef struct _bead_t {
     Vector3D<ptype> pos;
     Vector3D<ptype> velo;
     Vector3D<ptype> acc;
-} bead_t; // 44 bytes
+} bead_t; // 41 bytes
 
 typedef uint16_t unit_pos_t;
 
@@ -141,7 +141,7 @@ struct DPDMessage {
     uint32_t timestep; // the timestep this message is from
     unit_t from; // the unit that this message is from
     bead_t beads[1]; // the beads payload from this unit
-};
+}; // 50 Bytes
 
 // the state of the DPD Device
 struct DPDState {
@@ -287,22 +287,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         ptype r = (pairwise_rand(a->id, b->id) / float(DT10_RAND_MAX)) * test;
         r = ((test/2) - r);
 
-// ************************** NEW ****************************************************
         // random force
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
 
-// ************************** OLD ****************************************************
-        // random force
-        // ptype ran = inv_sqrt_dt * r * w_r * sigma_ij;
-        // force = force - ((r_ij / r_ij_dist) * ran);
-
-// ************************** END ****************************************************
         // // if(are_beads_bonded(a->id, b->id)) {
         // //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
         // // }
 
         force = (r_ij / r_ij_dist) * (con + drag + ran);
-        // force = force + ((r_ij / r_ij_dist) * (con + drag));
 
         return force;
     }

@@ -291,7 +291,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesX = 2;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
@@ -746,7 +746,7 @@ void Universe<S>::run(uint32_t max_time) {
     std::map<uint32_t, std::map<uint32_t, DPDMessage>> message_map;
     // enter the main loop
     while(1) {
-        PMessage<None, DPDMessage> msg;
+        PMessage<DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
     #ifdef TIMER
       #ifdef BEAD_COUNTER
@@ -848,7 +848,7 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
 
     // enter the main loop
     while(1) {
-        PMessage<None, DPDMessage> msg;
+        PMessage<DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
         if (msg.payload.type == 0xAA) {
             finish++;

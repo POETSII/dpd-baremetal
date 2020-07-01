@@ -78,6 +78,7 @@ int main() {
         b1->type = std::stoi(lines.at(1));
         b1->pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1->velo.set(0.0, 0.0, 0.0);
+        b1->acc.set(0.0, 0.0, 0.0);
         // Cell for bead to go in
         unit_t cell;
         cell.x = std::stoi(lines.at(5));
@@ -115,6 +116,7 @@ int main() {
         b1.type = std::stoi(lines.at(1));
         b1.pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1.velo.set(0.0, 0.0, 0.0);
+        b1.acc.set(0.0, 0.0, 0.0);
         // Cell that bead ends up in
         unit_t cell;
         cell.x = std::stoi(lines.at(5));
@@ -173,7 +175,7 @@ int main() {
     #ifndef LARGE_TEST
         std::cerr << "ID: " << expected_id << "\n";
 
-        std::cerr << "Type: Expected " << expected_type << " Actual " << actual_type << " ";
+        std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << " ";
     #endif
         if (expected_type == actual_type) {
         #ifndef LARGE_TEST
