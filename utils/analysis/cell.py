@@ -19,7 +19,6 @@ class Cell:
         elif r_x >= 0:
             if r_x >= vol_width:
                 r_x = r_x - vol_width
-            else:
         else:
             r_x = self.x + r_x
 
@@ -38,40 +37,6 @@ class Cell:
                 r_z = r_z - vol_width
         else:
             r_z = self.z + r_z
-
-
-        # if n_x == -1:
-        #     if self.x == 0:
-        #         r_x = vol_width - 1
-        #     else:
-        #         r_x = self.x - 1
-        # if n_x == 1:
-        #     if self.x == vol_width - 1:
-        #         r_x = 0
-        #     else:
-        #         r_x = self.x + 1
-
-        # if n_y == -1:
-        #     if self.y == 0:
-        #         r_y = vol_width - 1
-        #     else:
-        #         r_y = self.y - 1
-        # if n_y == 1:
-        #     if self.y == vol_width - 1:
-        #         r_y = 0
-        #     else:
-        #         r_y = self.y + 1
-
-        # if n_z == -1:
-        #     if self.z == 0:
-        #         r_z = vol_width - 1
-        #     else:
-        #         r_z = self.z - 1
-        # if n_z == 1:
-        #     if self.z == vol_width - 1:
-        #         r_z = 0
-        #     else:
-        #         r_z = self.z + 1
 
         return cells[r_x][r_y][r_z]
 
@@ -106,6 +71,10 @@ class Vector:
         sub = self.subtractVec(pos)
         return sub.mag()
 
+    def getSquareEuclideanDistance(self, pos):
+        sub = self.subtractVec(pos)
+        return (sub.x * sub.x + sub.y * sub.y + sub.z * sub.z)
+
 def getUniverseAtTimestepForWidth(timestep, vol_width):
     cells = [[[0 for _ in range(vol_width)] for _ in range(vol_width)] for _ in range(vol_width)]
 
@@ -115,7 +84,7 @@ def getUniverseAtTimestepForWidth(timestep, vol_width):
                 c = Cell(x, y, z)
                 cells[x][y][z] = c
 
-    filepath = "/media/jrbeaumont/full_bead_info/50_50_50_time_" + str(timestep) + ".csv"
+    filepath = "full_bead_info/" + str(vol_width) + "_" + str(vol_width) + "_" + str(vol_width) + "_time_" + str(timestep) + ".csv"
 
     with open(filepath) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
