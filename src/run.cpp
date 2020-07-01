@@ -216,7 +216,9 @@ int main(int argc, char *argv[]) {
                 b1->type = 0;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+            #if !defined(GALS) || (defined(GALS) && defined(BETTER_VERLET))
                 b1->acc.set(0.0, 0.0, 0.0);
+            #endif
                 if(uni.space(b1)) {
                     uni.add(b1);
                     added = true;
@@ -233,7 +235,9 @@ int main(int argc, char *argv[]) {
                 b1->type = 1;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+            #if !defined(GALS) || (defined(GALS) && defined(BETTER_VERLET))
                 b1->acc.set(0.0, 0.0, 0.0);
+            #endif
                 if(uni.space(b1)) {
                     uni.add(b1);
                     added = true;
@@ -250,7 +254,9 @@ int main(int argc, char *argv[]) {
                 b1->type = 2;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+            #if !defined(GALS) || (defined(GALS) && defined(BETTER_VERLET))
                 b1->acc.set(0.0, 0.0, 0.0);
+            #endif
                 if(uni.space(b1)) {
                     uni.add(b1);
                     added = true;
@@ -276,7 +282,9 @@ int main(int argc, char *argv[]) {
                 prev_bead->type = 1;
                 prev_bead->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 prev_bead->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+            #if !defined(GALS) || (defined(GALS) && defined(BETTER_VERLET))
                 prev_bead->acc.set(0.0, 0.0, 0.0);
+            #endif
                 if (uni.space(prev_bead.get())) {
                     uni.add(prev_bead.get());
                     added = true;
@@ -293,7 +301,9 @@ int main(int argc, char *argv[]) {
                     b1->type = 1;
                     b1->pos.set(((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.x(), ((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.y(), ((rand() / (float)RAND_MAX) - 0.5) + prev_bead.get()->pos.z());
                     b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                #if !defined(GALS) || (defined(GALS) && defined(BETTER_VERLET))
                     b1->acc.set(0.0, 0.0, 0.0);
+                #endif
                     if(uni.space(b1.get())) {
                         uni.add(b1.get());
                         added = true;
@@ -316,7 +326,9 @@ int main(int argc, char *argv[]) {
                 b1->type = 0;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+            #if !defined(GALS) || (defined(GALS) && defined(BETTER_VERLET))
                 b1->acc.set(0.0, 0.0, 0.0);
+            #endif
                 if (uni.space(b1)) {
                     uni.add(b1);
                     added = true;
