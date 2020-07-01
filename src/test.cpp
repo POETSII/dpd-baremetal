@@ -78,7 +78,11 @@ int main() {
         b1->type = std::stoi(lines.at(1));
         b1->pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1->velo.set(0.0, 0.0, 0.0);
+    #ifndef GALS
         b1->acc.set(0.0, 0.0, 0.0);
+    #elif defined(BETTER_VERLET)
+        b1->acc.set(0.0, 0.0, 0.0);
+    #endif
         // Cell for bead to go in
         unit_t cell;
         cell.x = std::stoi(lines.at(5));
@@ -116,7 +120,11 @@ int main() {
         b1.type = std::stoi(lines.at(1));
         b1.pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1.velo.set(0.0, 0.0, 0.0);
+    #ifndef GALS
         b1.acc.set(0.0, 0.0, 0.0);
+    #elif defined(BETTER_VERLET)
+        b1.acc.set(0.0, 0.0, 0.0);
+    #endif
         // Cell that bead ends up in
         unit_t cell;
         cell.x = std::stoi(lines.at(5));

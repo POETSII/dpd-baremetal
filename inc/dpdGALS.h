@@ -621,14 +621,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
 
-        #ifndef MESSAGE_MANAGEMENT
-            *readyToSend = Pin(0);
-	        if(!s->sentslot) {
-                s->newBeadMap = s->bslot;
-                s->mode = UPDATE_COMPLETE;
-	        }
-	        return;
-        #else
+        #ifdef MESSAGE_MANAGEMENT
             if (!s->sentslot) {
                 *readyToSend = Pin(0);
                 s->newBeadMap = s->bslot;
@@ -640,12 +633,36 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = No; // We need to wait for a full round of messages from neighbours
             }
             return;
+        #elif defined(IMPROVED_GALS)
+            // The last bead is being sent, stick the final bead identifier in this message
+            if (!s->sentslot) {
+                *readyToSend = No;
+                s->newBeadMap = s->bslot;
+                s->mode = UPDATE_COMPLETE;
+                s->updates_sent = 2;
+                msg->type = 0xBE; // This signifies that this is the last update bead
+                update_complete();
+            } else {
+                msg->type = 0x00;
+                *readyToSend = Pin(0);
+            }
+            return;
+        #else
+            *readyToSend = Pin(0);
+            if(!s->sentslot) {
+                s->newBeadMap = s->bslot;
+                s->mode = UPDATE_COMPLETE;
+            }
+            return;
         #endif
 	    }
 
         if(s->mode == UPDATE_COMPLETE) {
             msg->mode = UPDATE_COMPLETE;
+        #ifndef IMPROVED_GALS
+            // This message is only sent if there's no beads to be sent for update in IMPROVED_GALS
             msg->total_beads = s->updates_sent;
+        #endif
             s->updates_sent = 2;
             if (!update_complete()) {
                 *readyToSend = No;
@@ -679,16 +696,33 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             // clear the new bead slot -- To match bslot
             s->newBeadMap = clear_slot(s->newBeadMap, ci);
 	        // s->sentslot = s->bslot;
+
+        #ifdef IMPROVED_GALS
+            // The last bead is being sent, stick the final bead identifier in this message
+            if (s->migrateslot == 0) {
+                *readyToSend = No;
+                s->mode = MIGRATION_COMPLETE;
+                msg->type = 0xEB; // This signifies that this is the last migration bead
+                s->migrates_sent = 2;
+                migration_complete();
+            } else {
+                msg->type = 0x00;
+            }
+        #else
             *readyToSend = Pin(0);
-	        if(s->migrateslot == 0) {
+	        if (s->migrateslot == 0) {
                 s->mode = MIGRATION_COMPLETE;
 	        }
+        #endif
 	        return;
 	    }
 
         if (s->mode == MIGRATION_COMPLETE) {
+            *readyToSend = No;
             msg->mode = MIGRATION_COMPLETE;
+        #ifndef IMPROVED_GALS
             msg->total_beads = s->migrates_sent;
+        #endif
             s->migrates_sent = 2;
             // s->migration_completes_received++;
             if (!migration_complete()) {
@@ -838,6 +872,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         i = clear_slot(i, ci);
                     }
                     s->total_update_beads--;
+
+                #ifdef IMPROVED_GALS
+                    // Last bead received from this neighbour
+                    if (msg->type == 0xBE) {
+                        s->update_completes_received++;
+                    }
+                #endif
+
                     update_complete();
                 #ifdef MESSAGE_MANAGEMENT
                     s->msgs_to_recv--;
@@ -860,6 +902,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         s->total_migration_beads += msg->total_beads;
                         s->migrations_received++;
                     }
+                #ifdef IMPROVED_GALS
+                    // Last bead received from this neighbour
+                    if (msg->type == 0xEB) {
+                        s->migration_completes_received++;
+                    }
+                #endif
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
                         // looks like we are getting a new addition to our family
                         uint32_t ni = get_next_free_slot(s->newBeadMap);
@@ -896,6 +944,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // EMIT and EMIT_COMPLETE are allowed as a neighbouring bead calculation will not affect the positions of this bead
                 if (s->mode == UPDATE || s->mode == UPDATE_COMPLETE || s->mode == EMIT || s->mode == EMIT_COMPLETE) {
                     s->update_completes_received++;
+                #ifdef IMPROVED_GALS
+                    // This is only received if a cell has no beads to send for updates
+                    s->updates_received++;
+                #else
                     if (!msg->total_beads) {
                         s->updates_received++;
                     #ifdef MESSAGE_MANAGEMENT
@@ -904,13 +956,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         set_rts();
                     #endif
                     }
-                // #ifdef MESSAGE_MANAGEMENT
-                //     s->msgs_to_recv--;
-                //     if (msg->type == 0xBB) {
-                //         s->nbs_complete++; // The sender had no beads and wont send any more
-                //         set_rts();
-                //     }
-                // #endif
+                #endif
                     update_complete();
                     return;
                 }
@@ -918,9 +964,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // Allowed modes
                 if (s->mode == MIGRATION || s->mode == MIGRATION_COMPLETE || s->mode == UPDATE_COMPLETE) {
                     s->migration_completes_received++;
+                #ifdef IMPROVED_GALS
+                    // This is only received if a cell has no beads to send for migrations
+                    s->migrations_received++;
+                #else
                     if (!msg->total_beads) {
                         s->migrations_received++;
                     }
+                #endif
                     migration_complete();
                     return;
                 }
