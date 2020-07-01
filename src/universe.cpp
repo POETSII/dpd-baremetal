@@ -742,6 +742,8 @@ void Universe<S>::run(uint32_t max_time) {
 #ifdef MESSAGE_COUNTER
     std::map<unit_t, uint32_t> cell_messages;
 #endif
+
+    std::map<uint32_t, std::map<uint32_t, DPDMessage>> message_map;
     // enter the main loop
     while(1) {
         PMessage<None, DPDMessage> msg;
@@ -801,6 +803,36 @@ void Universe<S>::run(uint32_t max_time) {
         eMsg.from = msg.payload.from;
         eMsg.bead = msg.payload.beads[0];
         _extern->send(&eMsg);
+
+        // USED TO GENERATE CSV FILES FOR RDF
+        // uint32_t time = msg.payload.timestep;
+        // if (timestep != time) {
+        //     std::cout << "Timestep " << time << "\n";
+        //     timestep = time;
+        // }
+        // uint32_t bead_id = msg.payload.beads[0].id;
+        // message_map[time][bead_id] = msg.payload;
+        // if (time >= 10001) {
+        //     std::cout << "Finished, now writing into files\n";
+        //     for (std::map<uint32_t, std::map<uint32_t, DPDMessage>>::iterator i = message_map.begin(); i != message_map.end(); ++i) {
+        //         std::string path = "../full_bead_info/" + std::to_string(_D) + "_"  + std::to_string(_D) + "_" + std::to_string(_D) + "_time_" + std::to_string(i->first) + ".csv";
+        //         FILE* f = fopen(path.c_str(), "w+");
+        //         for (std::map<uint32_t, DPDMessage>::iterator j = i->second.begin(); j != i->second.end(); ++j) {
+        //             uint32_t bead_id = j->first;
+        //             uint16_t cell_x = j->second.from.x;
+        //             uint16_t cell_y = j->second.from.y;
+        //             uint16_t cell_z = j->second.from.z;
+        //             uint32_t bead_type = j->second.beads[0].type;
+        //             Vector3D<float> pos = j->second.beads[0].pos;
+        //             Vector3D<float> vel = j->second.beads[0].velo;
+        //             fprintf(f, "%u, %u, %u, %u, %u, %f, %f, %f, %f, %f, %f\n",
+        //                 bead_id, bead_type, cell_x, cell_y, cell_z, pos.x(), pos.y(), pos.z(), vel.x(), vel.y(), vel.z());
+        //         }
+        //         fclose(f);
+        //     }
+        //     std::cout << "Files written\n";
+        //     return;
+        // }
     #endif
     }
 }

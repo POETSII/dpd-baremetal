@@ -90,7 +90,7 @@ const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
 }
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 0;
+const uint32_t emitperiod = 50;
 #endif
 
 // ---------------------------------------------------------------------------------------
