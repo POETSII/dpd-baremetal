@@ -87,7 +87,9 @@ oil1Oil2Fig, oil1Oil2Ax1 = plt.subplots(1, 1, subplot_kw={'projection': '3d'})
 
 # Plot them and give them colour
 waterWaterAx1.plot_surface(waterWaterX, waterWaterY, waterWaterZ, cmap=plt.cm.RdYlGn)
+plt.show()
 oil1Oil1Ax1.plot_surface(oil1Oil1X, oil1Oil1Y, oil1Oil1Z, cmap=plt.cm.RdYlGn)
+plt.show()
 oil2Oil2Ax1.plot_surface(oil2Oil2X, oil2Oil2Y, oil2Oil2Z, cmap=plt.cm.RdYlGn)
 waterOil1Ax1.plot_surface(waterOil1X, waterOil1Y, waterOil1Z, cmap=plt.cm.RdYlGn)
 waterOil2Ax1.plot_surface(waterOil2X, waterOil2Y, waterOil2Z, cmap=plt.cm.RdYlGn)
@@ -118,6 +120,3 @@ oil1Oil2Ax1.set_title('RDF of all oil - Types 1 and 2')
 oil1Oil2Ax1.set_xlabel('Timestep')
 oil1Oil2Ax1.set_ylabel('Radius')
 oil1Oil2Ax1.set_zlabel('RDF')
-
-# plt.tight_layout()
-plt.show()

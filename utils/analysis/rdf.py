@@ -1,7 +1,7 @@
 from cell import *
 import math
 
-vol_width = 10 # Constant for each run
+vol_width = 25 # Constant for each run
 number_density = 3
 total_cells = vol_width * vol_width * vol_width
 max_timestep = 10001
