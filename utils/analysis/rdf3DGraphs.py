@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 
-vol_width = 10
+vol_width = 25
+rmax = vol_width / 2
+dr = rmax / 100
 
 def openFilesFillArrays(filepath, X, Y, Z):
     with open(filepath) as csv_file:
@@ -35,12 +37,12 @@ def convertArraysToNumpy(X, Y, Z):
     return (X, Y, Z)
 
 # Read all data from files and generate axes and series
-waterWater = str(vol_width) + "_rdf_water_water_dr_0.625.csv"
-oil1Oil1 = str(vol_width) + "_rdf_oil1_oil1_dr_0.625.csv"
-oil2Oil2 = str(vol_width) + "_rdf_oil2_oil2_dr_0.625.csv"
-waterOil1 = str(vol_width) + "_rdf_water_oil1_dr_0.625.csv"
-waterOil2 = str(vol_width) + "_rdf_water_oil2_dr_0.625.csv"
-oil1Oil2 = str(vol_width) + "_rdf_oil1_oil2_dr_0.625.csv"
+waterWater = str(vol_width) + "_rdf_water_water_dr_" + str(dr) + ".csv"
+oil1Oil1 = str(vol_width) + "_rdf_oil1_oil1_dr_" + str(dr) + ".csv"
+oil2Oil2 = str(vol_width) + "_rdf_oil2_oil2_dr_" + str(dr) + ".csv"
+waterOil1 = str(vol_width) + "_rdf_water_oil1_dr_" + str(dr) + ".csv"
+waterOil2 = str(vol_width) + "_rdf_water_oil2_dr_" + str(dr) + ".csv"
+oil1Oil2 = str(vol_width) + "_rdf_oil1_oil2_dr_" + str(dr) + ".csv"
 
 waterWaterX = []
 waterWaterY = []
@@ -117,5 +119,4 @@ oil1Oil2Ax1.set_xlabel('Timestep')
 oil1Oil2Ax1.set_ylabel('Radius')
 oil1Oil2Ax1.set_zlabel('RDF')
 
-# plt.tight_layout()
 plt.show()
