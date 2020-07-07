@@ -291,7 +291,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 2;//TinselBoxMeshXLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
@@ -734,7 +734,7 @@ void Universe<S>::run(uint32_t max_time) {
 #endif
 
     uint32_t devices = 0;
-    int32_t timestep = -1;
+    uint32_t timestep = 0;
 #ifdef BEAD_COUNTER
     uint32_t beads_out = 0;
 #endif
@@ -742,7 +742,7 @@ void Universe<S>::run(uint32_t max_time) {
 #ifdef MESSAGE_COUNTER
     std::map<unit_t, uint32_t> cell_messages;
 #endif
-
+    std::map<uint32_t, uint32_t> timeMap;
     std::map<uint32_t, std::map<uint32_t, DPDMessage>> message_map;
     // enter the main loop
     while(1) {
@@ -763,7 +763,12 @@ void Universe<S>::run(uint32_t max_time) {
             }
         }
       #else
-        if (msg.payload.type != 0xBB) {
+        if (msg.payload.type == 0xDD) {
+            if (msg.payload.timestep > timestep) {
+                std::cerr << "Timestep " << msg.payload.timestep << "\n";
+                timestep = msg.payload.timestep;
+            }
+        } else if (msg.payload.type != 0xBB) {
             if (msg.payload.timestep >= max_time) {
                 gettimeofday(&finish, NULL);
                 timersub(&finish, &start, &elapsedTime);
@@ -798,11 +803,17 @@ void Universe<S>::run(uint32_t max_time) {
             }
         }
     #else
-        pts_to_extern_t eMsg;
-        eMsg.timestep = msg.payload.timestep;
-        eMsg.from = msg.payload.from;
-        eMsg.bead = msg.payload.beads[0];
-        _extern->send(&eMsg);
+        // pts_to_extern_t eMsg;
+        // eMsg.timestep = msg.payload.timestep;
+        // eMsg.from = msg.payload.from;
+        // eMsg.bead = msg.payload.beads[0];
+        // _extern->send(&eMsg);
+
+        if (msg.payload.timestep != timestep) {
+            std::cerr << timestep << ": " << timeMap[timestep] << "\n";
+            timestep = msg.payload.timestep;
+        }
+        timeMap[timestep]++;
 
         // USED TO GENERATE CSV FILES FOR RDF
         // uint32_t time = msg.payload.timestep;

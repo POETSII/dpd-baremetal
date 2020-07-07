@@ -181,7 +181,7 @@ struct DPDState {
     uint8_t update_completes_received;
     uint8_t migrations_received;
     uint8_t migration_completes_received;
-    bool    emit_complete_sent;
+    uint8_t emit_complete_sent;
     uint8_t emit_completes_received;
     uint8_t updates_sent;
     uint8_t migrates_sent;
@@ -480,6 +480,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     *readyToSend = HostPin;
                 } else {
                     *readyToSend = Pin(0);
+                    // *readyToSend = HostPin;
                     s->mode = EMIT_COMPLETE;
                 }
                 s->emitcnt = 1;
@@ -487,6 +488,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 s->emitcnt++;
                 s->mode = EMIT_COMPLETE;
                 *readyToSend = Pin(0);
+                // *readyToSend = HostPin;
             }
             return true;
         #elif defined(TESTING)
@@ -502,11 +504,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             } else {
                 s->mode = EMIT_COMPLETE;
                 *readyToSend = Pin(0);
+                // *readyToSend = HostPin;
             }
             return true;
         #else
             s->mode = EMIT_COMPLETE;
             *readyToSend = Pin(0);
+            // *readyToSend = HostPin;
             return true;
         #endif
         } else {
@@ -515,9 +519,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
     bool emit_complete() {
-        if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE && s->emit_complete_sent) {
+        if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE && s->emit_complete_sent == 2) {
             s->emit_completes_received = 0;
-            s->emit_complete_sent = false;
+            s->emit_complete_sent = 0;
         #if defined(TESTING) || defined(STATS)
             if (s->timestep >= s->max_time) {
                 s->mode = END;
@@ -583,7 +587,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
-        return false;
+        return true;
     }
 
 	// send handler -- called when the ready to send flag has been set
@@ -753,6 +757,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            s->sentslot = s->bslot;
                 s->mode = EMIT_COMPLETE;
 	            *readyToSend = Pin(0);
+                // *readyToSend = HostPin;
 	        }
             return;
         #elif defined(TESTING)
@@ -767,13 +772,20 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
 
         if (s->mode==EMIT_COMPLETE) {
-            // Tell neighbours I have finished emitting.
-            msg->mode = EMIT_COMPLETE;
-            s->emit_complete_sent = true;
-            // s->emit_completes_received++;
-            if (!emit_complete()) {
-                *readyToSend = No;
-            }
+            // if (s->emit_complete_sent == 0) {
+            //     msg->type = 0xDD;
+            //     msg->timestep = s->timestep;
+            //     s->emit_complete_sent = 1;
+            //     *readyToSend = Pin(0);
+            // } else {
+                // Tell neighbours I have finished emitting.
+                msg->mode = EMIT_COMPLETE;
+                s->emit_complete_sent = 2;
+                // s->emit_completes_received++;
+                if (!emit_complete()) {
+                    *readyToSend = No;
+                }
+            // }
             return;
         }
 
@@ -993,7 +1005,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         //     msg->type = 0xAA;
         //     msg->timestep = get_num_beads(s->bslot);
         // #endif
-	    return false;
+        msg->timestep = s->timestep;
+        msg->type = 0xCC;
+	    // return false;
+        return true;
     }
 
 };
