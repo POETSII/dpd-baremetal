@@ -1006,7 +1006,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         //     msg->timestep = get_num_beads(s->bslot);
         // #endif
         msg->timestep = s->timestep;
-        msg->type = 0xCC;
+        msg->from.x = s->loc.x;
+        msg->from.y = s->loc.y;
+        msg->from.z = s->loc.z;
+        msg->type = 0xDD;
 	    // return false;
         return true;
     }
