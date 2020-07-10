@@ -763,6 +763,7 @@ void Universe<S>::run(uint32_t max_time) {
             }
         }
       #else
+        std::cerr << "Msg type = " << (uint32_t) msg.payload.type << "\n";
         if (msg.payload.type == 0xDD) {
             if (msg.payload.timestep > timestep) {
                 std::cerr << msg.payload.from.x << ", "<< msg.payload.from.y << ", " << msg.payload.from.z;
@@ -770,7 +771,6 @@ void Universe<S>::run(uint32_t max_time) {
                 timestep = msg.payload.timestep;
             }
         } else if (msg.payload.type != 0xBB) {
-            std::cerr << "End msg type = " << (uint32_t) msg.payload.type << "\n";
             if (msg.payload.timestep >= max_time) {
                 gettimeofday(&finish, NULL);
                 timersub(&finish, &start, &elapsedTime);
@@ -786,7 +786,7 @@ void Universe<S>::run(uint32_t max_time) {
                 return;
             }
         } else {
-            std::cerr << "ERROR: finish received when not expected\n";
+            std::cerr << "ERROR: received message when not expected\n";
             return;
         }
       #endif
