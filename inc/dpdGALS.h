@@ -72,21 +72,12 @@ const ptype inv_sqrt_dt = 7.071067812;
 // Lambda used in verlet
 const ptype lambda = 0.5;
 
-/* DT10: Playing with bonds.
-    Particles of any species are bonded if:
-    - They have an id with the MSB set; and
-    - Their id differs by exactly 1.
-    This allows for dimers and polymers, but does not allow for multi-way stuff
-    In principle the bonds could break, which is a bit worrying. If they drift
-    within sight again then they will re-capture, but that is unlikely.
-*/
-// const ptype bond_kappa=100; // Bond interaction is very strong
-// const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
-
-//  inline bool are_beads_bonded(uint32_t a, uint32_t b)
-// {
-//     return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
-// }
+#ifdef BONDS
+// Bond_kappa is the force between two bonded beads. It is very strong
+const ptype bond_kappa=128;
+// 0.5 is the distance aimed to be kept between two bonded beads
+const ptype bond_r0=0.5;
+#endif
 
 #ifdef VISUALISE
 const uint32_t emitperiod = 0;
@@ -254,6 +245,22 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         return s0 + s1;
     }
 
+#ifdef BONDS
+/* DT10: Playing with bonds.
+    Particles of any species are bonded if:
+    - They have an id with the MSB set; and
+    - Their id differs by exactly 1.
+    This allows for dimers and polymers, but does not allow for multi-way stuff
+    In principle the bonds could break, which is a bit worrying. If they drift
+    within sight again then they will re-capture, but that is unlikely.
+*/
+
+inline bool are_beads_bonded(uint32_t a, uint32_t b)
+{
+    return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
+}
+#endif
+
 #ifndef ACCELERATE
     // calculate a new force acting between two particles
     // __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
@@ -304,11 +311,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         // random force
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
 
-        // if(are_beads_bonded(a->id, b->id)) {
-        //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
-        // }
+        Vector3D<ptype> scale = (r_ij / r_ij_dist);
 
-        force = (r_ij / r_ij_dist) * (con + drag + ran);
+#ifdef BONDS
+        if(are_beads_bonded(a->id, b->id)) {
+            force = force - (scale * bond_kappa * (r_ij_dist-bond_r0));
+        }
+#endif
+
+        force = scale * (con + drag + ran);
 
         return force;
     }
