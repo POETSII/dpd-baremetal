@@ -738,6 +738,29 @@ stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o $(DPD_BIN) $(DPD_BIN)/galsCod
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
 
+# -------------- WATER ONLY SIMULATION ------------------------------------------------------
+
+$(DPD_BIN)/WaterOnly.o: $(DPD_SRC)/WaterOnly.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/WaterOnly.o $(DPD_SRC)/WaterOnly.cpp
+
+$(DPD_BIN)/waterOnly: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/WaterOnly.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+visual-water-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
+visual-water-only: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
+timed-water-only: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
+timed-water-only: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
 .PHONY: clean
 clean:
 	rm -rf $(DPD_BIN) *.sock state.json
