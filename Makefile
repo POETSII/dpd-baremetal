@@ -748,8 +748,8 @@ $(DPD_BIN)/bonds_run: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS
-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
+visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS
+visual-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
 	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf

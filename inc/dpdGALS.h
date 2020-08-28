@@ -80,7 +80,7 @@ const ptype bond_r0=0.5;
 #endif
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 0;
+const uint32_t emitperiod = 100;
 #endif
 
 // ----------------------------------------------------------------------------
@@ -311,15 +311,15 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
         // random force
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
 
-        Vector3D<ptype> scale = (r_ij / r_ij_dist);
+        Vector3D<ptype> scale = r_ij / r_ij_dist;
+
+        force = scale * (con + drag + ran);
 
 #ifdef BONDS
         if(are_beads_bonded(a->id, b->id)) {
-            force = force - (scale * bond_kappa * (r_ij_dist-bond_r0));
+            force = force - (scale * bond_kappa * (bond_r0 - r_ij_dist));
         }
 #endif
-
-        force = scale * (con + drag + ran);
 
         return force;
     }
