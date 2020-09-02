@@ -80,7 +80,7 @@ const ptype bond_r0=0.5;
 #endif
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 100;
+const uint32_t emitperiod = 1;
 #endif
 
 // ----------------------------------------------------------------------------
@@ -286,22 +286,31 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 
         // Vector difference in position
         Vector3D<ptype> r_ij = a->pos - b->pos;
-        // Vector difference in velocity
-        Vector3D<ptype> v_ij = a->velo - b->velo;
 
         // Calculate magnitudes of all forces
         // But multiply them by vector distance at the end
 
         // Conservative force: Equation 8.5 in the dl_meso manual
+    #ifndef DISABLE_CONS_FORCE
         ptype con = a_ij * w_r;
+    #else
+        ptype con = 0;
+    #endif
 
+    #ifndef DISABLE_DRAG_FORCE
+        // Vector difference in velocity
+        Vector3D<ptype> v_ij = a->velo - b->velo;
         // Vector distance difference and Vector velocity difference dot product
         ptype dotProd = r_ij.dot(v_ij);
         // Divide this by r_ij_dist as the equation is divided by r_ij_dist squared
         dotProd /= r_ij_dist;
         // Get the drag force
         ptype drag = ptype(-1.0) * drag_coef * w_d * dotProd;
+    #else
+        ptype drag = 0;
+    #endif
 
+    #ifndef DISABLE_RAND_FORCE
         // Get the pairwise random number
         // ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
         const ptype test = 3.466008;
@@ -310,6 +319,9 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 
         // random force
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
+    #else
+        ptype ran = 0;
+    #endif
 
         Vector3D<ptype> scale = r_ij / r_ij_dist;
 
@@ -317,7 +329,8 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 
 #ifdef BONDS
         if(are_beads_bonded(a->id, b->id)) {
-            force = force - (scale * bond_kappa * (bond_r0 - r_ij_dist));
+            ptype s = r_ij_dist - bond_r0;
+            force = force - (scale * bond_kappa * s);
         }
 #endif
 
