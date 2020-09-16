@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
     // Generate initial velocities (Maxwell distribution, courtesy of Julian)
     std::vector<float> rvelDist = maxwellDist(total_beads);
 
-    //Initialise the vector size to the number of beads in advance to avoid allocation later
+    // Initialise the vector size to the number of beads in advance to avoid allocation later
     std::vector<Vector3D<float>> velDist(total_beads, Vector3D<float>(0.0, 0.0, 0.0));
 
     // Accumulate the total initial velocity to remove this later
@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
         vtotal = vtotal + velDist.at(i).x() * velDist.at(i).x() + velDist.at(i).y() * velDist.at(i).y() + velDist.at(i).z() * velDist.at(i).z();
     }
 
-    vtotal = sqrt(vtotal / static_cast<double>(3 * total_beads));
+    vtotal = sqrt(vtotal / static_cast<double>(3 * total_beads)); // 3 for axis of movement
 
     // finally normalize the velocities to the required temperature,
     for(int i = 0; i < total_beads; i++)
@@ -203,6 +203,9 @@ int main(int argc, char *argv[]) {
         velDist.at(i).y(sqrt(temp) * velDist.at(i).y() / vtotal);
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
+
+    FILE* f = fopen("../25_bond_frames/state_0.json", "w+");
+    fprintf(f, "{\n\t\"beads\":[\n");
 
     // Start to add beads
     auto default_3D_world = [&]() {
@@ -216,6 +219,7 @@ int main(int argc, char *argv[]) {
                 b1->type = 0;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
@@ -237,6 +241,7 @@ int main(int argc, char *argv[]) {
                 b1->type = 1;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
@@ -258,6 +263,7 @@ int main(int argc, char *argv[]) {
                 b1->type = 2;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
@@ -355,6 +361,9 @@ int main(int argc, char *argv[]) {
     } else {
         bonded_world_3D();
     }
+
+    fprintf(f, "]}");
+    fclose(f);
 
     uni.set_beads_added(beads_added);
 
