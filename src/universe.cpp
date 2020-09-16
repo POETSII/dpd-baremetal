@@ -511,7 +511,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     outputMapping();
 #endif
 
-    // initialise all the devices with their position
+    // initialise all the devices with their position and the max time
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
         unit_t loc = i->second;
@@ -521,6 +521,15 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
         _g->devices[cId]->state.unit_size = _unit_size;
         _g->devices[cId]->state.N = _D;
         _g->devices[cId]->state.max_time = max_time;
+        _g->devices[cId]->state.mode = UPDATE;
+        _g->devices[cId]->state.rngstate = 1234; // start with a seed
+    #ifdef VISUALISE
+        _g->devices[cId]->state.emitcnt = emitperiod;
+    #endif
+    #ifdef SMALL_DT_EARLY
+        _g->devices[cId]->state.dt = early_dt;
+        _g->devices[cId]->state.inv_sqrt_dt = early_inv_sqrt_dt;
+    #endif
     }
 }
 
@@ -614,6 +623,7 @@ unit_t Universe<S>::add(const bead_t *in) {
         uint8_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
         _g->devices[b_su]->state.bead_slot[slot] = b;
         _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
+        _g->devices[b_su]->state.force_slot[slot].set(0.0, 0.0, 0.0);
     }
 
     return t;
@@ -635,7 +645,8 @@ void Universe<S>::add(const unit_t cell, const bead_t *in) {
     uint8_t slot = get_next_free_slot(_g->devices[b_su]->state.bslot);
     _g->devices[b_su]->state.bead_slot[slot] = b;
     _g->devices[b_su]->state.bslot = set_slot(_g->devices[b_su]->state.bslot, slot);
-}
+    _g->devices[b_su]->state.force_slot[slot].set(0.0, 0.0, 0.0);
+    }
 
 // writes the universe into the POETS system
 template<class S>
@@ -742,8 +753,7 @@ void Universe<S>::run(uint32_t max_time) {
 #ifdef MESSAGE_COUNTER
     std::map<unit_t, uint32_t> cell_messages;
 #endif
-    std::map<uint32_t, uint32_t> timeMap;
-    std::map<uint32_t, std::map<uint32_t, DPDMessage>> message_map;
+    std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
     // enter the main loop
     while(1) {
         PMessage<DPDMessage> msg;
@@ -805,11 +815,45 @@ void Universe<S>::run(uint32_t max_time) {
             }
         }
     #else
-        pts_to_extern_t eMsg;
-        eMsg.timestep = msg.payload.timestep;
-        eMsg.from = msg.payload.from;
-        eMsg.bead = msg.payload.beads[0];
-        _extern->send(&eMsg);
+        if (timestep < msg.payload.timestep) {
+            timestep = msg.payload.timestep;
+            std::cout << "Timestep " << timestep << "\r";
+        }
+        // pts_to_extern_t eMsg;
+        // eMsg.timestep = msg.payload.timestep;
+        // eMsg.from = msg.payload.from;
+        // eMsg.bead = msg.payload.beads[0];
+        // _extern->send(&eMsg);
+        if (msg.payload.timestep >= max_time) {
+            std::cout << "\n";
+            std::cout << "Finished, saving now\n";
+            for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
+                std::cout << "Timestep " << i->first << "\r";
+                std::string path = "../25_bond_frames/state_" + std::to_string(i->first) + ".json";
+                FILE* f = fopen(path.c_str(), "w+");
+                fprintf(f, "{\n\t\"beads\":[\n");
+                bool first = true;
+                for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
+                    if (first) {
+                        first = false;
+                    } else {
+                        fprintf(f, ",\n");
+                    }
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
+                }
+                fprintf(f, "\n]}");
+                fclose(f);
+            }
+            std::cout << "\n";
+            return;
+        }
+        // if (msg.payload.beads[0].id >= 0x80000000ul) {
+            bead_t b = msg.payload.beads[0];
+            b.pos.x(b.pos.x() + msg.payload.from.x);
+            b.pos.y(b.pos.y() + msg.payload.from.y);
+            b.pos.z(b.pos.z() + msg.payload.from.z);
+            bead_map[msg.payload.timestep][msg.payload.beads[0].id] = b;
+        // }
     #endif
     }
 }
