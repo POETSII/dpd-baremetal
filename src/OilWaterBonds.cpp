@@ -128,7 +128,15 @@ int main(int argc, char *argv[]) {
     unsigned failures = 0;
 
     uint32_t total_beads = BEAD_DENSITY * N * N * N; // Get the total number of beads we ideally want (Volume * Bead density)
+
+    uint32_t const bead_chain_numbers = 10; // Each chain is 10 beads, 5 water and 5 oil. Hopefully we'll see a membrane-like-thing form
     uint32_t bonded_oil_water = 0.1 * total_beads; // 10% of these are oil 1 and water chains
+    // Each chain is a certain length, in this case, 10 beads.
+    // To ensure we have all chains at the same length, we decrease this number until we hit the next multiple of 10
+    // It is better to have fewer beads so we are less than the number density, than larger
+    while ((bonded_oil_water % bead_chain_numbers) != 0) {
+        bonded_oil_water--;
+    }
     uint32_t w = 0.55 * total_beads; // 55% are single water beads
     uint32_t o1 = 0.25 * total_beads; // 25% are single oil 1 beads
     uint32_t o2 = 0.1 * total_beads; // 10% are single oil 2 beads
@@ -136,13 +144,11 @@ int main(int argc, char *argv[]) {
     // May lose one or two bead in conversion from float to int, so let's get the real number
     total_beads = bonded_oil_water + w + o1 + o2;
 
-    uint32_t const bead_chain_numbers = 10; // Each chain is 10 beads, 5 water and 5 oil. Hopefully we'll see a membrane-like-thing form
-
     // Generate initial velocities (Maxwell distribution, courtesy of Julian)
-    std::vector<float> rvelDist = maxwellDist(total_beads + (0.1 * total_beads)); // Have to add a few more as we may end up having a few more beads. Unused initial velocities isn't an issue really
+    std::vector<float> rvelDist = maxwellDist(total_beads); // Unused initial velocities isn't an issue really
 
     // Initialise the vector size to the number of beads in advance to avoid allocation later
-    std::vector<Vector3D<float>> velDist(total_beads + (0.1 * total_beads), Vector3D<float>(0.0, 0.0, 0.0));
+    std::vector<Vector3D<float>> velDist(total_beads, Vector3D<float>(0.0, 0.0, 0.0));
 
     // Accumulate the total initial velocity to remove this later
     Vector3D<float> vcm(0.0, 0.0, 0.0);
@@ -180,7 +186,7 @@ int main(int argc, char *argv[]) {
         vtotal = vtotal + velDist.at(i).x() * velDist.at(i).x() + velDist.at(i).y() * velDist.at(i).y() + velDist.at(i).z() * velDist.at(i).z();
     }
 
-    vtotal = sqrt(vtotal / static_cast<double>(3 * total_beads));
+    vtotal = sqrt(vtotal / static_cast<double>(3 * total_beads)); // 3 for axis of movement
 
     // finally normalize the velocities to the required temperature,
     for(int i = 0; i < total_beads; i++)
@@ -190,12 +196,16 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
+    FILE* f = fopen("../25_bond_frames/state_0.json", "w+");
+    fprintf(f, "{\n\t\"beads\":[\n");
+
     for(int i = 0; i < bonded_oil_water; i += bead_chain_numbers) {
         bool added = false;
         auto prev_bead = std::make_shared<bead_t>();
         prev_bead->id = b_uid_bonded++;
         while(!added) {
             prev_bead->type = 0; // First bead is  water
+            // prev_bead->type = 1;
             prev_bead->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
             prev_bead->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
         #ifndef GALS
@@ -205,6 +215,7 @@ int main(int argc, char *argv[]) {
         #endif
             if (uni.space(prev_bead.get())) {
                 uni.add(prev_bead.get());
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
                 added = true;
                 beads_added++;
             } else {
@@ -221,15 +232,38 @@ int main(int argc, char *argv[]) {
                 } else {
                     b1->type = 0;
                 }
-                b1->pos.set(((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.x(), ((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.y(), ((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.z());
+                bool fine = false;
+                while (!fine) {
+                    b1->pos.set(((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.x(), ((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.y(), ((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.z());
+                    ptype dist = prev_bead->pos.dist(b1->pos);
+                    if (dist > 0.49 && dist < 0.51) {
+                        fine = true;
+                        if (b1->pos.x() > problem_size) {
+                            b1->pos.x(b1->pos.x() - problem_size);
+                        } else if (b1->pos.x() < 0) {
+                            b1->pos.x(b1->pos.x() + problem_size);
+                        }
+                        if (b1->pos.y() > problem_size) {
+                            b1->pos.y(b1->pos.y() - problem_size);
+                        } else if (b1->pos.y() < 0) {
+                            b1->pos.y(b1->pos.y() + problem_size);
+                        }
+                        if (b1->pos.z() > problem_size) {
+                            b1->pos.z(b1->pos.z() - problem_size);
+                        } else if (b1->pos.z() < 0) {
+                            b1->pos.z(b1->pos.z() + problem_size);
+                        }
+                    }
+                }
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
                 b1->acc.set(0.0, 0.0, 0.0);
             #endif
-                    if(uni.space(b1.get())) {
+                if(uni.space(b1.get())) {
                     uni.add(b1.get());
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                     added = true;
                     prev_bead = b1;
                     beads_added++;
@@ -257,6 +291,7 @@ int main(int argc, char *argv[]) {
         #endif
             if (uni.space(b1)) {
                 uni.add(b1);
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
             }
@@ -279,6 +314,7 @@ int main(int argc, char *argv[]) {
         #endif
             if (uni.space(b1)) {
                 uni.add(b1);
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
             }
@@ -301,11 +337,19 @@ int main(int argc, char *argv[]) {
         #endif
             if (uni.space(b1)) {
                 uni.add(b1);
+                if (i < o2 - 1) {
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                } else {
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                }
                 added = true;
                 beads_added++;
             }
         }
     }
+
+    fprintf(f, "]}");
+    fclose(f);
 
     uni.set_beads_added(beads_added);
 
