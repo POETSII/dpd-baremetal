@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
     b1->id = b_uid_bonded++;
     b0->type = 0; // Water
     b1->type = 0;
-    b0->pos.set(2.5, 2.11, 2.5); // Place both in the same cell but at 0.5 Euclidean distance so the bond is at standard length
+    b0->pos.set(2.5, 2.1, 2.5); // Place both in the same cell but at 0.5 Euclidean distance so the bond is at standard length
     b1->pos.set(2.5, 2.6, 2.5);
     // b0->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
     // Add 0 velocities
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
     b3->id = b_uid_bonded++;
     b2->type = 0; // Water
     b3->type = 0;
-    b2->pos.set(10.5, 10.5, 10.77); // Place in neighbouring cells but at 0.5 Euclidean distance so the bond is at standard length
+    b2->pos.set(10.5, 10.5, 10.75); // Place in neighbouring cells but at 0.5 Euclidean distance so the bond is at standard length
     b3->pos.set(10.5, 10.5, 11.25);
     // b2->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
     // Add 0 velocities
@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
     b5->id = b_uid_bonded++;
     b4->type = 0; // Water
     b5->type = 0;
-    b4->pos.set(0.35, 0.5, 0.5); // Place in neighbouring cells but at 0.5 Euclidean distance so the bond is at standard length
+    b4->pos.set(0.25, 0.5, 0.5); // Place in neighbouring cells but at 0.5 Euclidean distance so the bond is at standard length
     b5->pos.set(24.75, 0.5, 0.5);
     // b4->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
     // Add 0 velocities
