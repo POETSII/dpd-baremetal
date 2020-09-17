@@ -61,6 +61,10 @@ class Universe {
     PThreadId get_thread_from_loc(unit_t loc); // Use unit_t location to acquire thread id
     void run(uint32_t max_time); // runs the simulation
     std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
+    uint16_t get_neighbour_cell_dimension(unit_pos_t c, int16_t n); // Gets single dimension neighbour based on n which is -1, 0 or 1
+    PDeviceId get_neighbour_cell_id(unit_t u_i, int16_t d_x, int16_t d_y, int16_t d_z); // Gets device ID for neighbouring cell. d_x, d_y and d_z are between -1 and 1 and used for to find the 26 neighbours
+    float find_nearest_bead_distance(const bead_t *i, unit_t u_i); // Find the distance between the given bead and its nearest bead
+    void store_initial_bead_distances(); // Store the nearest bead distances for each bead in a JSON file for a graph
 
     // bead slot management
     uint8_t clear_slot(uint8_t slotlist, uint8_t pos);

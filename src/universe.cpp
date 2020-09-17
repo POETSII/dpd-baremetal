@@ -884,4 +884,95 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     return result;
 }
 
+template<class S>
+uint16_t Universe<S>::get_neighbour_cell_dimension(unit_pos_t c, int16_t n) {
+    if (n == -1) {
+        if (c == 0) {
+            return _D - 1;
+        } else {
+            return c - 1;
+        }
+    } else if (n == 1) {
+        if (c == _D - 1) {
+            return 0;
+        } else {
+            return c + 1;
+        }
+    } else {
+        return c;
+    }
+}
+
+template<class S>
+PDeviceId Universe<S>::get_neighbour_cell_id(unit_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
+    unit_t u_j = {
+        get_neighbour_cell_dimension(u_i.x, d_x),
+        get_neighbour_cell_dimension(u_i.y, d_y),
+        get_neighbour_cell_dimension(u_i.z, d_z)
+    };
+    return _locToId[u_j];
+}
+
+template<class S>
+float Universe<S>::find_nearest_bead_distance(const bead_t *i, unit_t u_i) {
+    float min_dist = 100.0;
+    for (int16_t d_x = -1; d_x <= 1; d_x++) {
+        for (int16_t d_y = -1; d_y <= 1; d_y++) {
+            for (int16_t d_z = -1; d_z <= 1; d_z++) {
+                PDeviceId n_id = get_neighbour_cell_id(u_i, d_x, d_y, d_z);
+                // Get neighbour bead slot
+                uint32_t nslot = _g->devices[n_id]->state.bslot;
+                while (nslot) {
+                    uint32_t cj = get_next_slot(nslot);
+                    nslot = clear_slot(nslot, cj);
+                    bead_t j = _g->devices[n_id]->state.bead_slot[cj];
+                    if (j.id == i->id) {
+                        continue;
+                    }
+                    Vector3D<float> j_adj; // Adjust the neighbour bead, j, relative to the given bead, i
+                    j_adj.x(j.pos.x() + d_x);
+                    j_adj.y(j.pos.y() + d_y);
+                    j_adj.z(j.pos.z() + d_z);
+                    // Get euclidean distance and store it if its smaller than the current min
+                    float dist = j_adj.dist(i->pos);
+                    if (dist < min_dist) {
+                        min_dist = dist;
+                    }
+                }
+            }
+        }
+    }
+    return min_dist;
+}
+
+template<class S>
+void Universe<S>::store_initial_bead_distances() {
+    std::cout << "Outputting minimum distances between beads for initial placement to ../init_dist.json\n";
+    FILE* f = fopen("../init_dist.json", "w+");
+    fprintf(f, "{ \"min_dists\":[\n");
+    bool first = true;
+    for (unit_pos_t u_x = 0; u_x < _D; u_x++) {
+        for (unit_pos_t u_y = 0; u_y < _D; u_y++) {
+            for (unit_pos_t u_z = 0; u_z < _D; u_z++) {
+                unit_t u = { u_x, u_y, u_z };
+                PDeviceId dev_id = _locToId[u];
+                uint32_t bslot = _g->devices[dev_id]->state.bslot;
+                while (bslot) {
+                    uint32_t i = get_next_slot(bslot);
+                    bead_t b = _g->devices[dev_id]->state.bead_slot[i];
+                    if (first) {
+                        first = false;
+                    } else {
+                        fprintf(f, ",\n");
+                    }
+                    fprintf(f, "\t %f", find_nearest_bead_distance(&b, u));
+                    bslot = clear_slot(bslot, i);
+                }
+            }
+        }
+    }
+    fprintf(f, "\n]}");
+    fclose(f);
+}
+
 #endif /* __UNIVERSE_IMPL */
