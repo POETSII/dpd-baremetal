@@ -351,6 +351,9 @@ int main(int argc, char *argv[]) {
     fprintf(f, "]}");
     fclose(f);
 
+    uni.store_initial_bead_distances();
+    return 0;
+
     uni.set_beads_added(beads_added);
 
     uni.write(); // write the universe into the POETS memory
