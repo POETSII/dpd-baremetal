@@ -557,9 +557,18 @@ bool Universe<S>::space(const bead_t *in) {
     // check to make sure there is still enough room in the device
     if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev)) {
         return false;
-    } else {
-        return true;
     }
+
+    // Adjust the bead position
+    b.pos.x(b.pos.x() - x);
+    b.pos.y(b.pos.y() - y);
+    b.pos.z(b.pos.z() - z);
+    // Check to see if this bead is too close to any other beads
+    if (find_nearest_bead_distance(&b, t) < 0.2) {
+        return false;
+    }
+
+    return true;
 }
 
 // checks to see if a pair of beads can be added to the universe
@@ -947,7 +956,7 @@ float Universe<S>::find_nearest_bead_distance(const bead_t *i, unit_t u_i) {
 
 template<class S>
 void Universe<S>::store_initial_bead_distances() {
-    std::cout << "Outputting minimum distances between beads for initial placement to ../init_dist.json\n";
+    std::cerr << "Outputting minimum distances between beads for initial placement to ../init_dist.json\n";
     FILE* f = fopen("../init_dist.json", "w+");
     fprintf(f, "{ \"min_dists\":[\n");
     bool first = true;
@@ -973,6 +982,7 @@ void Universe<S>::store_initial_bead_distances() {
     }
     fprintf(f, "\n]}");
     fclose(f);
+    std::cerr << "Complete\n";
 }
 
 #endif /* __UNIVERSE_IMPL */
