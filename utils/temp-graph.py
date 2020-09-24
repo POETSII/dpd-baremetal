@@ -36,8 +36,7 @@ for timestep in range(min_timestep, max_timestep + 1):
     average_velocity = velocity / (beads * 3) # Divide by 3 for the 3 freedoms of movement
     if average_velocity > max_average:
         max_average = average_velocity
-    print(average_velocity)
-    input()
+
     temperatures.append(average_velocity)
 
 print("              ",end = "\r")
