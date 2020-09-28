@@ -89,7 +89,7 @@ const ptype lambda = 0.5;
 // }
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 0;
+const uint32_t emitperiod = 1;
 #endif
 
 // ----------------------------------------------------------------------------
@@ -327,12 +327,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         s->msgs_to_recv = 0;
     #endif
         s->timestep++;
-    #if defined(TIMER) || defined(STATS)
+    #if defined(TIMER)
         // Timed run has ended
         if (s->timestep >= s->max_time) {
             *readyToSend = HostPin;
             s->mode = END;
             return true;
+        }
+    #elif defined(STATS)
+        if (s->timestep >= s->max_time) {
+            s->mode = END;
+            *readyToSend = No;
+            return false;
         }
     #endif
         s->grand = rand(); // advance the random number
@@ -522,11 +528,17 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE && s->emit_complete_sent == 2) {
             s->emit_completes_received = 0;
             s->emit_complete_sent = 0;
-        #if defined(TESTING) || defined(STATS)
+        #if defined(TESTING)
             if (s->timestep >= s->max_time) {
                 s->mode = END;
                 *readyToSend = HostPin;
                 return true;
+            }
+        #elif defined(STATS)
+            if (s->timestep >= s->max_time) {
+                s->mode = END;
+                *readyToSend = No;
+                return false;
             }
         #endif
             s->mode = UPDATE;
@@ -587,6 +599,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
+    #ifdef STATS
+        if (s->mode == END) {
+            return false;
+        }
+    #endif
         return true;
     }
 
@@ -737,7 +754,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	    // we are emitting our state to the host
     #if defined(VISUALISE) || defined(TESTING)
-	    if(s->mode==EMIT) {
+	    if(s->mode == EMIT) {
 	        // we are sending a host message
 	        uint32_t ci = get_next_slot(s->sentslot);
             msg->timestep = s->timestep;
@@ -999,18 +1016,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        // #ifndef BEAD_COUNTER
-        //     msg->timestep = s->timestep;
-        // #else
-        //     msg->type = 0xAA;
-        //     msg->timestep = get_num_beads(s->bslot);
-        // #endif
-        msg->timestep = s->timestep;
-        msg->from.x = s->loc.x;
-        msg->from.y = s->loc.y;
-        msg->from.z = s->loc.z;
-        msg->type = 0xDD;
-	    // return false;
+    #ifdef STATS
+        msg->type = 0xAA;
+    #endif
         return true;
     }
 
