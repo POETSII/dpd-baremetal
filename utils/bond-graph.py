@@ -73,7 +73,7 @@ for timestep in range(min_timestep, max_timestep + 1):
     bonds.append({}) # Do bonds via dictionary to keep an order
     print("Timestep " + str(timestep), end = "\r") # Print timestep to keep an idea of progress
     # JSON filepath filled with bond info
-    filepath = "../dt_changes_bond_frames/state_" + str(timestep) + ".json"
+    filepath = "../25_bond_frames/state_" + str(timestep) + ".json"
     # Store beads to then be worked on below
     beads = {}
     # Get beads from file and add to dictionary

@@ -291,7 +291,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 
     std::cout << "Test length = " << max_time << "\n";
 
-    _boxesX = 2;//TinselBoxMeshXLen;
+    _boxesX = 1;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
@@ -564,7 +564,7 @@ bool Universe<S>::space(const bead_t *in) {
     b.pos.y(b.pos.y() - y);
     b.pos.z(b.pos.z() - z);
     // Check to see if this bead is too close to any other beads
-    if (find_nearest_bead_distance(&b, t) < 0.2) {
+    if (find_nearest_bead_distance(&b, t) < 0.36) {
         return false;
     }
 
