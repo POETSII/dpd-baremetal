@@ -31,7 +31,7 @@ void print_help() {
     std::cerr << "Usage:\n";
     std::cerr << "./restart [--time t] [--help]\n";
     std::cerr << "\n";
-    std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
+    std::cerr << "time t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
     std::cerr << "\n";
     std::cerr << "help                    - Optional. Print this help information\n";
@@ -39,7 +39,7 @@ void print_help() {
 
 // Parse the arguments
 void parse_arguments(int argc, char *argv[], uint32_t *time) {
-    if (argc > 2) {
+    if (argc > 3) {
         printf("Too many arguments. Provide only the number of additional timesteps\n");
         print_help();
         exit(1);
@@ -335,15 +335,23 @@ int main(int argc, char *argv[]) {
     // Write each bead to the JSON file for analysis, then add each bead to the
     // simulation volume
     // For each bead
+    bool first = true;
     for (std::map<bead_id_t, bead_t>::iterator i = beads.begin(); i != beads.end(); ++i) {
+        if (first) {
+            first = false;
+        } else {
+            fprintf(f, ",\n");
+        }
         // Don't need the ID, just the bead
         bead_t b = i->second;
         simulation.add(&b); // This will crash if a bead cannot fit in a cell
         // Write this to the JSON so it can be used for analysis
-        fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
+        fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
     }
 
+
     // Close the JSON file
+    fprintf(f, "\n\t]\n}")
     fclose(f);
 
     // Store the minimum initial distances between beads to be used for analysis
