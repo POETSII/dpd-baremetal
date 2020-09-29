@@ -567,12 +567,6 @@ bool Universe<S>::space(const bead_t *in) {
     b.pos.y(b.pos.y() - y);
     b.pos.z(b.pos.z() - z);
 
-    // MINIMUM DISTANCE
-    // Check to see if this bead is too close to any other beads
-    if (find_nearest_bead_distance(&b, t) < 0.36) {
-        return false;
-    }
-
     return true;
 }
 
