@@ -164,7 +164,7 @@ struct DPDState {
     uint64_t rngstate; // the state of the random number generator
 
     uint32_t lost_beads; // Beads lost due to the cell having a full bead_slot
-    uint32_t max_time; // Maximum timestep for this run
+    uint32_t max_timestep; // Maximum timestep for this run
 
 #ifdef MESSAGE_MANAGEMENT
     int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
@@ -396,7 +396,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	    s->timestep++;
         #if defined(TIMER) || defined(STATS) || defined(MESSAGE_COUNTER)
             // Timed run has ended
-            if (s->timestep >= s->max_time) {
+            if (s->timestep >= s->max_timestep) {
                 return false;
             }
         #endif
@@ -532,7 +532,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
             return true;
         #elif defined(TESTING)
-            if (s->timestep >= s->max_time) {
+            if (s->timestep >= s->max_timestep) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -587,7 +587,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return true;
         }
     #elif defined(TESTING) || defined(STATS)
-        if (s->timestep >= s->max_time) {
+        if (s->timestep >= s->max_timestep) {
             return false;
         }
     #endif

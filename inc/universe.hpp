@@ -15,7 +15,7 @@
 #include <map>
 #include "ExternalServer.hpp"
 
-const uint8_t max_beads_per_dev = 7;
+const uint8_t max_beads_per_dev = 31;
 
 #if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
     typedef struct _FPGALinks {
@@ -31,7 +31,7 @@ class Universe {
     public:
 
     // constructors and destructors
-    Universe(S size, unsigned D, uint32_t max_time);
+    Universe(S size, unsigned D, uint32_t start_time, uint32_t max_time);
     ~Universe();
 
     // setup
@@ -59,7 +59,7 @@ class Universe {
     // simulation control
     void write(); // writes the simulation env onto the POETS system
     PThreadId get_thread_from_loc(unit_t loc); // Use unit_t location to acquire thread id
-    void run(uint32_t max_time); // runs the simulation
+    void run(); // runs the simulation
     std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
     uint16_t get_neighbour_cell_dimension(unit_pos_t c, int16_t n); // Gets single dimension neighbour based on n which is -1, 0 or 1
     PDeviceId get_neighbour_cell_id(unit_t u_i, int16_t d_x, int16_t d_y, int16_t d_z); // Gets device ID for neighbouring cell. d_x, d_y and d_z are between -1 and 1 and used for to find the 26 neighbours
@@ -67,15 +67,15 @@ class Universe {
     void store_initial_bead_distances(); // Store the nearest bead distances for each bead in a JSON file for a graph
 
     // bead slot management
-    uint8_t clear_slot(uint8_t slotlist, uint8_t pos);
-    uint8_t set_slot(uint8_t slotlist, uint8_t pos);
-    bool is_slot_set(uint8_t slotlist, uint8_t pos);
+    uint32_t clear_slot(uint32_t slotlist, uint8_t pos);
+    uint32_t set_slot(uint32_t slotlist, uint8_t pos);
+    bool is_slot_set(uint32_t slotlist, uint8_t pos);
 
-    uint8_t get_next_slot(uint8_t slotlist);
-    uint8_t get_next_free_slot(uint8_t slotlist);
+    uint8_t get_next_slot(uint32_t slotlist);
+    uint8_t get_next_free_slot(uint32_t slotlist);
 
-    void print_slot(uint8_t slotlist);
-    uint8_t get_num_beads(uint8_t slotlist);
+    void print_slot(uint32_t slotlist);
+    uint8_t get_num_beads(uint32_t slotlist);
 
     // debugging
     void print_occupancy(); // prints the number of beads assigned to each devices
@@ -86,6 +86,8 @@ class Universe {
     S _size;
     unsigned _D;
 	S _unit_size;
+    uint32_t _start_timestep;
+    uint32_t _max_timestep;
 
     uint32_t _beads_added;
 

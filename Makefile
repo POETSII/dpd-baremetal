@@ -92,7 +92,7 @@ $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ------------ the external client ----------------
 $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
@@ -147,7 +147,7 @@ test-onebyone: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BI
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-onebyone-large: DFLAGS=-DTESTING -DONE_BY_ONE -DLARGE_TEST
 test-onebyone-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
@@ -155,7 +155,7 @@ test-onebyone-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ------------ Send beads to self to reduce local calculation memory space -------------------
 sendtoself: DFLAGS=-DTIMER -DSEND_TO_SELF
@@ -170,7 +170,7 @@ test-sendtoself: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # TODO: 46x46x46 is too large for send to self. Make smaller test for this, or smaller for all
 test-sendtoself-large: DFLAGS=-DTESTING -DSEND_TO_SELF -DLARGE_TEST
@@ -179,7 +179,7 @@ test-sendtoself-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v 
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 
 # ------------ Use message manager to reduce NoC strain -------------------
@@ -203,7 +203,7 @@ test-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BI
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Large test of standard with message management
 test-msg-mgmt-large: DFLAGS=-DTESTING -DMESSAGE_MANAGEMENT -DLARGE_TEST
@@ -212,7 +212,7 @@ test-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # One by one timed with message management
 timed-obo-msg-mgmt: DFLAGS=-DTIMER -DONE_BY_ONE -DMESSAGE_MANAGEMENT
@@ -233,7 +233,7 @@ test-obo-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DP
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Large test of one by one with message management
 test-obo-msg-mgmt-large: DFLAGS=-DTESTING -DONE_BY_ONE -DMESSAGE_MANAGEMENT -DLARGE_TEST
@@ -242,7 +242,7 @@ test-obo-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Send to self timed with message management
 timed-sts-msg-mgmt: DFLAGS=-DTIMER -DSEND_TO_SELF -DMESSAGE_MANAGEMENT
@@ -263,7 +263,7 @@ test-sts-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DP
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Large send to self with message management
 test-sts-msg-mgmt-large: DFLAGS=-DTESTING -DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DLARGE_TEST
@@ -272,7 +272,7 @@ test-sts-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 gals-msg-mgmt: DFLAGS=-DVISUALISE -DGALS -DMESSAGE_MANAGEMENT
 gals-msg-mgmt: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
@@ -307,7 +307,7 @@ test-gals-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-msg-mgmt-large: DFLAGS=-DTESTING -DGALS -DLARGE_TEST -DMESSAGE_MANAGEMENT -DLARGE_TEST
 test-gals-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -318,7 +318,7 @@ test-gals-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/gals
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-double-sqrt: DFLAGS=-DTESTING -DGALS -DDOUBLE_SQRT
 test-gals-double-sqrt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -329,7 +329,7 @@ test-gals-double-sqrt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCod
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-obo: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE
 test-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -340,7 +340,7 @@ test-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DP
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-obo-large: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DLARGE_TEST
 test-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -351,7 +351,7 @@ test-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-new-verlet: DFLAGS=-DTESTING -DGALS -DBETTER_VERLET
 test-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -362,7 +362,7 @@ test-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-new-verlet-large: DFLAGS=-DTESTING -DGALS -DBETTER_VERLET -DLARGE_TEST
 test-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -373,7 +373,7 @@ test-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/ga
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-obo-new-verlet: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DBETTER_VERLET
 test-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -384,7 +384,7 @@ test-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/gals
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-obo-new-verlet-large: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DBETTER_VERLET -DLARGE_TEST
 test-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -395,7 +395,7 @@ test-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS
 test-improved-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -406,7 +406,7 @@ test-improved-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-large: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DLARGE_TEST
 test-improved-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -417,7 +417,7 @@ test-improved-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/gals
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-obo: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE
 test-improved-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -428,7 +428,7 @@ test-improved-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCo
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-obo-large: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DLARGE_TEST
 test-improved-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -439,7 +439,7 @@ test-improved-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-new-verlet: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DBETTER_VERLET
 test-improved-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -450,7 +450,7 @@ test-improved-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-new-verlet-large: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DLARGE_TEST
 test-improved-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -461,7 +461,7 @@ test-improved-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DP
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-obo-new-verlet: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DIMPROVED_GALS -DBETTER_VERLET
 test-improved-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -472,7 +472,7 @@ test-improved-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-improved-gals-obo-new-verlet-large: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DIMPROVED_GALS -DBETTER_VERLET -DLARGE_TEST
 test-improved-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -483,7 +483,7 @@ test-improved-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) 
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ------------- Run to output statistics generated by POLite ----------
 
@@ -516,7 +516,7 @@ test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-large: DFLAGS=-DTESTING -DLARGE_TEST
 test-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
@@ -524,7 +524,7 @@ test-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ------------ BONDS TESTING----------------------------
 test-bonds: DFLAGS=-DTESTING -DBOND_TESTING
@@ -533,7 +533,7 @@ test-bonds: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # --------------- BEAD COUNTER -------------------------
 bead-count: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DBEAD_COUNTER
@@ -568,7 +568,7 @@ $(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(PARSE_OBJS) $(DPD_SRC)/parseUni
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(PARSE_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 parse: DFLAGS=-DVISUALISE
 parse: $(DPD_BIN) $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
@@ -617,7 +617,7 @@ test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BI
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-gals-large: DFLAGS=-DTESTING -DGALS -DLARGE_TEST
 test-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
@@ -628,7 +628,7 @@ test-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 timed-gals: DFLAGS=-DTIMER -DGALS
 timed-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
@@ -747,7 +747,7 @@ $(DPD_BIN)/bonds_run: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/OilWaterBonds.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 visual-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
@@ -788,10 +788,25 @@ $(DPD_BIN)/bondsOnlyRun: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/bondsOnly.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 visual-bonds-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS
 visual-bonds-only: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/bondsOnly.o $(DPD_BIN)/bondsOnlyRun
+
+# -------------------------- RESTART SIMULATION ------------------------
+$(DPD_BIN)/restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/restart $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/restart.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
+restart: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/restart
+	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
 
 .PHONY: clean
 clean:

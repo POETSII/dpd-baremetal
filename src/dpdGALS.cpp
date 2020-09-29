@@ -12,4 +12,6 @@ int main() {
 
    // Invoke interpreter
    thread->run();
+
+   return 0;
 }

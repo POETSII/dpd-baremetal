@@ -144,10 +144,10 @@ struct unit_t {
 struct DPDMessage {
     uint8_t mode;
     uint8_t type;
-    uint32_t timestep; // the timestep this message is from
-    uint8_t total_beads; //Used for sending cycle counts
-    unit_t from; // the unit that this message is from
-    bead_t beads[1]; // the beads payload from this unit
+    uint32_t timestep; // The timestep this message is from
+    uint8_t total_beads; // Used for sending cycle counts
+    unit_t from; // The cell that this message is from
+    bead_t beads[1]; // The beads payload from this unit
 }; // 48 bytes - 60 bytes with BETTER_VERLET
 
 // the state of the DPD Device
@@ -175,7 +175,7 @@ struct DPDState {
     uint64_t rngstate; // the state of the random number generator
 
     uint32_t lost_beads;
-    uint32_t max_time;
+    uint32_t max_timestep;
 
     uint8_t updates_received;
     uint8_t update_completes_received;
@@ -208,34 +208,34 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     inline uint32_t clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
     inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
 
-    uint32_t get_next_slot(uint32_t slotlist){
+    uint8_t get_next_slot(uint32_t slotlist){
 
         uint32_t mask = 0x1;
-        for(int i=0; i<MAX_BEADS; i++) {
+        for(uint8_t i = 0; i < MAX_BEADS; i++) {
             if(slotlist & mask){
                     return i;
             }
             mask = mask << 1; // shift to the next pos
         }
-        return 0xFFFFFFFF; // we are empty
+        return 0xFF; // we are empty
     }
 
-    uint32_t get_next_free_slot(uint32_t slotlist){
+    uint8_t get_next_free_slot(uint32_t slotlist){
         uint32_t mask = 0x1;
-        for(int i=0; i<MAX_BEADS; i++){
+        for(uint8_t i = 0; i < MAX_BEADS; i++){
                 if(!(slotlist & mask)) {
                        return i;
                 }
                 mask = mask << 1;
         }
-        return 0xFFFFFFFF; // error there are no free slots!
+        return 0xFF; // error there are no free slots!
     }
 
     // get the number of beads occupying a slot
-    uint32_t get_num_beads(uint32_t slotlist){
-        uint32_t cnt = 0;
+    uint8_t get_num_beads(uint32_t slotlist){
+        uint8_t cnt = 0;
         uint32_t mask = 0x1;
-        for(int i=0; i<MAX_BEADS; i++){
+        for(uint8_t i = 0; i < MAX_BEADS; i++){
                 if(slotlist & mask) {
                       cnt++;
                 }
@@ -269,7 +269,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     within sight again then they will re-capture, but that is unlikely.
 */
 
-inline bool are_beads_bonded(uint32_t a, uint32_t b)
+inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 {
     return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
 }
@@ -382,18 +382,24 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
             s->inv_sqrt_dt = normal_inv_sqrt_dt;
         }
     #endif
-    #if defined(TIMER) || defined(STATS)
+    #if defined(TIMER)
         // Timed run has ended
-        if (s->timestep >= s->max_time) {
+        if (s->timestep >= s->max_timestep) {
             *readyToSend = HostPin;
             s->mode = END;
             return true;
+        }
+    #elif defined(STATS)
+        if (s->timestep >= s->max_timestep) {
+            s->mode = END;
+            *readyToSend = No;
+            return false;
         }
     #endif
         s->grand = rand(); // advance the random number
         uint32_t i = s->bslot;
         while(i){
-            int ci = get_next_slot(i);
+            uint8_t ci = get_next_slot(i);
             // ------ velocity verlet ------
         // #ifdef TESTING
             Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
@@ -567,7 +573,7 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
             }
             return true;
         #elif defined(TESTING)
-            if (s->timestep >= s->max_time) {
+            if (s->timestep >= s->max_timestep) {
                 s->mode = EMIT;
                 if(s->bslot) {
                     s->sentslot = s->bslot;
@@ -597,11 +603,17 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
         if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE && s->emit_complete_sent == 2) {
             s->emit_completes_received = 0;
             s->emit_complete_sent = 0;
-        #if defined(TESTING) || defined(STATS)
-            if (s->timestep >= s->max_time) {
+        #if defined(TESTING)
+            if (s->timestep >= s->max_timestep) {
                 s->mode = END;
                 *readyToSend = HostPin;
                 return true;
+            }
+        #elif defined(STATS)
+            if (s->timestep >= s->max_timestep) {
+                s->mode = END;
+                *readyToSend = No;
+                return false;
             }
         #endif
             s->mode = UPDATE;
@@ -617,10 +629,10 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
     }
 
 #ifdef ONE_BY_ONE
-    void local_calcs(uint32_t ci) {
+    void local_calcs(uint8_t ci) {
         uint32_t j = s->bslot;
         while(j) {
-            uint32_t cj = get_next_slot(j);
+            uint8_t cj = get_next_slot(j);
             if(ci != cj) {
                 #ifndef ACCELERATE
                     Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj]);
@@ -658,6 +670,11 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 
 	// idle handler -- called once the system is idle with messages
 	inline bool step() {
+    #ifdef STATS
+        if (s->mode == END) {
+            return false;
+        }
+    #endif
         return true;
     }
 
@@ -680,7 +697,7 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
                 msg->total_beads = 0;
             }
 
-	        uint32_t ci = get_next_slot(s->sentslot);
+	        uint8_t ci = get_next_slot(s->sentslot);
 
         #ifdef ONE_BY_ONE
             local_calcs(ci);
@@ -808,9 +825,9 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 
 	    // we are emitting our state to the host
     #if defined(VISUALISE) || defined(TESTING)
-	    if(s->mode==EMIT) {
+	    if(s->mode == EMIT) {
 	        // we are sending a host message
-	        uint32_t ci = get_next_slot(s->sentslot);
+	        uint8_t ci = get_next_slot(s->sentslot);
             msg->timestep = s->timestep;
             msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
@@ -874,7 +891,7 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 	}
 
 	// used to help adjust the relative positions for the periodic boundary
-	inline int period_bound_adj(int dim) {
+	inline int8_t period_bound_adj(int8_t dim) {
         if(dim > 1) {
             return -1;
         } else if (dim < -1) {
@@ -917,9 +934,9 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
                     b.pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
                     b.velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                     // from the device locaton get the adjustments to the bead positions
-                    int x_rel = period_bound_adj(msg->from.x - s->loc.x);
-                    int y_rel = period_bound_adj(msg->from.y - s->loc.y);
-                    int z_rel = period_bound_adj(msg->from.z - s->loc.z);
+                    int8_t x_rel = period_bound_adj(msg->from.x - s->loc.x);
+                    int8_t y_rel = period_bound_adj(msg->from.y - s->loc.y);
+                    int8_t z_rel = period_bound_adj(msg->from.z - s->loc.z);
 
                     // relative position for this particle to this device
                     b.pos.x(b.pos.x() + ptype(x_rel));
@@ -929,7 +946,7 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
                     // loop through the occupied bead slots -- update force
                     uint32_t i = s->bslot;
                     while(i) {
-                        int ci = get_next_slot(i);
+                        uint8_t ci = get_next_slot(i);
                     #ifndef ONE_BY_ONE
                         if(s->bead_slot[ci].id != b.id) {
                     #endif
@@ -993,7 +1010,7 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
                 #endif
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
                         // looks like we are getting a new addition to our family
-                        uint32_t ni = get_next_free_slot(s->newBeadMap);
+                        uint8_t ni = get_next_free_slot(s->newBeadMap);
                         if (ni == 0xFFFFFFFF) {
                             s->lost_beads++;
                         } else {
@@ -1076,18 +1093,9 @@ inline bool are_beads_bonded(uint32_t a, uint32_t b)
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        // #ifndef BEAD_COUNTER
-        //     msg->timestep = s->timestep;
-        // #else
-        //     msg->type = 0xAA;
-        //     msg->timestep = get_num_beads(s->bslot);
-        // #endif
-        msg->timestep = s->timestep;
-        msg->from.x = s->loc.x;
-        msg->from.y = s->loc.y;
-        msg->from.z = s->loc.z;
-        msg->type = 0xDD;
-	    // return false;
+    #ifdef STATS
+        msg->type = 0xAA;
+    #endif
         return true;
     }
 

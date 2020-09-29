@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, max_time);
+    Universe<ptype> uni(problem_size, N, 0, max_time);
 
     printf("Universe setup -- adding beads\n");
 
@@ -360,7 +360,7 @@ int main(int argc, char *argv[]) {
     // uni.print_occupancy();
 
     printf("running...\n");
-    uni.run(max_time); // start the simulation
+    uni.run(); // start the simulation
 
     return 0;
 }

@@ -14,11 +14,11 @@
 
 // helper functions for managing bead slots
 template<class S>
-uint8_t Universe<S>::clear_slot(uint8_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
+uint32_t Universe<S>::clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
 template<class S>
-uint8_t Universe<S>::set_slot(uint8_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
+uint32_t Universe<S>::set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
 template<class S>
-bool Universe<S>::is_slot_set(uint8_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
+bool Universe<S>::is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
 
 // print out the occupancy of each device
 template<class S>
@@ -34,34 +34,34 @@ void Universe<S>::print_occupancy() {
 }
 
 template<class S>
-uint8_t Universe<S>::get_next_slot(uint8_t slotlist) {
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++) {
+uint8_t Universe<S>::get_next_slot(uint32_t slotlist) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++) {
         if(slotlist & mask) {
             return i;
         }
         mask = mask << 1; // shift to the next pos
     }
-    return 0xF; // we are empty
+    return 0xFF; // we are empty
 }
 
 template<class S>
-uint8_t Universe<S>::get_next_free_slot(uint8_t slotlist) {
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++){
+uint8_t Universe<S>::get_next_free_slot(uint32_t slotlist) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++){
         if(!(slotlist & mask)) {
            return i;
         }
         mask = mask << 1;
     }
-    return 0xF; // error there are no free slots!
+    return 0xFF; // error there are no free slots!
 }
 
 template<class S>
-void Universe<S>::print_slot(uint8_t slotlist) {
+void Universe<S>::print_slot(uint32_t slotlist) {
     printf("slotlist = ");
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++) {
         if(slotlist & mask) {
             printf("1");
         } else {
@@ -74,16 +74,16 @@ void Universe<S>::print_slot(uint8_t slotlist) {
 
 // get the number of beads occupying a slot
 template<class S>
-uint8_t Universe<S>::get_num_beads(uint8_t slotlist) {
+uint8_t Universe<S>::get_num_beads(uint32_t slotlist) {
     uint8_t cnt = 0;
-    uint8_t mask = 0x1;
-    for(int i=0; i<8; i++) {
+    uint32_t mask = 0x1;
+    for(int i = 0; i < max_beads_per_dev; i++) {
         if(slotlist & mask) {
             cnt++;
         }
         mask = mask << 1;
     }
-    return cnt; // error there are no free slots!
+    return cnt;
 }
 
 // make two devices neighbours
@@ -240,10 +240,14 @@ void Universe<S>::set_beads_added(uint32_t beads_added) {
 
 // constructor
 template<class S>
-Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
+Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_timestep) {
     _size = size;
     _D = D;
     _unit_size = _size / S(D);
+    _start_timestep = start_timestep;
+    _max_timestep = max_timestep;
+
+    std::cout << "Simulate to timestep    : " << max_timestep << "\n";
 
 #if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
     // Prep link 2D vectors
@@ -288,8 +292,6 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
 #ifdef DOUBLE_SQRT
     std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing" << "\n";
 #endif
-
-    std::cout << "Test length = " << max_time << "\n";
 
     _boxesX = 1;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
@@ -520,7 +522,8 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
         _g->devices[cId]->state.loc.z = loc.z;
         _g->devices[cId]->state.unit_size = _unit_size;
         _g->devices[cId]->state.N = _D;
-        _g->devices[cId]->state.max_time = max_time;
+        _g->devices[cId]->state.timestep = _start_timestep;
+        _g->devices[cId]->state.max_timestep = _max_timestep;
         _g->devices[cId]->state.mode = UPDATE;
         _g->devices[cId]->state.rngstate = 1234; // start with a seed
     #ifdef VISUALISE
@@ -563,6 +566,8 @@ bool Universe<S>::space(const bead_t *in) {
     b.pos.x(b.pos.x() - x);
     b.pos.y(b.pos.y() - y);
     b.pos.z(b.pos.z() - z);
+
+    // MINIMUM DISTANCE
     // Check to see if this bead is too close to any other beads
     if (find_nearest_bead_distance(&b, t) < 0.36) {
         return false;
@@ -617,7 +622,8 @@ unit_t Universe<S>::add(const bead_t *in) {
 
     // check to make sure there is still enough room in the device
     if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
-        printf("Error: there is not enough space in device:%d for bead:%d  already %u beads in the slot\n", b_su, in->id, get_num_beads(_g->devices[b_su]->state.bslot));
+        std::cerr << "Error: there is not enough space in cell: " << t.x << ", " << t.y << ", " << t.z << " for bead: " << in->id << ".\n";
+        std::cerr << "There is already " << get_num_beads(_g->devices[b_su]->state.bslot) << " beads in this cell for a max of\n";
         fflush(stdout);
         exit(EXIT_FAILURE);
     } else {
@@ -742,7 +748,7 @@ void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messa
 
 // starts the simulation
 template<class S>
-void Universe<S>::run(uint32_t max_time) {
+void Universe<S>::run() {
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
 
@@ -790,7 +796,7 @@ void Universe<S>::run(uint32_t max_time) {
                 timestep = msg.payload.timestep;
             }
         } else if (msg.payload.type != 0xBB) {
-            if (msg.payload.timestep >= max_time) {
+            if (msg.payload.timestep >= _max_timestep) {
                 gettimeofday(&finish, NULL);
                 timersub(&finish, &start, &elapsedTime);
                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
@@ -833,7 +839,7 @@ void Universe<S>::run(uint32_t max_time) {
         // eMsg.from = msg.payload.from;
         // eMsg.bead = msg.payload.beads[0];
         // _extern->send(&eMsg);
-        if (msg.payload.timestep >= max_time) {
+        if (msg.payload.timestep >= _max_timestep) {
             std::cout << "\n";
             std::cout << "Finished, saving now\n";
             for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
@@ -932,7 +938,7 @@ float Universe<S>::find_nearest_bead_distance(const bead_t *i, unit_t u_i) {
                 // Get neighbour bead slot
                 uint32_t nslot = _g->devices[n_id]->state.bslot;
                 while (nslot) {
-                    uint32_t cj = get_next_slot(nslot);
+                    uint8_t cj = get_next_slot(nslot);
                     nslot = clear_slot(nslot, cj);
                     bead_t j = _g->devices[n_id]->state.bead_slot[cj];
                     if (j.id == i->id) {
@@ -967,7 +973,7 @@ void Universe<S>::store_initial_bead_distances() {
                 PDeviceId dev_id = _locToId[u];
                 uint32_t bslot = _g->devices[dev_id]->state.bslot;
                 while (bslot) {
-                    uint32_t i = get_next_slot(bslot);
+                    uint8_t i = get_next_slot(bslot);
                     bead_t b = _g->devices[dev_id]->state.bead_slot[i];
                     if (first) {
                         first = false;

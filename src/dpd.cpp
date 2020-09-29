@@ -11,5 +11,7 @@ int main() {
    DPDThread* thread = (DPDThread*) tinselHeapBaseSRAM();
 
    // Invoke interpreter
-   thread->run(); 
+   thread->run();
+
+   return 0;
 }

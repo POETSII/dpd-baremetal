@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, max_time);
+    Universe<ptype> uni(problem_size, N, 0, max_time);
 
     printf("Universe setup -- adding beads\n");
 
@@ -219,7 +219,6 @@ int main(int argc, char *argv[]) {
                 b1->type = 0;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
@@ -229,6 +228,7 @@ int main(int argc, char *argv[]) {
                     uni.add(b1);
                     added = true;
                     beads_added++;
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 }
             }
         }
@@ -241,7 +241,6 @@ int main(int argc, char *argv[]) {
                 b1->type = 1;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
@@ -251,6 +250,7 @@ int main(int argc, char *argv[]) {
                     uni.add(b1);
                     added = true;
                     beads_added++;
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 }
             }
         }
@@ -263,7 +263,6 @@ int main(int argc, char *argv[]) {
                 b1->type = 2;
                 b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             #ifndef GALS
                 b1->acc.set(0.0, 0.0, 0.0);
             #elif defined(BETTER_VERLET)
@@ -273,6 +272,7 @@ int main(int argc, char *argv[]) {
                     uni.add(b1);
                     added = true;
                     beads_added++;
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 }
             }
         }
@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
     // uni.print_occupancy();
 
     printf("running...\n");
-    uni.run(max_time); // start the simulation
+    uni.run(); // start the simulation
 
     return 0;
 }
