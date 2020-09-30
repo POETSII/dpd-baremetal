@@ -8,7 +8,7 @@ import numpy as np
 volLength = 25
 bond_length_threshold = 3.0
 min_timestep = 0
-max_timestep = 10000
+max_timestep = 2000
 
 class Bond:
     def __init__(self, bead1, bead2):
