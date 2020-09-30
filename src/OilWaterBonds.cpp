@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
                 while (!fine) {
                     b1->pos.set(((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.x(), ((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.y(), ((rand() / (float)RAND_MAX) - bond_r0) + prev_bead.get()->pos.z());
                     ptype dist = prev_bead->pos.dist(b1->pos);
-                    if (dist > 0.49 && dist < 0.51) {
+                    if (dist <= 1.0) {
                         fine = true;
                         if (b1->pos.x() > problem_size) {
                             b1->pos.x(b1->pos.x() - problem_size);
