@@ -7,7 +7,7 @@ import numpy as np
 
 volLength = 25
 min_timestep = 0
-max_timestep = 10000
+max_timestep = 2000
 
 timesteps = []
 temperatures = []
