@@ -94,11 +94,8 @@ const uint32_t emitperiod = 1;
 
 // ----------------------------------------------------------------------------
 
-#ifndef BETTER_VERLET
-typedef uint32_t bead_class_t; // the type of the bead, we are not expecting too many
-#else
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
-#endif
+
 typedef uint32_t bead_id_t; // the ID for the bead
 
 // defines a bead type
@@ -840,24 +837,14 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 	        msg->beads[0].type = s->bead_slot[ci].type;
 
 	        s->sentslot = clear_slot(s->sentslot, ci);
-        #ifdef VISUALISE
 	        if(s->sentslot != 0) {
                 *readyToSend = HostPin;
 	        } else {
 	            s->sentslot = s->bslot;
                 s->mode = EMIT_COMPLETE;
 	            *readyToSend = Pin(0);
-                // *readyToSend = HostPin;
 	        }
             return;
-        #elif defined(TESTING)
-            if (s->sentslot != 0) {
-                *readyToSend = HostPin;
-            } else {
-                s->mode = END;
-                *readyToSend = HostPin;
-            }
-        #endif
 	    }
     #endif
 
