@@ -743,7 +743,7 @@ stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o $(DPD_BIN) $(DPD_BIN)/galsCod
 $(DPD_BIN)/OilWaterBonds.o: $(DPD_SRC)/OilWaterBonds.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/OilWaterBonds.o $(DPD_SRC)/OilWaterBonds.cpp
 
-$(DPD_BIN)/bonds_run: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+$(DPD_BIN)/bonds_run: $(DPD_BIN)/OilWaterBonds.o $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/OilWaterBonds.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
@@ -754,6 +754,9 @@ visual-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $
 	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
 	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
+visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
+visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/bonds_run
 
 timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 timed-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
