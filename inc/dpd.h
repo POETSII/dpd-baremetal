@@ -111,12 +111,14 @@ typedef uint32_t bead_id_t; // the ID for the bead
 
 // defines a bead type
 typedef struct _bead_t {
-    bead_id_t id;
-    bead_class_t type;
-    Vector3D<ptype> pos;
-    Vector3D<ptype> velo;
-    Vector3D<ptype> acc;
-} bead_t; // 41 bytes
+    bead_id_t id; // 4 bytes
+    bead_class_t type; // 1 byte
+    Vector3D<ptype> pos; // 12 bytes
+    Vector3D<ptype> velo; // 12 bytes
+#ifdef BETTER_VERLET
+    Vector3D<ptype> acc; // 12 bytes
+#endif
+} bead_t; // 29 bytes - 41 with BETTER_VERLET
 
 typedef uint16_t unit_pos_t;
 
@@ -163,7 +165,9 @@ struct DPDState {
     uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
+#ifdef BETTER_VERLET
     Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
+#endif
     uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     unit_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
@@ -519,29 +523,49 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
                 // ------ velocity verlet ------
                 Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
-                Vector3D<ptype> new_acc = force / p_mass;
-                                // ------ End of previous velocity Verlet -----
-            #ifndef SMALL_DT_EARLY
-                s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * dt * ptype(0.5));
-            #else
-                s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * s->dt * ptype(0.5));
-            #endif
-                // Store old velocity
-                s->old_velo[ci].set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
-                // Store old Force
-                s->bead_slot[ci].acc.set(new_acc.x(), new_acc.y(), new_acc.z());
+#ifndef BETTER_VERLET
+            Vector3D<ptype> acceleration = force / p_mass;
+        #ifndef SMALL_DT_EARLY
+            Vector3D<ptype> delta_v = acceleration * dt;
+        #else
+            Vector3D<ptype> delta_v = acceleration * s->dt;
+        #endif
+            // update velocity
+            s->bead_slot[ci].velo = s->bead_slot[ci].velo + delta_v;
+            // update position
+        #ifndef SMALL_DT_EARLY
+            s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
+        #else
+            s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*s->dt*s->dt;
+        #endif
 
-                // ------ Start of new velocity Verlet ------
+            // ----- clear the forces ---------------
+            s->force_slot[ci].clear();
+#else
+            Vector3D<ptype> new_acc = force / p_mass;
+            // ------ End of previous velocity Verlet -----
+        #ifndef SMALL_DT_EARLY
+            s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * dt * ptype(0.5));
+        #else
+            s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * s->dt * ptype(0.5));
+        #endif
+            // Store old velocity
+            s->old_velo[ci].set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+            // Store old Force
+            s->bead_slot[ci].acc.set(new_acc.x(), new_acc.y(), new_acc.z());
 
-                // Update position
-            #ifndef SMALL_DT_EARLY
-                s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * dt) + (new_acc * ptype(0.5) * dt * dt);
-            #else
-                s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * s->dt) + (new_acc * ptype(0.5) * s->dt * s->dt);
-            #endif
+            // ------ Start of new velocity Verlet ------
 
-                // ----- clear the forces ---------------
-                s->force_slot[ci].set(0, 0, 0);
+            // Update position
+        #ifndef SMALL_DT_EARLY
+            s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * dt) + (new_acc * ptype(0.5) * dt * dt);
+        #else
+            s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * s->dt) + (new_acc * ptype(0.5) * s->dt * s->dt);
+        #endif
+
+            // ----- clear the forces ---------------
+            s->force_slot[ci].set(0, 0, 0);
+#endif
 
                 // ----- migration code ------
                 bool migrating = false; // flag that says whether this particle needs to migrate
@@ -610,10 +634,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     d_loc.z = s->loc.z;
 	            }
 
-                if(migrating) {
+                if (migrating) {
                     s->migrateslot = set_slot(s->migrateslot, ci);
                     s->migrate_loc[ci] = d_loc; // set the destination
                     *readyToSend = Pin(0);
+            #ifdef BETTER_VERLET
                 } else {
                     // Update intermediate velocity - If a bead migrates, this is done when received
                 #ifndef SMALL_DT_EARLY
@@ -622,6 +647,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->bead_slot[ci].velo = s->old_velo[ci] + new_acc * lambda * s->dt;
                 #endif
                 }
+            #else
+                }
+            #endif
                 i = clear_slot(i, ci);
 	        }
 	        // we have finished updating -- now we want to migrate
@@ -935,10 +963,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->sentslot = s->bslot;
 
                     // Welcome the new little bead
+                #ifndef BETTER_VERLET
+                    s->bead_slot[ci].type = msg->beads[0].type;
+                    s->bead_slot[ci].id = msg->beads[0].id;
+                    s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+                    s->bead_slot[ci].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                    s->force_slot[ci].set(0.0, 0.0, 0.0);
+                #else
                     s->bead_slot[ci].type = msg->beads[0].type;
                     s->bead_slot[ci].id = msg->beads[0].id;
                     s->bead_slot[ci].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
                     s->bead_slot[ci].acc.set(msg->beads[0].acc.x(), msg->beads[0].acc.y(), msg->beads[0].acc.z());
+                    s->force_slot[ci].set(0.0, 0.0, 0.0);
 
                     // Store old velocity
                     s->old_velo[ci].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
@@ -947,6 +983,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * dt);
                 #else
                     s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * s->dt);
+                #endif
                 #endif
                 }
 	        }
