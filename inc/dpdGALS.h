@@ -271,7 +271,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 {
-    return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
+    return (a & b & 0x80000000ul) && (((a - b) == 1) || ((b - a) == 1));
 }
 #endif
 
@@ -292,13 +292,10 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 
             ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
 
+#if !defined(DISABLE_CONS_FORCE) || !defined(DISABLE_DRAG_FORCE) || !defined(DISABLE_RAND_FORCE)
             // Switching function - w_r is used for conservative too
             ptype w_r = (ptype(1.0) - r_ij_dist/r_c);
-            // Drag switching function is equal to random switching function squared
-            ptype w_d = w_r * w_r;
-
-            // Conservative magnitude for these bead types
-            ptype a_ij = A[a->type][b->type];
+#endif
 
             // Vector difference in position
             Vector3D<ptype> r_ij = a->pos - b->pos;
@@ -321,12 +318,17 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 
             // Conservative force: Equation 8.5 in the dl_meso manual
         #ifndef DISABLE_CONS_FORCE
+            // Conservative magnitude for these bead types
+            ptype a_ij = A[a->type][b->type];
+            // Conservative portion of the force
             ptype con = a_ij * w_r;
         #else
             ptype con = 0;
         #endif
 
         #ifndef DISABLE_DRAG_FORCE
+            // Drag switching function is equal to random switching function squared
+            ptype w_d = w_r * w_r;
             // Vector difference in velocity
             Vector3D<ptype> v_ij = a->velo - b->velo;
             // Vector distance difference and Vector velocity difference dot product
@@ -347,11 +349,11 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
             r = ((test/2) - r);
 
             // random force
-            #ifndef SMALL_DT_EARLY
-                ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
-            #else
-                ptype ran = sigma_ij * s->inv_sqrt_dt * r * w_r;
-            #endif
+        #ifndef SMALL_DT_EARLY
+            ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
+        #else
+            ptype ran = sigma_ij * s->inv_sqrt_dt * r * w_r;
+        #endif
         #else
             ptype ran = 0;
         #endif
