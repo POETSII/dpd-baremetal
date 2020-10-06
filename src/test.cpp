@@ -26,13 +26,13 @@ int main() {
     uint32_t test_length = 1000;
 #elif defined(LARGE_TEST)
     std::string bead_file = "../tests/beads_in_44.csv";
-    std::string expected = "../tests/beads_out_44.csv";
+    std::string expected = "../tests/beads_out_44_old_verlet.csv";
     float problem_size = 44;
     int N = 44;
     uint32_t test_length = 1000;
 #else
     std::string bead_file = "../tests/beads_in_18.csv";
-    std::string expected = "../tests/beads_out_18.csv";
+    std::string expected = "../tests/beads_out_18_old_verlet.csv";
     float problem_size = 18;
     int N = 18;
     uint32_t test_length = 1000;
@@ -79,9 +79,7 @@ int main() {
         b1->type = std::stoi(lines.at(1));
         b1->pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1->velo.set(0.0, 0.0, 0.0);
-    #ifndef GALS
-        b1->acc.set(0.0, 0.0, 0.0);
-    #elif defined(BETTER_VERLET)
+    #ifdef BETTER_VERLET
         b1->acc.set(0.0, 0.0, 0.0);
     #endif
         // Cell for bead to go in
@@ -121,9 +119,7 @@ int main() {
         b1.type = std::stoi(lines.at(1));
         b1.pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
         b1.velo.set(0.0, 0.0, 0.0);
-    #ifndef GALS
-        b1.acc.set(0.0, 0.0, 0.0);
-    #elif defined(BETTER_VERLET)
+    #ifdef BETTER_VERLET
         b1.acc.set(0.0, 0.0, 0.0);
     #endif
         // Cell that bead ends up in
@@ -158,7 +154,7 @@ int main() {
 
     bool fail = false;
 
-    // FILE* newFile = fopen("../tests/beads_out_44.csv", "w");
+    // FILE* newFile = fopen("../tests/beads_out_44_new_verlet.csv", "w+");
 
     for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
         // Actual values
@@ -181,49 +177,31 @@ int main() {
         expected_cell.z = expected_cell_map[i->first].z;
 
         // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
-    #ifndef LARGE_TEST
-        std::cerr << "ID: " << expected_id << "\n";
 
-        std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << " ";
-    #endif
-        if (expected_type == actual_type) {
-        #ifndef LARGE_TEST
-            std::cerr << "PASS\n";
-        #endif
-        } else {
-        #ifndef LARGE_TEST
-            std::cerr << "FAIL\n";
-        #endif
+        if (expected_type != actual_type) {
             fail = true;
+            if (fail) {
+                std::cerr << "ID: " << actual_id << "\n";
+                std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << " ";
+                std::cerr << "FAIL\n";
+            }
         }
 
-    #ifndef LARGE_TEST
-        std::cerr << "Cell: Expected (" << expected_cell.x << ", " << expected_cell.y << ", " << expected_cell.z << ") Actual (" << actual_cell.x << ", " << actual_cell.y << ", " << actual_cell.z << ") ";
-    #endif
-        if (expected_cell.x == actual_cell.x && expected_cell.y == actual_cell.y && expected_cell.z == actual_cell.z) {
-        #ifndef LARGE_TEST
-            std::cerr << "PASS\n";
-        #endif
-        } else {
-        #ifndef LARGE_TEST
-            std::cerr << "FAIL\n";
-        #endif
+        if (expected_cell.x != actual_cell.x || expected_cell.y != actual_cell.y || expected_cell.z != actual_cell.z) {
             fail = true;
+            if (fail) {
+                std::cerr << "Cell: Expected (" << expected_cell.x << ", " << expected_cell.y << ", " << expected_cell.z << ") Actual (" << actual_cell.x << ", " << actual_cell.y << ", " << actual_cell.z << ") ";
+                std::cerr << "FAIL\n";
+            }
         }
 
-    #ifndef LARGE_TEST
-        printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
-        printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
-    #endif
-        if (expected_pos.x() == actual_pos.x() && expected_pos.y() == actual_pos.y() && expected_pos.z() == actual_pos.z()) {
-        #ifndef LARGE_TEST
-            printf("PASS\n");
-        #endif
-        } else {
-        #ifndef LARGE_TEST
-            printf("FAIL\n");
-        #endif
+        if (expected_pos.x() != actual_pos.x() || expected_pos.y() != actual_pos.y() || expected_pos.z() != actual_pos.z()) {
             fail = true;
+            if (fail) {
+                printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
+                printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
+                printf("FAIL\n");
+            }
         }
 
     }
