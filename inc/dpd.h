@@ -58,8 +58,19 @@ const ptype sq_r_c(r_c * r_c);
 const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
                          {ptype(75.0), ptype(25.0), ptype(50.0)},
                          {ptype(35.0), ptype(50.0), ptype(25.0)}};
-// Timestep value
+// Timestep and inverse sqrt of timestep
+#ifndef SMALL_DT_EARLY
 const ptype dt = 0.02;
+// Inverse square root of dt - dt^(-1/2)
+const ptype inv_sqrt_dt = 7.071067812;
+#else
+const ptype normal_dt = 0.02;
+const ptype early_dt = 0.002;
+// Inverse square root of dt - dt^(-1/2)
+const ptype normal_inv_sqrt_dt = 7.071067812;
+const ptype early_inv_sqrt_dt = 22.360679775;
+#endif
+
 // Mass of all beads
 const ptype p_mass = 1.0;
 // Drag coefficient
@@ -81,16 +92,18 @@ const ptype lambda = 0.5;
     In principle the bonds could break, which is a bit worrying. If they drift
     within sight again then they will re-capture, but that is unlikely.
 */
-const ptype bond_kappa=100; // Bond interaction is very strong
-const ptype bond_r0=0.5; // Distance of 0.5 to avoid escaping
+#ifdef BONDS
+const ptype bond_kappa = 128; // Bond interaction is very strong
+const ptype bond_r0 = 0.5; // Distance of 0.5 to avoid escaping
+#endif
 
- inline bool are_beads_bonded(uint32_t a, uint32_t b)
+inline bool are_beads_bonded(uint32_t a, uint32_t b)
 {
-    return (a&b&0x80000000ul) && (((a-b)==1) || ((b-a)==1));
+    return (a & b & 0x80000000ul) && (((a - b) == 1) || ((b - a) == 1));
 }
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 50;
+const uint32_t emitperiod = 1;
 #endif
 
 // ---------------------------------------------------------------------------------------
@@ -166,6 +179,11 @@ struct DPDState {
     uint32_t lost_beads; // Beads lost due to the cell having a full bead_slot
     uint32_t max_timestep; // Maximum timestep for this run
 
+#ifdef SMALL_DT_EARLY
+    ptype dt;
+    ptype inv_sqrt_dt;
+#endif
+
 #ifdef MESSAGE_MANAGEMENT
     int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
     uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
@@ -239,66 +257,156 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 #ifndef ACCELERATE
     // calculate a new force acting between two particles
-#if defined(TESTING) || defined(STATS)
-    __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-#else
-    Vector3D<ptype> force_update(bead_t *a, bead_t *b){
-#endif
+    // __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+    Vector3D<ptype> force_update(bead_t *a, bead_t *b) {
 
         ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
         Vector3D<ptype> force = Vector3D<ptype>(0.0, 0.0, 0.0); // accumulate the force here
 
-        if (r_ij_dist_sq > sq_r_c) {
-            return force;
+#ifndef BONDS
+        if (r_ij_dist_sq < sq_r_c) {
+#else
+        if ((r_ij_dist_sq < sq_r_c) || are_beads_bonded(a->id, b->id)) {
+#endif
+
+            ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
+
+#if !defined(DISABLE_CONS_FORCE) || !defined(DISABLE_DRAG_FORCE) || !defined(DISABLE_RAND_FORCE)
+            // Switching function - w_r is used for conservative too
+            ptype w_r = (ptype(1.0) - r_ij_dist/r_c);
+#endif
+
+            // Vector difference in position
+            Vector3D<ptype> r_ij = a->pos - b->pos;
+
+            // Vector Unity scale of force acting in each dimension
+            Vector3D<ptype> scale = r_ij / r_ij_dist;
+
+#ifdef BONDS
+            if (are_beads_bonded(a->id, b->id)) {
+                ptype s = r_ij_dist - bond_r0;
+                force = force - (scale * bond_kappa * s);
+            }
+            if (!(r_ij_dist < r_c)) {
+                return force;
+            }
+#endif
+
+            // Calculate magnitudes of all forces
+            // But multiply them by vector distance at the end
+
+            // Conservative force: Equation 8.5 in the dl_meso manual
+        #ifndef DISABLE_CONS_FORCE
+            // Conservative magnitude for these bead types
+            ptype a_ij = A[a->type][b->type];
+            // Conservative portion of the force
+            ptype con = a_ij * w_r;
+        #else
+            ptype con = 0;
+        #endif
+
+        #ifndef DISABLE_DRAG_FORCE
+            // Drag switching function is equal to random switching function squared
+            ptype w_d = w_r * w_r;
+            // Vector difference in velocity
+            Vector3D<ptype> v_ij = a->velo - b->velo;
+            // Vector distance difference and Vector velocity difference dot product
+            ptype dotProd = r_ij.dot(v_ij);
+            // Divide this by r_ij_dist as the equation is divided by r_ij_dist squared
+            dotProd /= r_ij_dist;
+            // Get the drag force
+            ptype drag = ptype(-1.0) * drag_coef * w_d * dotProd;
+        #else
+            ptype drag = 0;
+        #endif
+
+        #ifndef DISABLE_RAND_FORCE
+            // Get the pairwise random number
+            // ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
+            const ptype test = 3.466008;
+            ptype r = (pairwise_rand(a->id, b->id) / float(DT10_RAND_MAX)) * test;
+            r = ((test/2) - r);
+
+            // random force
+        #ifndef SMALL_DT_EARLY
+            ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
+        #else
+            ptype ran = sigma_ij * s->inv_sqrt_dt * r * w_r;
+        #endif
+        #else
+            ptype ran = 0;
+        #endif
+
+            return force + (scale * (con + drag + ran));
         }
-
-        ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
-
-        // Switching function - w_r is used for conservative too
-        ptype w_r = (ptype(1.0) - r_ij_dist/r_c);
-        // Drag switching function is equal to random switching function squared
-        ptype w_d = w_r * w_r;
-
-        // Conservative magnitude for these bead types
-        ptype a_ij = A[a->type][b->type];
-
-        // Vector difference in position
-        Vector3D<ptype> r_ij = a->pos - b->pos;
-        // Vector difference in velocity
-        Vector3D<ptype> v_ij = a->velo - b->velo;
-
-        // Calculate magnitudes of all forces
-        // But multiply them by vector distance at the end
-
-        // Conservative force: Equation 8.5 in the dl_meso manual
-        ptype con = a_ij * w_r;
-
-        // Vector distance difference and Vector velocity difference dot product
-        ptype dotProd = r_ij.dot(v_ij);
-        // Divide this by r_ij_dist as the equation is divided by r_ij_dist squared
-        dotProd /= r_ij_dist;
-        // Get the drag force
-        ptype drag = ptype(-1.0) * drag_coef * w_d * dotProd;
-
-        // Get the pairwise random number
-        // ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
-        const ptype test = 3.466008;
-        ptype r = (pairwise_rand(a->id, b->id) / float(DT10_RAND_MAX)) * test;
-        r = ((test/2) - r);
-
-        // random force
-        ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
-
-        // // if(are_beads_bonded(a->id, b->id)) {
-        // //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
-        // // }
-
-        force = (r_ij / r_ij_dist) * (con + drag + ran);
 
         return force;
     }
 #endif
+
+// #ifndef ACCELERATE
+//     // calculate a new force acting between two particles
+// #if defined(TESTING) || defined(STATS)
+//     __attribute__((noinline)) Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+// #else
+//     Vector3D<ptype> force_update(bead_t *a, bead_t *b){
+// #endif
+
+//         ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
+
+//         Vector3D<ptype> force = Vector3D<ptype>(0.0, 0.0, 0.0); // accumulate the force here
+
+//         if (r_ij_dist_sq > sq_r_c) {
+//             return force;
+//         }
+
+//         ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
+
+//         // Switching function - w_r is used for conservative too
+//         ptype w_r = (ptype(1.0) - r_ij_dist/r_c);
+//         // Drag switching function is equal to random switching function squared
+//         ptype w_d = w_r * w_r;
+
+//         // Conservative magnitude for these bead types
+//         ptype a_ij = A[a->type][b->type];
+
+//         // Vector difference in position
+//         Vector3D<ptype> r_ij = a->pos - b->pos;
+//         // Vector difference in velocity
+//         Vector3D<ptype> v_ij = a->velo - b->velo;
+
+//         // Calculate magnitudes of all forces
+//         // But multiply them by vector distance at the end
+
+//         // Conservative force: Equation 8.5 in the dl_meso manual
+//         ptype con = a_ij * w_r;
+
+//         // Vector distance difference and Vector velocity difference dot product
+//         ptype dotProd = r_ij.dot(v_ij);
+//         // Divide this by r_ij_dist as the equation is divided by r_ij_dist squared
+//         dotProd /= r_ij_dist;
+//         // Get the drag force
+//         ptype drag = ptype(-1.0) * drag_coef * w_d * dotProd;
+
+//         // Get the pairwise random number
+//         // ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
+//         const ptype test = 3.466008;
+//         ptype r = (pairwise_rand(a->id, b->id) / float(DT10_RAND_MAX)) * test;
+//         r = ((test/2) - r);
+
+//         // random force
+//         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
+
+//         // // if(are_beads_bonded(a->id, b->id)) {
+//         // //     force = force - (r_ij / r_ij_dist) * bond_kappa * (r_ij_dist-bond_r0);
+//         // // }
+
+//         force = (r_ij / r_ij_dist) * (con + drag + ran);
+
+//         return force;
+//     }
+// #endif
 
 #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
     __attribute__((noinline)) void local_calcs() {
@@ -394,6 +502,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if( s->mode == UPDATE ) {
         	s->mode = MIGRATION;
     	    s->timestep++;
+        #ifdef SMALL_DT_EARLY
+            if (s->timestep == 1000) {
+                s->dt = normal_dt;
+                s->inv_sqrt_dt = normal_inv_sqrt_dt;
+            }
+        #endif
         #if defined(TIMER) || defined(STATS) || defined(MESSAGE_COUNTER)
             // Timed run has ended
             if (s->timestep >= s->max_timestep) {
@@ -409,7 +523,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 Vector3D<ptype> force = s->force_slot[ci].fixedToFloat();
                 Vector3D<ptype> new_acc = force / p_mass;
                                 // ------ End of previous velocity Verlet -----
+            #ifndef SMALL_DT_EARLY
                 s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * dt * ptype(0.5));
+            #else
+                s->bead_slot[ci].velo = s->old_velo[ci] + ((new_acc + s->bead_slot[ci].acc) * s->dt * ptype(0.5));
+            #endif
                 // Store old velocity
                 s->old_velo[ci].set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
                 // Store old Force
@@ -418,7 +536,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 // ------ Start of new velocity Verlet ------
 
                 // Update position
+            #ifndef SMALL_DT_EARLY
                 s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * dt) + (new_acc * ptype(0.5) * dt * dt);
+            #else
+                s->bead_slot[ci].pos = s->bead_slot[ci].pos + (s->bead_slot[ci].velo * s->dt) + (new_acc * ptype(0.5) * s->dt * s->dt);
+            #endif
 
                 // ----- clear the forces ---------------
                 s->force_slot[ci].set(0, 0, 0);
@@ -496,7 +618,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     *readyToSend = Pin(0);
                 } else {
                     // Update intermediate velocity - If a bead migrates, this is done when received
+                #ifndef SMALL_DT_EARLY
                     s->bead_slot[ci].velo = s->old_velo[ci] + new_acc * lambda * dt;
+                #else
+                    s->bead_slot[ci].velo = s->old_velo[ci] + new_acc * lambda * s->dt;
+                #endif
                 }
                 i = clear_slot(i, ci);
 	        }
@@ -819,7 +945,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     // Store old velocity
                     s->old_velo[ci].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                     // Update velocity
+                #ifndef SMALL_DT_EARLY
                     s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * dt);
+                #else
+                    s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * s->dt);
+                #endif
                 }
 	        }
         }
