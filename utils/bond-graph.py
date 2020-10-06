@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 volLength = 25
-bond_length_threshold = 3.0
+bond_length_threshold = 0.0
 min_timestep = 0
 max_timestep = 2000
 
@@ -81,7 +81,7 @@ for timestep in range(min_timestep, max_timestep + 1):
         data = json.load(json_file) # Load JSON file
         for b in data["beads"]: # For each bead in the file
             # File should have only bonded beads in, but double check
-            if (b["id"] >= 0x80000000):
+            if b["id"] == (0x80000000 + 473) or b["id"] == (0x80000000 + 474):
                 b["id"] = b["id"] - 0x80000000;
                 beads[b["id"]] = b
 
@@ -109,7 +109,7 @@ for timestep in range(min_timestep, max_timestep + 1):
 if all_bonds:
     bonds_of_interest = bonds[0].keys()
 
-print("              ",end = "\r")
+print("                                                                        ",end = "\r")
 print("Complete")
 print("Preparing data frame")
 
@@ -136,7 +136,7 @@ for timestep in range(min_timestep, max_timestep + 1):
 # Change timestep data type
 data_frame = data_frame.astype({'Timestep': int})
 
-print("              ",end = "\r")
+print("                                                                        ",end = "\r")
 print("Complete")
 print("Drawing plot")
 
@@ -149,7 +149,7 @@ for bond_id in bonds_of_interest:
     c += 1
     print("Bond " + str(c) + " / " + str(len(bonds_of_interest)), end = "\r")
 
-print("              ",end = "\r")
+print("                                                                        ",end = "\r")
 print("Complete")
 # Plot configuration
 lgd = plt.legend(loc = (1.04, 0.5), ncol=1)
