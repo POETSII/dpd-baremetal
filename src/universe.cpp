@@ -856,7 +856,7 @@ void Universe<S>::run() {
             std::cout << "\n";
             return;
         }
-        // if (msg.payload.beads[0].id >= 0x80000000ul) {
+        // if (msg.payload.beads[0].id == (0x80000000ul + 473) || msg.payload.beads[0].id == (0x80000000ul + 474)) {
             bead_t b = msg.payload.beads[0];
             b.pos.x(b.pos.x() + msg.payload.from.x);
             b.pos.y(b.pos.y() + msg.payload.from.y);
