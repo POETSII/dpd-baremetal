@@ -14,9 +14,8 @@
 #include <math.h>
 #include <random>
 
-// This should be defined in the Makefile, but put it in here just in case
 #ifndef BONDS
-  #define BONDS
+  float bond_r0 = 0.5;
 #endif
 
 #define BEAD_DENSITY 3
@@ -322,6 +321,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Add oil 2 beads
+    bool first = true;
     for(int i = 0; i < o2; i++) {
         bool added = false;
         while(!added) {
@@ -337,10 +337,11 @@ int main(int argc, char *argv[]) {
         #endif
             if (uni.space(b1)) {
                 uni.add(b1);
-                if (i < o2 - 1) {
-                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                if (first) {
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                    first = false;
                 } else {
-                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                    fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 }
                 added = true;
                 beads_added++;
