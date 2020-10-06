@@ -48,7 +48,8 @@ int main() {
 #endif
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, test_length);
+    // Start at timestep 0, run until test_length timestep is reached
+    Universe<ptype> uni(problem_size, N, 0, test_length);
 
     std::cerr << "Universe setup -- loading beads from " << bead_file << "\n";
 
