@@ -42,15 +42,15 @@ $(DPD_BIN):
 # -------------- Host Object files --------------------------
 $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp
 
 $(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
 
 $(DPD_BIN)/universe.o: $(DPD_SRC)/universe.cpp $(DPD_INC)/universe.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/universe.o $(DPD_SRC)/universe.cpp
 
 # -------------- Tinsel Object files --------------------------
 $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
@@ -59,7 +59,7 @@ $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 
 $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	mkdir -p $(DPD_BIN)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTRA_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
 # -------------- elf --------------------------
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
@@ -71,7 +71,7 @@ $(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
 
 $(DPD_BIN)/dpd.elf: $(DPD_SRC)/dpd.cpp $(DPD_INC)/dpd.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTRA_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpd.o $<
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpd.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpd.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
 $(DPD_BIN)/entry.o: $(DPD_BIN)
@@ -88,7 +88,7 @@ $(HL)/%.o:
 
 # -------------- host program --------------------------
 $(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
@@ -99,12 +99,37 @@ $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
 	g++ -O2 -std=c++17 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
 		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
 
+# ------------- Test standard sync DPD ------------
+.PHONY: test
+test: DFLAGS+=-DTESTING
+test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+test-large: DFLAGS+=-DLARGE_TEST
+test-large: test
+
+test-new-verlet: DFLAGS=-DTESTING -DBETTER_VERLET
+test-new-verlet: test
+
+test-new-verlet-large: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST
+test-new-verlet-large: test-large
+
 # ------------- Run with live visualisations
-visual: DFLAGS=-DVISUALISE -DSEND_TO_SELF
+visual: DFLAGS=-DVISUALISE
 visual: run
 
 visual-dram: DFLAGS=-DDRAM -DVISUALISE
 visual-dram: run
+
+visual-new-verlet: DFLAGS=-DVISUALISE -DBETTER_VERLET
+visual-new-verlet: run
+
+visual-new-verlet-dram: DFLAGS=-DDRAM -DVISUALISE -DBETTER_VERLET
+visual-new-verlet-dram: run
 
 # ------------- Run with wallclock timer ------------
 timed-run: DFLAGS=-DTIMER
@@ -112,6 +137,12 @@ timed-run: run
 
 timed-dram-run: DFLAGS=-DTIMER -DDRAM
 timed-dram-run: run
+
+timed-run-new-verlet: DFLAGS=-DTIMER -DBETTER_VERLET
+timed-run-new-verlet: run
+
+timed-dram-run-new-verlet: DFLAGS=-DTIMER -DDRAM -DBETTER_VERLET
+timed-dram-run-new-verlet: run
 
 # ------------- Output mapping for analysis ---------
 output-mapping: DFLAGS=-DOUTPUT_MAPPING -DDRAM
@@ -141,21 +172,26 @@ onebyone-dram: run
 onebyone-double-sqrt: DFLAGS=-DTIMER -DONE_BY_ONE -DDOUBLE_SQRT
 onebyone-double-sqrt: run
 
-test-onebyone: DFLAGS=-DTESTING -DONE_BY_ONE
-test-onebyone: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+onebyone-new-verlet: DFLAGS=-DTIMER -DONE_BY_ONE -DBETTER_VERLET
+onebyone-new-verlet: run
 
-test-onebyone-large: DFLAGS=-DTESTING -DONE_BY_ONE -DLARGE_TEST
-test-onebyone-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+onebyone-new-verlet-dram: DFLAGS=-DTIMER -DONE_BY_ONE -DBETTER_VERLET -DDRAM
+onebyone-new-verlet-dram: run
+
+onebyone-double-sqrt-new-verlet: DFLAGS=-DTIMER -DONE_BY_ONE -DDOUBLE_SQRT -DBETTER_VERLET
+onebyone-double-sqrt-new-verlet: run
+
+test-onebyone: DFLAGS=-DONE_BY_ONE
+test-onebyone: test
+
+test-onebyone-large: DFLAGS=-DONE_BY_ONE
+test-onebyone-large: test-large
+
+test-onebyone-new-verlet: DFLAGS=-DTESTING -DONE_BY_ONE -DBETTER_VERLET
+test-onebyone-new-verlet: test
+
+test-onebyone-new-verlet-large: DFLAGS=-DTESTING -DONE_BY_ONE -DBETTER_VERLET -DLARGE_TEST
+test-onebyone-new-verlet-large: test
 
 # ------------ Send beads to self to reduce local calculation memory space -------------------
 sendtoself: DFLAGS=-DTIMER -DSEND_TO_SELF
@@ -164,55 +200,55 @@ sendtoself: run
 sendtoself-dram: DFLAGS=-DTIMER -DSEND_TO_SELF -DDRAM
 sendtoself-dram: run
 
+sendtoself-new-verlet: DFLAGS=-DTIMER -DSEND_TO_SELF -DBETTER_VERLET
+sendtoself-new-verlet: run
+
+sendtoself-dram-new-verlet: DFLAGS=-DTIMER -DSEND_TO_SELF -DDRAM -DBETTER_VERLET
+sendtoself-dram-new-verlet: run
+
 test-sendtoself: DFLAGS=-DTESTING -DSEND_TO_SELF
-test-sendtoself: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-sendtoself: test
+
+test-sendtoself-large: DFLAGS=-DSEND_TO_SELF -DLARGE_TEST
+test-sendtoself-large: test
+
+test-sendtoself-new-verlet: DFLAGS=-DSEND_TO_SELF -DBETTER_VERLET
+test-sendtoself-new-verlet: test
 
 # TODO: 46x46x46 is too large for send to self. Make smaller test for this, or smaller for all
-test-sendtoself-large: DFLAGS=-DTESTING -DSEND_TO_SELF -DLARGE_TEST
-test-sendtoself-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
+test-sendtoself-new-verlet-large: DFLAGS=-DSEND_TO_SELF -DBETTER_VERLET -DLARGE_TEST
+test-sendtoself-new-verlet-large: test
 
 # ------------ Use message manager to reduce NoC strain -------------------
+# With multicast as part of tinsel-0.7 > this is now obsolete
 
 # Standard timed with message management
 timed-msg-mgmt: DFLAGS=-DTIMER -DMESSAGE_MANAGEMENT
 timed-msg-mgmt: run
 
-# Standard with message management
-msg-mgmt: DFLAGS=-DMESSAGE_MANAGEMENT -DVISUALISE
-msg-mgmt: run
-
 # Standard timed with message management and vertices mapped to DRAM
 timed-msg-mgmt-dram: DFLAGS=-DTIMER -DMESSAGE_MANAGEMENT -DDRAM
 timed-msg-mgmt-dram: run
 
+timed-msg-mgmt-new-verlet: DFLAGS=-DTIMER -DMESSAGE_MANAGEMENT -DBETTER_VERLET
+timed-msg-mgmt-new-verlet: run
+
+timed-msg-mgmt-new-verlet-dram: DFLAGS=-DTIMER -DMESSAGE_MANAGEMENT -DDRAM -DBETTER_VERLET
+timed-msg-mgmt-new-verlet-dram: run
+
 # Test standard with message management
-test-msg-mgmt: DFLAGS=-DTESTING -DMESSAGE_MANAGEMENT
-test-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-msg-mgmt: DFLAGS=-DMESSAGE_MANAGEMENT
+test-msg-mgmt: test
 
 # Large test of standard with message management
-test-msg-mgmt-large: DFLAGS=-DTESTING -DMESSAGE_MANAGEMENT -DLARGE_TEST
-test-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-msg-mgmt-large: DFLAGS=-DMESSAGE_MANAGEMENT -DLARGE_TEST
+test-msg-mgmt-large: test
+
+test-msg-mgmt-new-verlet: DFLAGS=-DMESSAGE_MANAGEMENT -DBETTER_VERLET
+test-msg-mgmt-new-verlet: test
+
+test-msg-mgmt-new-verlet-large: DFLAGS=-DMESSAGE_MANAGEMENT -DBETTER_VERLET -DLARGE_TEST
+test-msg-mgmt-new-verlet-large: test
 
 # One by one timed with message management
 timed-obo-msg-mgmt: DFLAGS=-DTIMER -DONE_BY_ONE -DMESSAGE_MANAGEMENT
@@ -226,264 +262,126 @@ obo-msg-mgmt: run
 timed-obo-msg-mgmt-dram: DFLAGS=-DTIMER -DONE_BY_ONE -DMESSAGE_MANAGEMENT -DDRAM
 timed-obo-msg-mgmt-dram: run
 
+timed-obo-msg-mgmt-new-verlet: DFLAGS=-DTIMER -DONE_BY_ONE -DMESSAGE_MANAGEMENT -DBETTER_VERLET
+timed-obo-msg-mgmt-new-verlet: run
+
+obo-msg-mgmt-new-verlet: DFLAGS=-DONE_BY_ONE -DMESSAGE_MANAGEMENT -DVISUALISE -DBETTER_VERLET
+obo-msg-mgmt-new-verlet: run
+
+timed-obo-msg-mgmt-new-verlet-dram: DFLAGS=-DTIMER -DONE_BY_ONE -DMESSAGE_MANAGEMENT -DDRAM -DBETTER_VERLET
+timed-obo-msg-mgmt-new-verlet-dram: run
+
 # Test one by one with message management
-test-obo-msg-mgmt: DFLAGS=-DTESTING -DONE_BY_ONE -DMESSAGE_MANAGEMENT
-test-obo-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-obo-msg-mgmt: DFLAGS=-DONE_BY_ONE -DMESSAGE_MANAGEMENT
+test-obo-msg-mgmt: test
 
 # Large test of one by one with message management
-test-obo-msg-mgmt-large: DFLAGS=-DTESTING -DONE_BY_ONE -DMESSAGE_MANAGEMENT -DLARGE_TEST
-test-obo-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-obo-msg-mgmt-large: DFLAGS=-DONE_BY_ONE -DMESSAGE_MANAGEMENT -DLARGE_TEST
+test-obo-msg-mgmt-large: test
+
+test-obo-msg-mgmt-new-verlet: DFLAGS=-DONE_BY_ONE -DMESSAGE_MANAGEMENT -DBETTER_VERLET
+test-obo-msg-mgmt-new-verlet: test
+
+test-obo-msg-mgmt-new-verlet-large: DFLAGS=-DONE_BY_ONE -DMESSAGE_MANAGEMENT -DBETTER_VERLET -DLARGE_TEST
+test-obo-msg-mgmt-new-verlet-large: test
 
 # Send to self timed with message management
 timed-sts-msg-mgmt: DFLAGS=-DTIMER -DSEND_TO_SELF -DMESSAGE_MANAGEMENT
 timed-sts-msg-mgmt: run
 
+timed-sts-msg-mgmt-new-verlet: DFLAGS=-DTIMER -DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DBETTER_VERLET
+timed-sts-msg-mgmt-new-verlet: run
+
 # Send to self with message management
 sts-msg-mgmt: DFLAGS=-DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DVISUALISE
 sts-msg-mgmt: run
+
+sts-msg-mgmt-new-verlet: DFLAGS=-DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DVISUALISE -DBETTER_VERLET
+sts-msg-mgmt-new-verlet: run
 
 # Send to self timed with message management and vertices mapped to DRAM
 timed-sts-msg-mgmt-dram: DFLAGS=-DTIMER -DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DDRAM
 timed-sts-msg-mgmt-dram: run
 
+timed-sts-msg-mgmt-new-verlet-dram: DFLAGS=-DTIMER -DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DDRAM -DBETTER_VERLET
+timed-sts-msg-mgmt-new-verlet-dram: run
+
 # Test send to self with message management
-test-sts-msg-mgmt: DFLAGS=-DTESTING -DSEND_TO_SELF -DMESSAGE_MANAGEMENT
-test-sts-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-sts-msg-mgmt: DFLAGS=-DSEND_TO_SELF -DMESSAGE_MANAGEMENT
+test-sts-msg-mgmt: test
 
 # Large send to self with message management
-test-sts-msg-mgmt-large: DFLAGS=-DTESTING -DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DLARGE_TEST
-test-sts-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-sts-msg-mgmt-large: DFLAGS=-DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DLARGE_TEST
+test-sts-msg-mgmt-large: test
 
-gals-msg-mgmt: DFLAGS=-DVISUALISE -DGALS -DMESSAGE_MANAGEMENT
-gals-msg-mgmt: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+test-sts-msg-mgmt-new-verlet: DFLAGS=-DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DBETTER_VERLET
+test-sts-msg-mgmt-new-verlet: test
+
+test-sts-msg-mgmt-new-verlet-large: DFLAGS=-DSEND_TO_SELF -DMESSAGE_MANAGEMENT -DBETTER_VERLET -DLARGE_TEST
+test-sts-msg-mgmt-new-verlet-large: test
+
+gals-msg-mgmt: DFLAGS=-DVISUALISE -DMESSAGE_MANAGEMENT
+gals-msg-mgmt: base-gals
 
 timed-gals-msg-mgmt: DFLAGS=-DTIMER -DGALS -DMESSAGE_MANAGEMENT
-timed-gals-msg-mgmt: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-msg-mgmt: base-gals
 
-timed-dram-gals-msg-mgmt: DFLAGS=-DTIMER -DGALS -DDRAM -DMESSAGE_MANAGEMENT
-timed-dram-gals-msg-mgmt: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-dram-gals-msg-mgmt: DFLAGS=-DTIMER -DDRAM -DGALS -DMESSAGE_MANAGEMENT
+timed-dram-gals-msg-mgmt: base-gals
 
 timed-gals-double-sqrt: DFLAGS=-DTIMER -DGALS -DDOUBLE_SQRT
-timed-gals-double-sqrt: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-double-sqrt: base-gals
 
-test-gals-msg-mgmt: DFLAGS=-DTESTING -DGALS -DMESSAGE_MANAGEMENT
-test-gals-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-msg-mgmt: DFLAGS=-DGALS -DMESSAGE_MANAGEMENT -DTESTING
+test-gals-msg-mgmt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-msg-mgmt-large: DFLAGS=-DTESTING -DGALS -DLARGE_TEST -DMESSAGE_MANAGEMENT -DLARGE_TEST
-test-gals-msg-mgmt-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-msg-mgmt-large: DFLAGS=-DGALS -DMESSAGE_MANAGEMENT -DLARGE_TEST
+test-gals-msg-mgmt-large: $(INC)/config.h $(HL)/*.o base-gals test-gals
 
-test-gals-double-sqrt: DFLAGS=-DTESTING -DGALS -DDOUBLE_SQRT
-test-gals-double-sqrt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-double-sqrt: DFLAGS=-DGALS -DDOUBLE_SQRT
+test-gals-double-sqrt: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-obo: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE
-test-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-obo: DFLAGS=-DGALS -DONE_BY_ONE
+test-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-obo-large: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DLARGE_TEST
-test-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-obo-large: DFLAGS=-DGALS -DONE_BY_ONE -DLARGE_TEST
+test-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-new-verlet: DFLAGS=-DTESTING -DGALS -DBETTER_VERLET
-test-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-new-verlet: DFLAGS=-DGALS -DBETTER_VERLET
+test-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-new-verlet-large: DFLAGS=-DTESTING -DGALS -DBETTER_VERLET -DLARGE_TEST
-test-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-new-verlet-large: DFLAGS=-DGALS -DBETTER_VERLET -DLARGE_TEST
+test-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-obo-new-verlet: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DBETTER_VERLET
-test-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-obo-new-verlet: DFLAGS=-DGALS -DONE_BY_ONE -DBETTER_VERLET
+test-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-gals-obo-new-verlet-large: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DBETTER_VERLET -DLARGE_TEST
-test-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-obo-new-verlet-large: DFLAGS=-DGALS -DONE_BY_ONE -DBETTER_VERLET -DLARGE_TEST
+test-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS
-test-improved-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals: DFLAGS=-DGALS -DIMPROVED_GALS
+test-improved-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals-large: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DLARGE_TEST
-test-improved-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-large: DFLAGS=-DGALS -DIMPROVED_GALS -DLARGE_TEST
+test-improved-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
 test-improved-gals-obo: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE
-test-improved-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-obo: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals-obo-large: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DLARGE_TEST
-test-improved-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-obo-large: DFLAGS=-DGALS -DIMPROVED_GALS -DONE_BY_ONE -DLARGE_TEST
+test-improved-gals-obo-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals-new-verlet: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DBETTER_VERLET
-test-improved-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-new-verlet: DFLAGS=-DGALS -DIMPROVED_GALS -DBETTER_VERLET
+test-improved-gals-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals-new-verlet-large: DFLAGS=-DTESTING -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DLARGE_TEST
-test-improved-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-new-verlet-large: DFLAGS=-DGALS -DIMPROVED_GALS -DBETTER_VERLET -DLARGE_TEST
+test-improved-gals-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals-obo-new-verlet: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DIMPROVED_GALS -DBETTER_VERLET
-test-improved-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-obo-new-verlet: DFLAGS=-DGALS -DONE_BY_ONE -DIMPROVED_GALS -DBETTER_VERLET
+test-improved-gals-obo-new-verlet: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
-test-improved-gals-obo-new-verlet-large: DFLAGS=-DTESTING -DGALS -DONE_BY_ONE -DIMPROVED_GALS -DBETTER_VERLET -DLARGE_TEST
-test-improved-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-improved-gals-obo-new-verlet-large: DFLAGS=-DGALS -DONE_BY_ONE -DIMPROVED_GALS -DBETTER_VERLET -DLARGE_TEST
+test-improved-gals-obo-new-verlet-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals test-gals
 
 # ------------- Run to output statistics generated by POLite ----------
 
@@ -509,44 +407,17 @@ print-stats: $(DPD_BIN)/stats.txt
 	./$(TINSEL_ROOT)/apps/POLite/util/sumstats.awk < $(DPD_BIN)/stats.txt
 
 # ------------ TESTING ---------------------------------
-.PHONY: test
-test: DFLAGS=-DTESTING
-test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
-test-large: DFLAGS=-DTESTING -DLARGE_TEST
-test-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ------------ BONDS TESTING----------------------------
-test-bonds: DFLAGS=-DTESTING -DBOND_TESTING
-test-bonds: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-bonds: DFLAGS=-DBOND_TESTING
+test-bonds: test
 
 # --------------- BEAD COUNTER -------------------------
 bead-count: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DBEAD_COUNTER
-bead-count: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+bead-count: base-gals
 
 bead-count-dram: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DBEAD_COUNTER -DDRAM
-bead-count-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+bead-count-dram: base-gals
 
 # ------------- FILE PARSING AND RUNNING ---------------
 $(DPD_BIN)/parsedCode.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)
@@ -558,13 +429,13 @@ $(DPD_BIN)/parsedData.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/parsedDPD.elf $@
 
 $(DPD_BIN)/parsedDPD.elf: $(DPD_SRC)/parsedDPD.cpp $(DPD_INC)/parsedDPD.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTRA_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/parsedDPD.o $<
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/parsedDPD.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/parsedDPD.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
 PARSE_OBJS = $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
 $(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(PARSE_OBJS) $(DPD_SRC)/parseUniverse.cpp $(DPD_INC)/parseUniverse.hpp $(DPD_SRC)/parser.cpp $(DPD_INC)/parser.hpp $(DPD_INC)/parsedDPD.h $(HL)/*.o $(DPD_BIN) $(PARSE_OBJS)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(PARSE_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
@@ -593,155 +464,91 @@ $(DPD_BIN)/galsData.v: $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpdGALS.elf $@
 
 $(DPD_BIN)/dpdGALS.elf: $(DPD_SRC)/dpdGALS.cpp $(DPD_INC)/dpdGALS.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTRA_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpdGALS.o $<
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpdGALS.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpdGALS.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
-gals: DFLAGS=-DVISUALISE -DGALS
-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+# ------------- Base GALS recipe which is used by all GALS recipes --------------
+base-gals: DFLAGS+=-DGALS
+base-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
+	mv $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	mv $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	mv $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
+visual-gals: DFLAGS=-DVISUALISE
+visual-gals: base-gals $(DPD_BIN)/run
 
 gals-obo: DFLAGS=-DVISUALISE -DGALS -DONE_BY_ONE
-gals-obo: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+gals-obo: base-gals $(DPD_BIN)/run
 
-test-gals: DFLAGS=-DTESTING -DGALS
-test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
+test-gals: DFLAGS+=-DTESTING -DGALS
+test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
-test-gals-large: DFLAGS=-DTESTING -DGALS -DLARGE_TEST
-test-gals-large: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-large: DFLAGS=-DLARGE_TEST
+test-gals-large: $(INC)/config.h $(HL)/*.o test-gals
 
 timed-gals: DFLAGS=-DTIMER -DGALS
-timed-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals: base-gals $(DPD_BIN)/run
 
 timed-gals-obo: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE
-timed-gals-obo: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-obo: base-gals $(DPD_BIN)/run
 
-timed-dram-gals: DFLAGS=-DTIMER -DGALS -DDRAM
-timed-dram-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-dram-gals: DFLAGS=-DTIMER -DDRAM -DDGALS
+timed-dram-gals: base-gals $(DPD_BIN)/run
 
 timed-gals-obo-dram: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DDRAM
-timed-gals-obo-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-obo-dram: base-gals $(DPD_BIN)/run
 
 timed-gals-new-verlet: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET
-timed-gals-new-verlet: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-new-verlet: base-gals $(DPD_BIN)/run
 
 timed-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET -DDRAM
-timed-gals-new-verlet-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-new-verlet-dram: base-gals $(DPD_BIN)/run
 
 timed-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET -DONE_BY_ONE
-timed-gals-obo-new-verlet: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-obo-new-verlet: base-gals $(DPD_BIN)/run
 
 timed-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM
-timed-gals-obo-new-verlet-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-gals-obo-new-verlet-dram: base-gals $(DPD_BIN)/run
 
 timed-improved-gals: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS
-timed-improved-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DDRAM
-timed-improved-gals-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-dram: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-obo: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DONE_BY_ONE
-timed-improved-gals-obo: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-obo: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-obo-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DDRAM
-timed-improved-gals-obo-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-obo-dram: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET
-timed-improved-gals-new-verlet: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-new-verlet: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DDRAM
-timed-improved-gals-new-verlet-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-new-verlet-dram: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-timed-improved-gals-obo-new-verlet: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-obo-new-verlet: base-gals $(DPD_BIN)/run
 
 timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM
-timed-improved-gals-obo-new-verlet-dram: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-improved-gals-obo-new-verlet-dram: base-gals $(DPD_BIN)/run
 
 visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-visual-improved-gals-obo-new-verlet: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+visual-improved-gals-obo-new-verlet: base-gals $(DPD_BIN)/run
 
-stats-gals: DFLAGS=-DSTATS -DGALS
+stats-gals: DFLAGS=-DSTATS
 stats-gals: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
-stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o base-gals $(DPD_BIN)/run
 
 # ------------------ Oil and water with bonds ----------------------------
 $(DPD_BIN)/OilWaterBonds.o: $(DPD_SRC)/OilWaterBonds.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/OilWaterBonds.o $(DPD_SRC)/OilWaterBonds.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/OilWaterBonds.o $(DPD_SRC)/OilWaterBonds.cpp
 
 $(DPD_BIN)/bonds_run: $(DPD_BIN)/OilWaterBonds.o $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/OilWaterBonds.o \
@@ -750,20 +557,17 @@ $(DPD_BIN)/bonds_run: $(DPD_BIN)/OilWaterBonds.o $(HL)/*.o $(DPD_BIN) $(HOST_OBJ
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-visual-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
 visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/bonds_run
 
 timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-timed-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
+timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
 # -------------- WATER ONLY SIMULATION ------------------------------------------------------
 
 $(DPD_BIN)/WaterOnly.o: $(DPD_SRC)/WaterOnly.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/WaterOnly.o $(DPD_SRC)/WaterOnly.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/WaterOnly.o $(DPD_SRC)/WaterOnly.cpp
 
 $(DPD_BIN)/waterOnly: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/WaterOnly.o \
@@ -772,20 +576,14 @@ $(DPD_BIN)/waterOnly: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 timed-water-only: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-timed-water-only: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+timed-water-only: $(DPD_BIN) base-gals $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
 
 visual-water-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-visual-water-only: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+visual-water-only: $(DPD_BIN) base-gals $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
 
 # ---------------------------- EXAMPLES --------------------------------
 $(DPD_BIN)/bondsOnly.o: $(DPD_EXAMPLES)/bondsOnly.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/bondsOnly.o $(DPD_EXAMPLES)/bondsOnly.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/bondsOnly.o $(DPD_EXAMPLES)/bondsOnly.cpp
 
 $(DPD_BIN)/bondsOnlyRun: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/bondsOnly.o \
@@ -794,21 +592,18 @@ $(DPD_BIN)/bondsOnlyRun: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 visual-bonds-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS
-visual-bonds-only: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/bondsOnly.o $(DPD_BIN)/bondsOnlyRun
+visual-bonds-only: $(DPD_BIN) base-gals $(DPD_BIN)/bondsOnly.o $(DPD_BIN)/bondsOnlyRun
 
 # -------------------------- RESTART SIMULATION ------------------------
 $(DPD_BIN)/restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTRA_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/restart $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/restart.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-restart: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v $(DPD_BIN)/restart
-	cp $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	cp $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	cp $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+restart: $(DPD_BIN) base-gals $(DPD_BIN)/restart
 
 
 .PHONY: clean
