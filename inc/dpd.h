@@ -79,8 +79,6 @@ const ptype drag_coef = 4.5;
 // const ptype temp = 1.0;
 // Random coefficient. Related to drag_coef and temperature - sigma = sqrt(2 * drag_coef * temp)
 const ptype sigma_ij = 3;
-// Inverse square root of dt - dt^(-1/2)
-const ptype inv_sqrt_dt = 7.071067812;
 // Lambda used in verlet
 const ptype lambda = 0.5;
 
