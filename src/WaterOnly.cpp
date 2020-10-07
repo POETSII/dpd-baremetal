@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
     // uni.print_occupancy();
 
     printf("running...\n");
-    uni.run(max_time); // start the simulation
+    uni.run(); // start the simulation
 
     return 0;
 }
