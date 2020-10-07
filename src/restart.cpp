@@ -351,7 +351,7 @@ int main(int argc, char *argv[]) {
 
 
     // Close the JSON file
-    fprintf(f, "\n\t]\n}")
+    fprintf(f, "\n\t]\n}");
     fclose(f);
 
     // Store the minimum initial distances between beads to be used for analysis
