@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
     printf("Running a water only simulation\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, max_time);
+    Universe<ptype> uni(problem_size, N, 0, max_time);
 
     printf("Universe setup -- adding beads\n");
 
