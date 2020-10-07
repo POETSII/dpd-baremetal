@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
     printf("\t3. Beads at extremes of position value, one at each side of the perceived volume.\n");
     printf("\t   If the bond crosses the wrapped volume edges, does the bond still work?\n\n");
 
-    Universe<ptype> uni(problem_size, N, max_time);
+    Universe<ptype> uni(problem_size, N, 0, max_time + 10);
 
     printf("Universe setup -- adding beads\n");
 
@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
     // uni.print_occupancy();
 
     printf("running...\n");
-    uni.run(max_time + 10); // start the simulation
+    uni.run(); // start the simulation
 
     return 0;
 }
