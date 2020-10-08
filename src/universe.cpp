@@ -880,13 +880,12 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     while(1) {
         PMessage<DPDMessage> msg;
         _hostLink->recvMsg(&msg, sizeof(msg));
+        result[msg.payload.beads[0].id] = msg.payload;
         if (msg.payload.type == 0xAA) {
             finish++;
             if (finish >= (_D*_D*_D)) {
                 return result;
             }
-        } else {
-            result[msg.payload.beads[0].id] = msg.payload;
         }
     }
 

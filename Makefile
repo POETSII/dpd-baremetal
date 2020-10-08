@@ -4,13 +4,14 @@ TINSEL_ROOT=submodules/tinsel
 # Tinsel lib
 TINSEL_LIB=$(TINSEL_ROOT)/lib
 
-# directories
+# Directories
 DPD_BIN=./bin
 DPD_SRC=./src
 DPD_INC=./inc
 DPD_UTILS=./utils
 DPD_EXAMPLES=./examples
 
+# Tinsel includes
 include $(TINSEL_ROOT)/globals.mk
 
 # Local compiler flags
@@ -19,10 +20,13 @@ LDFLAGS = -melf32lriscv -G 0
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 HOST_OBJS = $(DPD_BIN)/universe.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
+# Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
 
-run: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/run
+# This should be kept up to date as the "best" POETS DPD version
+run: timed-improved-gals-new-verlet
 
+# This is used on a client PC to receive bead data for visualisation
 bridge: $(INC)/config.h $(DPD_BIN)/dpd-bridge
 
 # ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,19 +65,12 @@ $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
-# -------------- elf --------------------------
-$(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
-	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
-	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/dpd.elf $@
+# The external client
+$(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
+	g++ -O2 -std=c++17 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
+		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
 
-$(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
-	$(RV_OBJCOPY) -O verilog --remove-section=.text \
-                --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
-
-$(DPD_BIN)/dpd.elf: $(DPD_SRC)/dpd.cpp $(DPD_INC)/dpd.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpd.o $<
-	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpd.o $(TINSEL_LIB_INC) $(DPD_OBJS)
-
+# Compilation necessary for any form of POETS DPD
 $(DPD_BIN)/entry.o: $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -o $(DPD_BIN)/entry.o $(DPD_UTILS)/entry.S
 
@@ -86,20 +83,89 @@ $(INC)/config.h: $(TINSEL_ROOT)/config.py
 $(HL)/%.o:
 	make -C $(HL)
 
-# -------------- host program --------------------------
-$(DPD_BIN)/run: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+# -------------- Synchronous elf --------------------------
+$(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
+	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
+	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/dpd.elf $@
+
+$(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
+	$(RV_OBJCOPY) -O verilog --remove-section=.text \
+                --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
+
+# One by one is the best form
+$(DPD_BIN)/dpd.elf: DFLAGS+=-DONE_BY_ONE
+$(DPD_BIN)/dpd.elf: $(DPD_SRC)/dpd.cpp $(DPD_INC)/dpd.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpd.o $<
+	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpd.o $(TINSEL_LIB_INC) $(DPD_OBJS)
+
+# ----------------- GALS elf ------------------------------
+$(DPD_BIN)/galsCode.v: $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)
+	$(BIN)/checkelf.sh $(DPD_BIN)/dpdGALS.elf
+	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/dpdGALS.elf $@
+
+$(DPD_BIN)/galsData.v: $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)
+	$(RV_OBJCOPY) -O verilog --remove-section=.text \
+                --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpdGALS.elf $@
+
+$(DPD_BIN)/dpdGALS.elf: $(DPD_SRC)/dpdGALS.cpp $(DPD_INC)/dpdGALS.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpdGALS.o $<
+	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpdGALS.o $(TINSEL_LIB_INC) $(DPD_OBJS)
+
+# Base GALS recipe which is used by all GALS recipes
+# Improved gals and one by one make the best version of GALS
+base-gals: DFLAGS+=-DGALS -DIMPROVED_GALS -DONE_BY_ONE
+base-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
+	mv $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
+	mv $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
+	mv $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
+
+# -------------- POETS DPD Applications --------------------------
+# Simply to compile the volume initialisation for each example and cannot be
+# used alone. A backend must be compiled also and these included
+
+# Oil and water
+oil-water: $(DPD_SRC)/run.cpp $(DPD_INC)/dpd.h $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
-# ------------ the external client ----------------
-$(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(HOST_OBJS)
-	g++ -O2 -std=c++17 -o $(DPD_BIN)/dpd-bridge -I $(INC) -I $(HL) -I $(DPD_INC) $(HOST_OBJS) $(DPD_SRC)/dpd-bridge.cpp \
-		-lboost_program_options -lboost_filesystem -lboost_system -lpthread -lstdc++fs
+# Oil and water with chains of bonded oil and water beads
+oil-water-bonds: DFLAGS+=-DBONDS
+oil-water-bonds: $(DPD_SRC)/OilWaterBonds.cpp $(DPD_INC)/dpd.h $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/OilWaterBonds.o $(DPD_SRC)/OilWaterBonds.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/OilWaterBonds.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
-# ------------- Test standard sync DPD ------------
+# Only water beads
+water-only: $(DPD_SRC)/WaterOnly.cpp $(DPD_INC)/dpd.h $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/WaterOnly.o $(DPD_SRC)/WaterOnly.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/WaterOnly.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+# Simple example containing 3 pairs of bonded beads to test the bond force
+bonds-only: $(DPD_EXAMPLES)/bondsOnly.cpp $(DPD_INC)/dpd.h $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/bondsOnly.o $(DPD_EXAMPLES)/bondsOnly.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/bondsOnly.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+# RESTART SIMULATION - Used to restart a simulation from a saved state
+restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/dpd.h $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/restart $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/restart.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+# --------------------------- SYNCHRONOUS TESTING ---------------------------
+# Base for testing synchronous application
 .PHONY: test
 test: DFLAGS+=-DTESTING
 test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
@@ -109,29 +175,98 @@ test: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
+# Larger test
 test-large: DFLAGS+=-DLARGE_TEST
 test-large: test
 
+# Test the improved verlet
 test-new-verlet: DFLAGS=-DTESTING -DBETTER_VERLET
 test-new-verlet: test
 
+# Test the improved verlet with a larger test
 test-new-verlet-large: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST
 test-new-verlet-large: test-large
 
-# ------------- Run with live visualisations
-visual: DFLAGS=-DVISUALISE
-visual: run
+# Test with bonds
+test-bonds: DFLAGS=-DBONDS
+test-bonds: test
 
-visual-dram: DFLAGS=-DDRAM -DVISUALISE
-visual-dram: run
+test-bonds-new-verlet: DFLAGS=-DBONDS -DBETTER_VERLET
+test-bonds-new-verlet: test
 
-visual-new-verlet: DFLAGS=-DVISUALISE -DBETTER_VERLET
-visual-new-verlet: run
+# DT change refers to having a smaller dt for the first 1000 timesteps
+test-dt-change: DFLAGS=-DSMALL_DT_EARLY
+test-dt-change: test
 
-visual-new-verlet-dram: DFLAGS=-DDRAM -DVISUALISE -DBETTER_VERLET
-visual-new-verlet-dram: run
+test-large-dt-change: DFLAGS+=-DLARGE_TEST -DSMALL_DT_EARLY
+test-large-dt-change: test
 
-# ------------- Run with wallclock timer ------------
+test-new-verlet-dt-change: DFLAGS=-DTESTING -DBETTER_VERLET -DSMALL_DT_EARLY
+test-new-verlet-dt-change: test
+
+test-new-verlet-large-dt-change: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST -DSMALL_DT_EARLY
+test-new-verlet-large-dt-change: test-large
+
+test-bonds-dt-change: DFLAGS=-DBONDS -DSMALL_DT_EARLY
+test-bonds-dt-change: test
+
+test-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
+test-bonds-new-verlet-dt-change: test
+
+# --------------------------- GALS TESTING ---------------------------
+# Base for testing GALS application
+# Improved gals and one by one make for the best GALS version
+test-gals: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE
+test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+# Larger test
+test-gals-large: DFLAGS+=-DLARGE_TEST
+test-gals-large: test-gals
+
+# Test the improved verlet
+test-gals-new-verlet: DFLAGS=-DBETTER_VERLET
+test-gals-new-verlet: test-gals
+
+# Test the improved verlet with a larger test
+test-gals-new-verlet-large: DFLAGS=-DBETTER_VERLET
+test-gals-new-verlet-large: test-gals-large
+
+# Test with bonds
+test-gals-bonds: DFLAGS=-DBONDS
+test-gals-bonds: test-gals
+
+# Test with bonds and new verlet
+test-gals-bonds-new-verlet: DFLAGS=-DBONDS -DBETTER_VERLET
+test-gals-bonds-new-verlet: test-gals
+
+test-gals-dt-change: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DSMALL_DT_EARLY
+test-gals-dt-change: test-gals
+
+# Larger test
+test-gals-large-dt-change: DFLAGS+=-DLARGE_TEST -DSMALL_DT_EARLY
+test-gals-large-dt-change: test-gals
+
+# Test the improved verlet
+test-gals-new-verlet-dt-change: DFLAGS=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-new-verlet-dt-change: test-gals
+
+# Test the improved verlet with a larger test
+test-gals-new-verlet-large-dt-change: DFLAGS=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-new-verlet-large-dt-change: test-gals-large
+
+# Test with bonds
+test-gals-bonds-dt-change: DFLAGS=-DBONDS -DSMALL_DT_EARLY
+test-gals-bonds-dt-change: test-gals
+
+# Test with bonds and new verlet
+test-gals-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-bonds-new-verlet-dt-change: test-gals
+# --------------------------- TIMED RUNS ---------------------------
 timed-run: DFLAGS=-DTIMER
 timed-run: run
 
@@ -408,10 +543,6 @@ print-stats: $(DPD_BIN)/stats.txt
 
 # ------------ TESTING ---------------------------------
 
-# ------------ BONDS TESTING----------------------------
-test-bonds: DFLAGS=-DBOND_TESTING
-test-bonds: test
-
 # --------------- BEAD COUNTER -------------------------
 bead-count: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DBEAD_COUNTER
 bead-count: base-gals
@@ -453,98 +584,66 @@ pobo: $(DPD_BIN) $(DPD_SRC)/timer.cpp $(DPD_INC)/timer.h $(DPD_BIN)/parsedCode.v
 pobov: DFLAGS=-DVISUALISE -DONE_BY_ONE
 pobov: $(DPD_BIN) $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
 
-# ----------------- GALS implementation ----------------------------
-
-$(DPD_BIN)/galsCode.v: $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)
-	$(BIN)/checkelf.sh $(DPD_BIN)/dpdGALS.elf
-	$(RV_OBJCOPY) -O verilog --only-section=.text $(DPD_BIN)/dpdGALS.elf $@
-
-$(DPD_BIN)/galsData.v: $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)
-	$(RV_OBJCOPY) -O verilog --remove-section=.text \
-                --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpdGALS.elf $@
-
-$(DPD_BIN)/dpdGALS.elf: $(DPD_SRC)/dpdGALS.cpp $(DPD_INC)/dpdGALS.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
-	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/dpdGALS.o $<
-	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/dpdGALS.o $(TINSEL_LIB_INC) $(DPD_OBJS)
-
-# ------------- Base GALS recipe which is used by all GALS recipes --------------
-base-gals: DFLAGS+=-DGALS
-base-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
-	mv $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
-	mv $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
-	mv $(DPD_BIN)/dpdGALS.elf $(DPD_BIN)/dpd.elf
-
 visual-gals: DFLAGS=-DVISUALISE
-visual-gals: base-gals $(DPD_BIN)/run
+visual-gals: base-gals oil-water
 
 gals-obo: DFLAGS=-DVISUALISE -DGALS -DONE_BY_ONE
-gals-obo: base-gals $(DPD_BIN)/run
-
-test-gals: DFLAGS+=-DTESTING -DGALS
-test-gals: $(INC)/config.h $(HL)/*.o $(HOST_OBJS) base-gals
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
-test-gals-large: DFLAGS=-DLARGE_TEST
-test-gals-large: $(INC)/config.h $(HL)/*.o test-gals
+gals-obo: base-gals oil-water
 
 timed-gals: DFLAGS=-DTIMER -DGALS
-timed-gals: base-gals $(DPD_BIN)/run
+timed-gals: base-gals oil-water
 
 timed-gals-obo: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE
-timed-gals-obo: base-gals $(DPD_BIN)/run
+timed-gals-obo: base-gals oil-water
 
 timed-dram-gals: DFLAGS=-DTIMER -DDRAM -DDGALS
-timed-dram-gals: base-gals $(DPD_BIN)/run
+timed-dram-gals: base-gals oil-water
 
 timed-gals-obo-dram: DFLAGS=-DTIMER -DGALS -DONE_BY_ONE -DDRAM
-timed-gals-obo-dram: base-gals $(DPD_BIN)/run
+timed-gals-obo-dram: base-gals oil-water
 
 timed-gals-new-verlet: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET
-timed-gals-new-verlet: base-gals $(DPD_BIN)/run
+timed-gals-new-verlet: base-gals oil-water
 
 timed-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET -DDRAM
-timed-gals-new-verlet-dram: base-gals $(DPD_BIN)/run
+timed-gals-new-verlet-dram: base-gals oil-water
 
 timed-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET -DONE_BY_ONE
-timed-gals-obo-new-verlet: base-gals $(DPD_BIN)/run
+timed-gals-obo-new-verlet: base-gals oil-water
 
 timed-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM
-timed-gals-obo-new-verlet-dram: base-gals $(DPD_BIN)/run
+timed-gals-obo-new-verlet-dram: base-gals oil-water
 
 timed-improved-gals: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS
-timed-improved-gals: base-gals $(DPD_BIN)/run
+timed-improved-gals: base-gals oil-water
 
 timed-improved-gals-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DDRAM
-timed-improved-gals-dram: base-gals $(DPD_BIN)/run
+timed-improved-gals-dram: base-gals oil-water
 
 timed-improved-gals-obo: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DONE_BY_ONE
-timed-improved-gals-obo: base-gals $(DPD_BIN)/run
+timed-improved-gals-obo: base-gals oil-water
 
 timed-improved-gals-obo-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DDRAM
-timed-improved-gals-obo-dram: base-gals $(DPD_BIN)/run
+timed-improved-gals-obo-dram: base-gals oil-water
 
 timed-improved-gals-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET
-timed-improved-gals-new-verlet: base-gals $(DPD_BIN)/run
+timed-improved-gals-new-verlet: base-gals oil-water
 
 timed-improved-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DDRAM
-timed-improved-gals-new-verlet-dram: base-gals $(DPD_BIN)/run
+timed-improved-gals-new-verlet-dram: base-gals oil-water
 
 timed-improved-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-timed-improved-gals-obo-new-verlet: base-gals $(DPD_BIN)/run
+timed-improved-gals-obo-new-verlet: base-gals oil-water
 
 timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM
-timed-improved-gals-obo-new-verlet-dram: base-gals $(DPD_BIN)/run
+timed-improved-gals-obo-new-verlet-dram: base-gals oil-water
 
 visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-visual-improved-gals-obo-new-verlet: base-gals $(DPD_BIN)/run
+visual-improved-gals-obo-new-verlet: base-gals oil-water
 
 stats-gals: DFLAGS=-DSTATS
 stats-gals: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
-stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o base-gals $(DPD_BIN)/run
+stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o base-gals oil-water
 
 # ------------------ Oil and water with bonds ----------------------------
 $(DPD_BIN)/OilWaterBonds.o: $(DPD_SRC)/OilWaterBonds.cpp
@@ -557,54 +656,27 @@ $(DPD_BIN)/bonds_run: $(DPD_BIN)/OilWaterBonds.o $(HL)/*.o $(DPD_BIN) $(HOST_OBJ
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
+visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
 visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/bonds_run
 
 timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_BIN)/OilWaterBonds.o $(DPD_BIN)/bonds_run
+timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
+
 # -------------- WATER ONLY SIMULATION ------------------------------------------------------
-
-$(DPD_BIN)/WaterOnly.o: $(DPD_SRC)/WaterOnly.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/WaterOnly.o $(DPD_SRC)/WaterOnly.cpp
-
-$(DPD_BIN)/waterOnly: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/WaterOnly.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
 timed-water-only: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-timed-water-only: $(DPD_BIN) base-gals $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
+timed-water-only: $(DPD_BIN) base-gals water-only
 
 visual-water-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
-visual-water-only: $(DPD_BIN) base-gals $(DPD_BIN)/WaterOnly.o $(DPD_BIN)/waterOnly
+visual-water-only: $(DPD_BIN) base-gals water-only
 
 # ---------------------------- EXAMPLES --------------------------------
-$(DPD_BIN)/bondsOnly.o: $(DPD_EXAMPLES)/bondsOnly.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/bondsOnly.o $(DPD_EXAMPLES)/bondsOnly.cpp
-
-$(DPD_BIN)/bondsOnlyRun: $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/bondsOnly.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
 visual-bonds-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS
-visual-bonds-only: $(DPD_BIN) base-gals $(DPD_BIN)/bondsOnly.o $(DPD_BIN)/bondsOnlyRun
+visual-bonds-only: $(DPD_BIN) base-gals bonds-only
 
-# -------------------------- RESTART SIMULATION ------------------------
-$(DPD_BIN)/restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/dpdGALS.h $(HL)/*.o $(DPD_BIN) $(HOST_OBJS)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/restart $(HOST_OBJS) $(HL)/*.o $(DPD_BIN)/restart.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-restart: $(DPD_BIN) base-gals $(DPD_BIN)/restart
-
+visual-gals-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
+visual-gals-restart: $(DPD_BIN) base-gals restart
 
 .PHONY: clean
 clean:

@@ -155,7 +155,6 @@ struct DPDState {
     uint32_t bslot; // a bitmap of which bead slot is occupied
     uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
     uint32_t newBeadMap;
-    // bead_t newBeads[MAX_BEADS];
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
 #ifdef BETTER_VERLET
@@ -171,7 +170,7 @@ struct DPDState {
     uint32_t grand; // the global random number at this timestep
     uint64_t rngstate; // the state of the random number generator
 
-    uint32_t lost_beads;
+    // uint32_t lost_beads;
     uint32_t max_timestep;
 
     uint8_t updates_received;
@@ -419,7 +418,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
         #ifndef SMALL_DT_EARLY
             s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
         #else
-            s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*s->dt*s->dt;
+            s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*s->dt + acceleration*ptype(0.5)*s->dt*s->dt;
         #endif
 
             // ----- clear the forces ---------------
@@ -447,7 +446,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
         #endif
 
             // ----- clear the forces ---------------
-            s->force_slot[ci].set(0, 0, 0);
+            s->force_slot[ci].clear();
 #endif
 
             // ----- migration code ------
@@ -659,7 +658,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 	inline void init() {
 		s->rngstate = 1234; // start with a seed
 		s->grand = rand();
-		s->mode = UPDATE;
+		// s->mode = UPDATE;
         *readyToSend = Pin(0);
 		if(s->bslot == 0) {
             s->newBeadMap = s->bslot;
@@ -680,6 +679,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 	// send handler -- called when the ready to send flag has been set
 	inline void send(volatile DPDMessage *msg){
         msg->mode = 0x00;
+        msg->type = 0x00;
         msg->timestep = s->timestep;
 	    if(s->mode == UPDATE) {
             msg->mode = UPDATE;
@@ -826,13 +826,17 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
     #if defined(VISUALISE) || defined(TESTING)
 	    if(s->mode == EMIT) {
 	        // we are sending a host message
+            msg->type = 0x00;
 	        uint8_t ci = get_next_slot(s->sentslot);
-            msg->timestep = s->timestep;
+            // Already done at start of send()
+            // msg->timestep = s->timestep;
             msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
             msg->from.z = s->loc.z;
             msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+          #ifndef TESTING
             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+          #endif
 	        msg->beads[0].id = s->bead_slot[ci].id;
 	        msg->beads[0].type = s->bead_slot[ci].type;
 
@@ -840,9 +844,16 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 	        if(s->sentslot != 0) {
                 *readyToSend = HostPin;
 	        } else {
+            #ifndef TESTING
 	            s->sentslot = s->bslot;
                 s->mode = EMIT_COMPLETE;
 	            *readyToSend = Pin(0);
+            #else
+                // Bypasses the need for another mostly empty message
+                // Works for testing as the only time we emit is at the end
+                msg->type = 0xAA; // Signifies to the host that the testing is complete
+                *readyToSend = No;
+            #endif
 	        }
             return;
 	    }
@@ -1000,9 +1011,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
                         // looks like we are getting a new addition to our family
                         uint8_t ni = get_next_free_slot(s->newBeadMap);
-                        if (ni == 0xFFFFFFFF) {
-                            s->lost_beads++;
-                        } else {
+                        if (ni != 0xFFFFFFFF) {
                             s->newBeadMap = set_slot(s->newBeadMap, ni);
 
                         #ifndef BETTER_VERLET
@@ -1010,23 +1019,25 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
                             s->bead_slot[ni].id = msg->beads[0].id;
                             s->bead_slot[ni].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
                             s->bead_slot[ni].velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-                            s->force_slot[ni].set(0.0, 0.0, 0.0);
+                            // Force slot should be cleared anyway
+                            // s->force_slot[ni].set(0.0, 0.0, 0.0);
                         #else
                             // Welcome the new little bead
                             s->bead_slot[ni].type = msg->beads[0].type;
                             s->bead_slot[ni].id = msg->beads[0].id;
                             s->bead_slot[ni].pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
                             s->bead_slot[ni].acc.set(msg->beads[0].acc.x(), msg->beads[0].acc.y(), msg->beads[0].acc.z());
-                            s->force_slot[ni].set(0.0, 0.0, 0.0);
+                            // Force slot should be cleared anyway
+                            // s->force_slot[ni].set(0.0, 0.0, 0.0);
 
                             // Store old velocity
                             s->old_velo[ni].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                             // Update velocity
-                        #ifndef SMALL_DT_EARLY
+                          #ifndef SMALL_DT_EARLY
                             s->bead_slot[ni].velo = s->old_velo[ni] + (s->bead_slot[ni].acc * lambda * dt);
-                        #else
+                          #else
                             s->bead_slot[ni].velo = s->old_velo[ni] + (s->bead_slot[ni].acc * lambda * s->dt);
-                        #endif
+                          #endif
                         #endif
                         }
                     }

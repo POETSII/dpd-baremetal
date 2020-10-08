@@ -475,12 +475,12 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #ifdef MESSAGE_COUNTER
         s->message_counter = 0;
     #endif
-		s->rngstate = 1234; // start with a seed
+		// s->rngstate = 1234; // start with a seed
 		s->grand = rand();
     #ifdef VISUALISE
 		s->emitcnt = emitperiod;
     #endif
-		s->mode = UPDATE;
+		// s->mode = UPDATE;
         s->sentslot = s->bslot;
     #ifndef MESSAGE_MANAGEMENT
 		if (s->sentslot) {
@@ -536,7 +536,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #ifndef SMALL_DT_EARLY
             s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*dt*dt;
         #else
-            s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo*dt + acceleration*ptype(0.5)*s->dt*s->dt;
+            s->bead_slot[ci].pos = s->bead_slot[ci].pos + s->bead_slot[ci].velo * s->dt + acceleration*ptype(0.5)*s->dt*s->dt;
         #endif
 
             // ----- clear the forces ---------------
@@ -838,7 +838,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->from.y = s->loc.y;
             msg->from.z = s->loc.z;
             msg->beads[0].pos.set(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z());
+          #ifndef TESTING
             msg->beads[0].velo.set(s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z());
+          #endif
 	        msg->beads[0].id = s->bead_slot[ci].id;
 	        msg->beads[0].type = s->bead_slot[ci].type;
 
