@@ -15,8 +15,6 @@
 #include <map>
 #include "ExternalServer.hpp"
 
-const uint8_t max_beads_per_dev = 31;
-
 #if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
     typedef struct _FPGALinks {
         std::vector<std::vector<uint64_t>> x;
@@ -65,17 +63,6 @@ class Universe {
     PDeviceId get_neighbour_cell_id(unit_t u_i, int16_t d_x, int16_t d_y, int16_t d_z); // Gets device ID for neighbouring cell. d_x, d_y and d_z are between -1 and 1 and used for to find the 26 neighbours
     float find_nearest_bead_distance(const bead_t *i, unit_t u_i); // Find the distance between the given bead and its nearest bead
     void store_initial_bead_distances(); // Store the nearest bead distances for each bead in a JSON file for a graph
-
-    // bead slot management
-    uint32_t clear_slot(uint32_t slotlist, uint8_t pos);
-    uint32_t set_slot(uint32_t slotlist, uint8_t pos);
-    bool is_slot_set(uint32_t slotlist, uint8_t pos);
-
-    uint8_t get_next_slot(uint32_t slotlist);
-    uint8_t get_next_free_slot(uint32_t slotlist);
-
-    void print_slot(uint32_t slotlist);
-    uint8_t get_num_beads(uint32_t slotlist);
 
     // debugging
     void print_occupancy(); // prints the number of beads assigned to each devices

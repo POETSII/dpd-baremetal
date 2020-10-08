@@ -12,14 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
 
-// helper functions for managing bead slots
-template<class S>
-uint32_t Universe<S>::clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
-template<class S>
-uint32_t Universe<S>::set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
-template<class S>
-bool Universe<S>::is_slot_set(uint32_t slotlist, uint8_t pos){ return slotlist & (1 << pos); }
-
 // print out the occupancy of each device
 template<class S>
 void Universe<S>::print_occupancy() {
@@ -31,59 +23,6 @@ void Universe<S>::print_occupancy() {
         if(beads > 0)
             printf("%x\t\t\t%d\n", t, (uint32_t)beads);
     }
-}
-
-template<class S>
-uint8_t Universe<S>::get_next_slot(uint32_t slotlist) {
-    uint32_t mask = 0x1;
-    for(int i = 0; i < max_beads_per_dev; i++) {
-        if(slotlist & mask) {
-            return i;
-        }
-        mask = mask << 1; // shift to the next pos
-    }
-    return 0xFF; // we are empty
-}
-
-template<class S>
-uint8_t Universe<S>::get_next_free_slot(uint32_t slotlist) {
-    uint32_t mask = 0x1;
-    for(int i = 0; i < max_beads_per_dev; i++){
-        if(!(slotlist & mask)) {
-           return i;
-        }
-        mask = mask << 1;
-    }
-    return 0xFF; // error there are no free slots!
-}
-
-template<class S>
-void Universe<S>::print_slot(uint32_t slotlist) {
-    printf("slotlist = ");
-    uint32_t mask = 0x1;
-    for(int i = 0; i < max_beads_per_dev; i++) {
-        if(slotlist & mask) {
-            printf("1");
-        } else {
-            printf("0");
-        }
-        mask = mask << 1;
-    }
-    printf("\n");
-}
-
-// get the number of beads occupying a slot
-template<class S>
-uint8_t Universe<S>::get_num_beads(uint32_t slotlist) {
-    uint8_t cnt = 0;
-    uint32_t mask = 0x1;
-    for(int i = 0; i < max_beads_per_dev; i++) {
-        if(slotlist & mask) {
-            cnt++;
-        }
-        mask = mask << 1;
-    }
-    return cnt;
 }
 
 // make two devices neighbours
@@ -558,7 +497,7 @@ bool Universe<S>::space(const bead_t *in) {
     PDeviceId b_su = _locToId[t];
 
     // check to make sure there is still enough room in the device
-    if(get_num_beads(_g->devices[b_su]->state.bslot) >= (max_beads_per_dev)) {
+    if(get_num_beads(_g->devices[b_su]->state.bslot) >= (MAX_BEADS)) {
         return false;
     }
 
@@ -595,10 +534,10 @@ bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
    PDeviceId b_sub = _locToId[tb];
 
     if(b_sua==b_sub){
-     return get_num_beads(_g->devices[b_sua]->state.bslot)+1 < max_beads_per_dev;
+     return get_num_beads(_g->devices[b_sua]->state.bslot)+1 < MAX_BEADS;
    }else{
-     return (get_num_beads(_g->devices[b_sua]->state.bslot) < max_beads_per_dev)
-           && get_num_beads(_g->devices[b_sub]->state.bslot) < max_beads_per_dev;
+     return (get_num_beads(_g->devices[b_sua]->state.bslot) < MAX_BEADS)
+           && get_num_beads(_g->devices[b_sub]->state.bslot) < MAX_BEADS;
    }
 }
 
@@ -615,7 +554,7 @@ unit_t Universe<S>::add(const bead_t *in) {
     PDeviceId b_su = _locToId[t];
 
     // check to make sure there is still enough room in the device
-    if(get_num_beads(_g->devices[b_su]->state.bslot) > max_beads_per_dev) {
+    if(get_num_beads(_g->devices[b_su]->state.bslot) > MAX_BEADS) {
         std::cerr << "Error: there is not enough space in cell: " << t.x << ", " << t.y << ", " << t.z << " for bead: " << in->id << ".\n";
         std::cerr << "There is already " << get_num_beads(_g->devices[b_su]->state.bslot) << " beads in this cell for a max of\n";
         fflush(stdout);

@@ -13,6 +13,7 @@
 #include <POLite.h>
 
 #include "Vector3D.hpp"
+#include "BeadMap.hpp"
 #ifdef ACCELERATE
     #include "accelerator.h"
 #endif
@@ -27,8 +28,6 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-
-#define MAX_BEADS 31
 
 #define UPDATE 0
 #define UPDATE_COMPLETE 1
@@ -198,48 +197,6 @@ struct DPDState {
 
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
-
-    // ----------------- bead slots ---------------------------
-    // helper functions for managing bead slots
-    inline uint32_t clear_slot(uint32_t slotlist, uint8_t pos){  return slotlist & ~(1 << pos);  }
-    inline uint32_t set_slot(uint32_t slotlist, uint8_t pos){ return slotlist | (1 << pos); }
-
-    uint8_t get_next_slot(uint32_t slotlist){
-
-        uint32_t mask = 0x1;
-        for(uint8_t i = 0; i < MAX_BEADS; i++) {
-            if(slotlist & mask){
-                    return i;
-            }
-            mask = mask << 1; // shift to the next pos
-        }
-        return 0xFF; // we are empty
-    }
-
-    uint8_t get_next_free_slot(uint32_t slotlist){
-        uint32_t mask = 0x1;
-        for(uint8_t i = 0; i < MAX_BEADS; i++){
-                if(!(slotlist & mask)) {
-                       return i;
-                }
-                mask = mask << 1;
-        }
-        return 0xFF; // error there are no free slots!
-    }
-
-    // get the number of beads occupying a slot
-    uint8_t get_num_beads(uint32_t slotlist){
-        uint8_t cnt = 0;
-        uint32_t mask = 0x1;
-        for(uint8_t i = 0; i < MAX_BEADS; i++){
-                if(slotlist & mask) {
-                      cnt++;
-                }
-                mask = mask << 1;
-        }
-        return cnt; // error there are no free slots!
-    }
-    // --------------------------------------------------------
 
     // dt10's random number generator
 	uint32_t rand() {
