@@ -5,9 +5,9 @@
 #include <sys/time.h>
 #include <HostLink.h>
 #ifndef GALS
-#include "dpd.h"
+#include "sync.h"
 #else
-#include "dpdGALS.h"
+#include "gals.h"
 #endif
 #include "universe.hpp"
 #include <map>
@@ -113,7 +113,7 @@ int main() {
         b1->acc.set(0.0, 0.0, 0.0);
     #endif
         // Cell for bead to go in
-        unit_t cell;
+        cell_t cell;
         cell.x = std::stoi(lines.at(5));
         cell.y = std::stoi(lines.at(6));
         cell.z = std::stoi(lines.at(7));
@@ -126,7 +126,7 @@ int main() {
     // Get the expected bead positionings from the expected output file
     // Store the expected bead positions in a map of bead ID to bead information
     std::map<uint32_t, bead_t> expected_beads_map;
-    std::map<uint32_t, unit_t> expected_cell_map;
+    std::map<uint32_t, cell_t> expected_cell_map;
 
     std::ifstream expected_out(expected);
     // Reuse line from above
@@ -155,7 +155,7 @@ int main() {
         b1.acc.set(0.0, 0.0, 0.0);
     #endif
         // Cell that bead ends up in
-        unit_t cell;
+        cell_t cell;
         cell.x = std::stoi(lines.at(5));
         cell.y = std::stoi(lines.at(6));
         cell.z = std::stoi(lines.at(7));
@@ -191,7 +191,8 @@ int main() {
     // Ensure the number of input beads is the same as the number of output beads
     if (actual_out.size() != num_beads_in) {
         std::cerr << "Number of beads input does not equal to number of beads output\n";
-        std::cerr << "In: " << num_beads_in << "Out: " << actual_out.size() << "\n";
+        std::cerr << "In: " << num_beads_in << ". Out: " << actual_out.size() << "\n";
+        fail = true;
     } else {
         for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
             // Actual values
@@ -199,7 +200,7 @@ int main() {
             bead_class_t actual_type = i->second.beads[0].type;
             Vector3D<ptype> actual_pos = i->second.beads[0].pos;
             // Actual cell location
-            unit_t actual_cell;
+            cell_t actual_cell;
             actual_cell.x = i->second.from.x;
             actual_cell.y = i->second.from.y;
             actual_cell.z = i->second.from.z;
@@ -208,7 +209,7 @@ int main() {
             bead_class_t expected_type = expected_beads_map[i->first].type;
             Vector3D<ptype> expected_pos = expected_beads_map[i->first].pos;
             // Expected cell location
-            unit_t expected_cell;
+            cell_t expected_cell;
             expected_cell.x = expected_cell_map[i->first].x;
             expected_cell.y = expected_cell_map[i->first].y;
             expected_cell.z = expected_cell_map[i->first].z;

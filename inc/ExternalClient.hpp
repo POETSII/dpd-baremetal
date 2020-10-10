@@ -10,9 +10,9 @@
 #include <boost/asio.hpp>
 #include <cstdint>
 #ifndef GALS
-#include "dpd.h"
+#include "sync.h"
 #else
-#include "dpdGALS.h"
+#include "gals.h"
 #endif
 #include "externals-common.h"
 

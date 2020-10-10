@@ -84,7 +84,7 @@ void Universe<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
 
 // Find the number of edges which cross links
 template<class S>
-void Universe<S>::updateLinkInfo(PThreadId c_thread, unit_t c_loc, FPGALinks* links) {
+void Universe<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* links) {
 
     uint32_t xmask = ((1<<TinselMeshXBits)-1);
     // Get FPGA coordinates of origin cell
@@ -98,7 +98,7 @@ void Universe<S>::updateLinkInfo(PThreadId c_thread, unit_t c_loc, FPGALinks* li
                     continue;
                 }
                 // Get neighbour location
-                unit_t n_loc;
+                cell_t n_loc;
                 n_loc.x = locOffset(c_loc.x, x_off, _D);
                 n_loc.y = locOffset(c_loc.y, y_off, _D);
                 n_loc.z = locOffset(c_loc.z, z_off, _D);
@@ -128,9 +128,9 @@ void Universe<S>::outputMapping() {
     // Open JSON
     output = "{\n";
     output += "\t\"vertices\": {\n";
-    for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+    for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
-        unit_t loc = i->second;
+        cell_t loc = i->second;
         std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
         PDeviceAddr cellAddr = _g->toDeviceAddr[cId];
         PThreadId cellThread = getThreadId(cellAddr);
@@ -253,7 +253,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         for(uint16_t y=0; y<D; y++) {
             for(uint16_t z=0; z<D; z++) {
                     PDeviceId id = _g->newDevice();
-                    unit_t loc = {x, y, z};
+                    cell_t loc = {x, y, z};
                     _idToLoc[id] = loc;
                     _locToId[loc] = id;
             }
@@ -266,7 +266,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         for(uint16_t y=0; y<_D; y++) {
             for(uint16_t z=0; z<_D; z++) {
                 // this device
-                unit_t c_loc = {x,y,z};
+                cell_t c_loc = {x,y,z};
                 PDeviceId cId = _locToId[c_loc];
 
                 // calculate the neighbour positions
@@ -310,7 +310,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
                     z_pos = z+1;
                 }
 
-                unit_t n_loc;
+                cell_t n_loc;
                 PDeviceId nId;
 
             #ifdef SEND_TO_SELF
@@ -453,9 +453,9 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 #endif
 
     // initialise all the devices with their position and the max time
-    for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+    for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
-        unit_t loc = i->second;
+        cell_t loc = i->second;
         _g->devices[cId]->state.loc.x = loc.x;
         _g->devices[cId]->state.loc.y = loc.y;
         _g->devices[cId]->state.loc.z = loc.z;
@@ -488,7 +488,7 @@ bool Universe<S>::space(const bead_t *in) {
     unit_pos_t x = floor(b.pos.x()/_unit_size);
     unit_pos_t y = floor(b.pos.y()/_unit_size);
     unit_pos_t z = floor(b.pos.z()/_unit_size);
-    unit_t t = {x,y,z};
+    cell_t t = {x,y,z};
     if (x > _size || x < 0 || y > _size || y < 0 || z > _size || z < 0) {
         return false;
     }
@@ -515,12 +515,12 @@ bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
    unit_pos_t xa = floor(pa->pos.x()/_unit_size);
    unit_pos_t ya = floor(pa->pos.y()/_unit_size);
    unit_pos_t za = floor(pa->pos.z()/_unit_size);
-   unit_t ta = {xa,ya,za};
+   cell_t ta = {xa,ya,za};
 
     unit_pos_t xb = floor(pb->pos.x()/_unit_size);
    unit_pos_t yb = floor(pb->pos.y()/_unit_size);
    unit_pos_t zb = floor(pb->pos.z()/_unit_size);
-   unit_t tb = {xb,yb,zb};
+   cell_t tb = {xb,yb,zb};
 
     if(_locToId.find(ta)==_locToId.end()){
      return false;
@@ -543,12 +543,12 @@ bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
 
 // add a bead to the simulation universe
 template<class S>
-unit_t Universe<S>::add(const bead_t *in) {
+cell_t Universe<S>::add(const bead_t *in) {
     bead_t b = *in;
     unit_pos_t x = floor(b.pos.x()/_unit_size);
     unit_pos_t y = floor(b.pos.y()/_unit_size);
     unit_pos_t z = floor(b.pos.z()/_unit_size);
-    unit_t t = {x,y,z};
+    cell_t t = {x,y,z};
 
     // lookup the device
     PDeviceId b_su = _locToId[t];
@@ -578,7 +578,7 @@ unit_t Universe<S>::add(const bead_t *in) {
 }
 
 template<class S>
-void Universe<S>::add(const unit_t cell, const bead_t *in) {
+void Universe<S>::add(const cell_t cell, const bead_t *in) {
     bead_t b = *in;
     if (b.pos.x() > _unit_size || b.pos.y() > _unit_size || b.pos.z() > _unit_size) {
         printf("Error: Bead position given (%f, %f, %f) is outside the bounds of this unit (%d, %d, %d) which has side length %f\n", b.pos.x(), b.pos.y(), b.pos.z(), cell.x, cell.y, cell.z, _unit_size);
@@ -602,9 +602,9 @@ void Universe<S>::write() {
     _g->write(_hostLink);
 }
 
-// Use unit_t location to acquire thread id
+// Use cell_t location to acquire thread id
 template<class S>
-PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
+PThreadId Universe<S>::get_thread_from_loc(cell_t loc) {
     PDeviceId dev_id = _locToId[loc];
     PDeviceAddr dev_addr = _g->toDeviceAddr[dev_id];
     PThreadId thread_id = getThreadId(dev_addr);
@@ -613,11 +613,11 @@ PThreadId Universe<S>::get_thread_from_loc(unit_t loc) {
 
 #ifdef MESSAGE_COUNTER
 template<class S>
-void Universe<S>::calculateMessagesPerLink(std::map<unit_t, uint32_t> cell_messages) {
+void Universe<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messages) {
     clearLinks(&_link_messages);
-    for (std::map<unit_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
+    for (std::map<cell_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
         clearLinks(&_link_edges);
-        unit_t loc = i->first;
+        cell_t loc = i->first;
         uint32_t cellId = _locToId[loc];
         PDeviceAddr cellAddr = _g->toDeviceAddr[cellId];
         PThreadId cellThread = getThreadId(cellAddr);
@@ -699,7 +699,7 @@ void Universe<S>::run() {
 #endif
 
 #ifdef MESSAGE_COUNTER
-    std::map<unit_t, uint32_t> cell_messages;
+    std::map<cell_t, uint32_t> cell_messages;
 #endif
     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
     // enter the main loop
@@ -851,8 +851,8 @@ uint16_t Universe<S>::get_neighbour_cell_dimension(unit_pos_t c, int16_t n) {
 }
 
 template<class S>
-PDeviceId Universe<S>::get_neighbour_cell_id(unit_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
-    unit_t u_j = {
+PDeviceId Universe<S>::get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
+    cell_t u_j = {
         get_neighbour_cell_dimension(u_i.x, d_x),
         get_neighbour_cell_dimension(u_i.y, d_y),
         get_neighbour_cell_dimension(u_i.z, d_z)
@@ -861,7 +861,7 @@ PDeviceId Universe<S>::get_neighbour_cell_id(unit_t u_i, int16_t d_x, int16_t d_
 }
 
 template<class S>
-float Universe<S>::find_nearest_bead_distance(const bead_t *i, unit_t u_i) {
+float Universe<S>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
     float min_dist = 100.0;
     for (int16_t d_x = -1; d_x <= 1; d_x++) {
         for (int16_t d_y = -1; d_y <= 1; d_y++) {
@@ -901,7 +901,7 @@ void Universe<S>::store_initial_bead_distances() {
     for (unit_pos_t u_x = 0; u_x < _D; u_x++) {
         for (unit_pos_t u_y = 0; u_y < _D; u_y++) {
             for (unit_pos_t u_z = 0; u_z < _D; u_z++) {
-                unit_t u = { u_x, u_y, u_z };
+                cell_t u = { u_x, u_y, u_z };
                 PDeviceId dev_id = _locToId[u];
                 uint32_t bslot = _g->devices[dev_id]->state.bslot;
                 while (bslot) {

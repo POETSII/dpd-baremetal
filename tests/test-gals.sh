@@ -4,19 +4,7 @@ cd ..
 make clean
 make clean-tinsel
 
-tests=(test
-       test-new-verlet
-       test-large
-       test-new-verlet-large
-       test-bonds
-       test-bonds-new-verlet
-       test-dt-change
-       test-new-verlet-dt-change
-       test-large-dt-change
-       test-new-verlet-large-dt-change
-       test-bonds-dt-change
-       test-bonds-new-verlet-dt-change
-       test-gals
+tests=(test-gals
        test-gals-new-verlet
        test-gals-large
        test-gals-new-verlet-large

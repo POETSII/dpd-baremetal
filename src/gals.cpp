@@ -1,5 +1,5 @@
 // Dissipative particle dynamics simulation POLite version
-#include "dpd.h"
+#include "gals.h"
 
 #include <tinsel.h>
 #include <POLite.h>
