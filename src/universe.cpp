@@ -471,6 +471,11 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
   #endif
 #endif
 
+#ifdef SERIAL
+    _sim.setTimestep(_start_timestep);
+    _sim.setMaxTimestep(_max_timestep);
+#endif
+
     // initialise all the devices with their position and the max time
     for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
@@ -483,10 +488,12 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         state->loc.x = loc.x;
         state->loc.y = loc.y;
         state->loc.z = loc.z;
+    #ifndef SERIAL
         state->unit_size = _unit_size;
         state->N = _D;
         state->timestep = _start_timestep;
         state->max_timestep = _max_timestep;
+    #endif
     #ifndef SERIAL
         state->mode = UPDATE;
     #endif
@@ -741,7 +748,9 @@ void Universe<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messa
 // starts the simulation
 template<class S>
 void Universe<S>::run() {
-#ifndef SERIAL // We dont need host link if we're running serial sim on x86
+#ifdef SERIAL
+    std::thread thread(&SerialSim::run, _sim);
+#else // We dont need host link if we're running serial sim on x86
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
 #endif
@@ -767,7 +776,10 @@ void Universe<S>::run() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg;
+        if (!_sim.hasMessage())
+            continue;
+        DPDMessage msg = _sim.getMessage();
+        std::cout << "Got a message\n";
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -860,6 +872,9 @@ void Universe<S>::run() {
                 fclose(f);
             }
             std::cout << "\n";
+        #ifdef SERIAL
+            thread.join();
+        #endif
             return;
         }
         // if (msg.beads[0].id == (0x80000000ul + 473) || msg.beads[0].id == (0x80000000ul + 474)) {

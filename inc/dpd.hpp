@@ -11,6 +11,9 @@
 
 #include "Vector3D.hpp"
 #include "BeadMap.hpp"
+#ifdef SERIAL
+#include <iostream>
+#endif
 
 /********************* DEFINITIONS **************************/
 
@@ -121,6 +124,17 @@ inline uint32_t pairwise_rand(uint32_t pid1, uint32_t pid2, const uint32_t grand
     uint32_t s0 = (pid1 ^ grand)*pid2;
     uint32_t s1 = (pid2 ^ grand)*pid1;
     return s0 + s1;
+}
+
+// used to help adjust the relative positions for the periodic boundary
+inline int period_bound_adj(int dim) {
+    if(dim > 1) {
+        return -1;
+    } else if (dim < -1) {
+        return 1;
+    } else {
+        return dim;
+    }
 }
 
 inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, const ptype inv_sqrt_dt) {
@@ -339,10 +353,11 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
 }
 
 #ifdef ONE_BY_ONE
-    inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces) {
+    inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
 #else
-    inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces) {
+    inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
 #endif
+    {
     #ifndef ONE_BY_ONE
         uint32_t i = bslot;
         while (i) {
@@ -352,26 +367,26 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
             while(j) {
                 uint8_t cj = get_next_slot(j);
                 if(ci != cj) {
-                    #ifndef ACCELERATE
-                        Vector3D<ptype> f = force_update(&beads[ci], &beads[cj], grand, inv_sqrt_dt);
-                    #else
-                        return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
-                                                        s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
-                                                        s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
-                                                        s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
-                                                        s->bead_slot[ci].id, s->bead_slot[cj].id,
-                                                        s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
-                                                        A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
-                        Vector3D<ptype> f;
-                        f.set(r.x, r.y, r.z);
-                    #endif
-
-                        Vector3D<int32_t> x = f.floatToFixed();
-                        forces[ci] = forces[ci] + x;
+                #ifndef ACCELERATE
+                    Vector3D<ptype> f = force_update(&beads[ci], &beads[cj], grand, inv_sqrt_dt);
+                #else
+                    return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                                    s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                                    s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                                    s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                                    s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                                    s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+                                                    A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+                    Vector3D<ptype> f;
+                    f.set(r.x, r.y, r.z);
+                #endif
+                    Vector3D<int32_t> x = f.floatToFixed();
+                    forces[ci] = forces[ci] + x;
                 }
                 j = clear_slot(j, cj);
             }
     #ifndef ONE_BY_ONE
+            i = clear_slot(i, ci);
         }
     #endif
     }

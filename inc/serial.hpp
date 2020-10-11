@@ -11,6 +11,9 @@
 #include "dpd.hpp"
 #include "BeadMap.hpp"
 #include <vector>
+#include <iostream>
+#include <queue>
+#include <mutex>
 
 /********************* TYPEDEFS **************************/
 
@@ -18,7 +21,27 @@ typedef uint32_t PDeviceId;
 
 /********************* CONSTANTS **************************/
 
+// Number of neighbours
+// If we change this to implement more of POLites operation it will come in
+// handy to allow this to be defined as different values.
 const uint8_t NEIGHBOURS = 26;
+
+// Timestep and inverse sqrt of timestep
+#ifndef SMALL_DT_EARLY
+const ptype dt = 0.02;
+// Inverse square root of dt - dt^(-1/2)
+const ptype inv_sqrt_dt = 7.071067812;
+#else
+const ptype normal_dt = 0.02;
+const ptype early_dt = 0.002;
+// Inverse square root of dt - dt^(-1/2)
+const ptype normal_inv_sqrt_dt = 7.071067812;
+const ptype early_inv_sqrt_dt = 22.360679775;
+#endif
+
+#ifdef VISUALISE
+const uint32_t emitperiod = 1;
+#endif
 
 /********************* STRUCTS ***************************/
 
@@ -33,33 +56,27 @@ struct DPDMessage {
 // the state of the DPD Device
 struct DPDState {
     PDeviceId neighbours[NEIGHBOURS]; // Holds a list of the neighbours of this cell
-    uint8_t num_neighbours; // Holds how many neighbours this cell currently has
-    float unit_size; // the size of this spatial unit in one dimension
-    uint8_t N;
+    uint8_t num_neighbours = 0; // Holds how many neighbours this cell currently has
     cell_t loc; // the location of this cube
-    uint32_t bslot; // a bitmap of which bead slot is occupied
-    uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    uint32_t bslot = 0; // a bitmap of which bead slot is occupied
+    uint32_t sentslot = 0; // a bitmap of which bead slot has not been sent from yet
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
     Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
 #ifdef BETTER_VERLET
     Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
 #endif
-    uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
+    uint32_t migrateslot = 0; // a bitmask of which bead slot is being migrated in the next phase
     cell_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
-    uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#ifdef VISUALISE
-    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
-#endif
-    uint32_t timestep; // the current timestep that we are on
-    uint32_t grand; // the global random number at this timestep
-    uint64_t rngstate; // the state of the random number generator
+    uint8_t mode = 0; // the mode that this device is in 0 = update; 1 = migration
 
-    uint32_t lost_beads; // Beads lost due to the cell having a full bead_slot
-    uint32_t max_timestep; // Maximum timestep for this run
+    uint32_t grand = 0; // the global random number at this timestep
+    uint64_t rngstate = 0; // the state of the random number generator
+
+    uint32_t lost_beads = 0; // Beads lost due to the cell having a full bead_slot
 
 #ifdef SMALL_DT_EARLY
-    ptype dt;
-    ptype inv_sqrt_dt;
+    ptype dt = 0.0;
+    ptype inv_sqrt_dt = 0.0;
 #endif
 };
 
@@ -72,6 +89,7 @@ class SerialSim {
     // SerialSim();
     // ~SerialSim();
 
+/************** Setup functions ***************/
     // Create a new cell
     // Return the ID of this cell
     PDeviceId newCell();
@@ -79,11 +97,46 @@ class SerialSim {
     DPDState* getCell(PDeviceId id);
     // Add cell b as a neighbour to cell a
     void addEdge(PDeviceId a, PDeviceId b);
+    // Set start timestep
+    void setTimestep(uint32_t timestep);
+    // Set max timestep
+    void setMaxTimestep(uint32_t maxTimestep);
+    // Set cell size
+    void setN(uint32_t N);
+    void setCellSize(ptype cell_size);
+
+/************** DPD Functions ***************/
+    uint32_t p_rand(DPDState *s);
+    // Initialise each cell
+    void init(DPDState *s);
+    // Calculate forces of neighbour cell's beads acting on this cells beads
+    void neighbour_forces(DPDState *local_state, DPDState *neighbour_state);
+    // Migrate a bead to its given neighbour
+    void migrate_bead(const bead_t migrating_bead, const cell_t dest, const PDeviceId neighbours[NEIGHBOURS]);
+    // See if there's a message in the queue
+    bool hasMessage();
+    // Get a message from the thread
+    DPDMessage getMessage();
+
+/************** Runtime functions ***************/
+    // Run the simulator
+    void run();
 
     private:
 
+    void _emit_message(DPDMessage msg);
+
     std::vector<DPDState> _cells;
     uint32_t _num_cells = 0;
+    uint32_t _timestep = 0;
+    uint32_t _max_timestep = 0;
+    uint32_t _N = 0;
+    ptype _cell_size = 0;
+    #ifdef VISUALISE
+    uint32_t _emitcnt = 0;
+    #endif
+    std::queue<DPDMessage> _queue;
+    std::mutex _mutex;
 
 };
 

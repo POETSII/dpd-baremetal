@@ -521,16 +521,16 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	}
 
-	// used to help adjust the relative positions for the periodic boundary
-    __attribute__((noinline)) int8_t period_bound_adj(int8_t dim) {
-        if(dim > 1) {
-            return -1;
-        } else if (dim < -1) {
-            return 1;
-        } else {
-            return dim;
-        }
-    }
+	// // used to help adjust the relative positions for the periodic boundary
+ //    __attribute__((noinline)) int8_t period_bound_adj(int8_t dim) {
+ //        if(dim > 1) {
+ //            return -1;
+ //        } else if (dim < -1) {
+ //            return 1;
+ //        } else {
+ //            return dim;
+ //        }
+ //    }
 
 #ifdef MESSAGE_MANAGEMENT
     inline void set_rts() {

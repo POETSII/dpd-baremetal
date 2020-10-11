@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #include <map>
 #include "ExternalServer.hpp"
+#include <thread>
 
 #if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
     typedef struct _FPGALinks {

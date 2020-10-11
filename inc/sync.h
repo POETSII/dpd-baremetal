@@ -418,17 +418,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
 	}
 
-	// used to help adjust the relative positions for the periodic boundary
-	inline int period_bound_adj(int dim) {
-        if(dim > 1) {
-            return -1;
-        } else if (dim < -1) {
-            return 1;
-        } else {
-            return dim;
-        }
-    }
-
 #ifdef MESSAGE_MANAGEMENT
     inline void set_rts() {
         if (s->sentslot) {
@@ -550,10 +539,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->old_velo[ci].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                     // Update velocity
                 #ifndef SMALL_DT_EARLY
-                    // s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * dt);
                     update_velocity(&s->bead_slot[ci], &s->old_velo[ci], dt);
                 #else
-                    // s->bead_slot[ci].velo = s->old_velo[ci] + (s->bead_slot[ci].acc * lambda * s->dt);
                     update_velocity(&s->bead_slot[ci], &s->old_velo[ci], s->dt);
                 #endif
                 #endif
