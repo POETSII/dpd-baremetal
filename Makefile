@@ -111,6 +111,12 @@ $(DPD_BIN)/gals.elf: $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/gals.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/gals.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
+# ----------------- Serial simulator ------------------------------
+$(DPD_BIN)/serial.o: DFLAGS+=-DSERIAL
+$(DPD_BIN)/serial.o: $(DPD_SRC)/serial.cpp $(DPD_INC)/serial.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/serial.o $(DPD_SRC)/serial.cpp
+
 # Base GALS recipe which is used by all GALS recipes
 # Improved gals and one by one make the best version of GALS
 base-gals: DFLAGS+=-DGALS -DIMPROVED_GALS -DONE_BY_ONE
@@ -266,6 +272,7 @@ test-gals-bonds-dt-change: test-gals
 # Test with bonds and new verlet
 test-gals-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
 test-gals-bonds-new-verlet-dt-change: test-gals
+
 # --------------------------- TIMED RUNS ---------------------------
 timed-run: DFLAGS=-DTIMER
 timed-run: run
@@ -295,7 +302,6 @@ $(DPD_BIN)/linkAnalysis: $(DPD_BIN) $(DPD_UTILS)/linkAnalysis.cpp
 	g++ -O2 -std=c++11 $(DPD_UTILS)/linkAnalysis.cpp -o $(DPD_BIN)/linkAnalysis -lboost_filesystem
 
 link-analysis: $(DPD_BIN)/linkAnalysis
-
 
 # ------------- Do local calculations one bead at a time ------------
 onebyone: DFLAGS=-DTIMER -DONE_BY_ONE
@@ -677,6 +683,11 @@ visual-bonds-only: $(DPD_BIN) base-gals bonds-only
 
 visual-gals-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 visual-gals-restart: $(DPD_BIN) base-gals restart
+
+# ---------------------------- x86 SERIAL SIMULATOR --------------------------------
+timed-serial-oil-water: DFLAGS=-DSERIAL
+timed-serial-oil-water: HOST_OBJS+=$(DPD_BIN)/serial.o
+timed-serial-oil-water: $(DPD_BIN)/serial.o $(HOST_OBJS) oil-water
 
 .PHONY: clean
 clean:

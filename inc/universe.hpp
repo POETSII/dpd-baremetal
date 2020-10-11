@@ -4,13 +4,17 @@
 #ifndef _SIM_UNIVERSE_H
 #define _SIM_UNIVERSE_H
 
-#ifndef GALS
-#include "sync.h"
-#else
+#ifdef GALS
 #include "gals.h"
+#elif defined(SERIAL)
+#include "serial.hpp"
+#else
+#include "sync.h"
 #endif
+#ifndef SERIAL
 #include "POLite.h"
 #include "HostLink.h"
+#endif
 #include <sys/time.h>
 #include <map>
 #include "ExternalServer.hpp"
@@ -56,7 +60,9 @@ class Universe {
 
     // simulation control
     void write(); // writes the simulation env onto the POETS system
+#ifndef SERIAL
     PThreadId get_thread_from_loc(cell_t loc); // Use cell_t location to acquire thread id
+#endif
     void run(); // runs the simulation
     std::map<uint32_t, DPDMessage> test(); // Runs a test, gets the bead outputs and returns this to the test file
     uint16_t get_neighbour_cell_dimension(unit_pos_t c, int16_t n); // Gets single dimension neighbour based on n which is -1, 0 or 1
@@ -78,9 +84,13 @@ class Universe {
 
     uint32_t _beads_added;
 
+#ifdef SERIAL
+    SerialSim _sim;
+#else
 	// POLite related stuff
 	PGraph<DPDDevice, DPDState, None, DPDMessage> * _g; // the graph
-        HostLink *_hostLink; // the hostlink
+    HostLink *_hostLink; // the hostlink
+#endif
 
         // maintain a map of ID's to locations in the space
         std::map<PDeviceId, cell_t> _idToLoc;

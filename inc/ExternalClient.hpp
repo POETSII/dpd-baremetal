@@ -9,8 +9,9 @@
 #include <fstream>
 #include <boost/asio.hpp>
 #include <cstdint>
-#ifndef GALS
-#include "sync.h"
+#ifdef GALS
+#include "gals.h"
+#elif defined(SERIAL)
 #else
 #include "gals.h"
 #endif

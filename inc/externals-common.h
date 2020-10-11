@@ -1,9 +1,11 @@
 #ifndef _EXTERNALS_COMMON_H
 #define _EXTERNALS_COMMON_H
-#ifndef GALS
-#include "sync.h"
-#else
+#ifdef GALS
 #include "gals.h"
+#elif defined(SERIAL)
+#include "serial.hpp"
+#else
+#include "sync.h"
 #endif
 
 typedef struct _pts_to_extern_t {

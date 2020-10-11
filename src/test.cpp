@@ -4,10 +4,12 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
-#ifndef GALS
-#include "sync.h"
-#else
+#ifdef GALS
 #include "gals.h"
+#elif defined(SERIAL)
+#include "serial.hpp"
+#else
+#include "sync.h"
 #endif
 #include "universe.hpp"
 #include <map>
@@ -164,7 +166,9 @@ int main() {
         expected_cell_map[b1.id] = cell;
     }
 
+#ifndef SERIAL
     uni.write(); // write the universe into the POETS memory
+#endif
 
     // uni.print_occupancy();
 

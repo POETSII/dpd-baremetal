@@ -6,6 +6,8 @@
 #ifndef __BEADMAP_H
 #define __BEADMAP_H
 
+#include <stdio.h>
+
 #define MAX_BEADS 31
 
 // Given a bitmap and a position in that, clear this slot (set to 0)

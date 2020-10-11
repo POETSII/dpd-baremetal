@@ -4,10 +4,12 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
-#ifndef GALS
-#include "dpd.h"
+#ifdef GALS
+#include "gals.h"
+#elif defined(SERIAL)
+#include "serial.hpp"
 #else
-#include "dpdGALS.h"
+#include "sync.h"
 #endif
 #include "universe.hpp"
 #include <map>
@@ -356,7 +358,9 @@ int main(int argc, char *argv[]) {
 
     uni.set_beads_added(beads_added);
 
+#ifndef SERIAL
     uni.write(); // write the universe into the POETS memory
+#endif
 
     // uni.print_occupancy();
 
