@@ -474,6 +474,8 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 #ifdef SERIAL
     _sim.setTimestep(_start_timestep);
     _sim.setMaxTimestep(_max_timestep);
+    _sim.setCellSize(_unit_size);
+    _sim.setN(_D);
 #endif
 
     // initialise all the devices with their position and the max time
@@ -493,12 +495,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         state->N = _D;
         state->timestep = _start_timestep;
         state->max_timestep = _max_timestep;
-    #endif
-    #ifndef SERIAL
         state->mode = UPDATE;
     #endif
         state->rngstate = 1234; // start with a seed
-    #ifdef VISUALISE
+    #if defined(VISUALISE) && !defined(SERIAL)
         state->emitcnt = emitperiod;
     #endif
     #ifdef SMALL_DT_EARLY
@@ -749,6 +749,8 @@ void Universe<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messa
 template<class S>
 void Universe<S>::run() {
 #ifdef SERIAL
+    moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
+    _sim.setQueue(&queue);
     std::thread thread(&SerialSim::run, _sim);
 #else // We dont need host link if we're running serial sim on x86
     _hostLink->boot("code.v", "data.v");
@@ -776,10 +778,8 @@ void Universe<S>::run() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        if (!_sim.hasMessage())
-            continue;
-        DPDMessage msg = _sim.getMessage();
-        std::cout << "Got a message\n";
+        DPDMessage msg;
+        while (!queue.try_dequeue(msg)) {};
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -817,6 +817,9 @@ void Universe<S>::run() {
                 // FILE* f = fopen("../timing_results.csv", "a+");
                 fprintf(f, "%1.10f", duration);
                 fclose(f);
+            #ifdef SERIAL
+                thread.join();
+            #endif
                 return;
             } else {
                 std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
@@ -894,7 +897,11 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     std::map<uint32_t, DPDMessage> result;
     // Finish counter
     uint32_t finish = 0;
-#ifndef SERIAL // Hostlink is not needed for serial x86 simulator
+#ifdef SERIAL
+    moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
+    _sim.setQueue(&queue);
+    std::thread thread(&SerialSim::run, _sim);
+#else // We dont need host link if we're running serial sim on x86
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
 #endif
@@ -902,8 +909,9 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     // enter the main loop
     while(1) {
     #ifdef SERIAL
-        // Need some method of acquiring messages from serial x86 sim
+        // Need some way of acquiring messages from the serial x86 simulator
         DPDMessage msg;
+        while (!queue.try_dequeue(msg)) {};
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -913,6 +921,9 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
         if (msg.type == 0xAA) {
             finish++;
             if (finish >= (_D*_D*_D)) {
+            #ifdef SERIAL
+                thread.join();
+            #endif
                 return result;
             }
         }

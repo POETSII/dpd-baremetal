@@ -12,8 +12,8 @@
 #include "BeadMap.hpp"
 #include <vector>
 #include <iostream>
-#include <queue>
-#include <mutex>
+#include "blockingconcurrentqueue.h"
+#include <thread>
 
 /********************* TYPEDEFS **************************/
 
@@ -83,6 +83,7 @@ struct DPDState {
 /********************* CLASS DEFINITION **************************/
 
 class SerialSim {
+
     public:
 
     // constructors and destructors
@@ -104,6 +105,7 @@ class SerialSim {
     // Set cell size
     void setN(uint32_t N);
     void setCellSize(ptype cell_size);
+    void setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage>* queue);
 
 /************** DPD Functions ***************/
     uint32_t p_rand(DPDState *s);
@@ -113,8 +115,6 @@ class SerialSim {
     void neighbour_forces(DPDState *local_state, DPDState *neighbour_state);
     // Migrate a bead to its given neighbour
     void migrate_bead(const bead_t migrating_bead, const cell_t dest, const PDeviceId neighbours[NEIGHBOURS]);
-    // See if there's a message in the queue
-    bool hasMessage();
     // Get a message from the thread
     DPDMessage getMessage();
 
@@ -124,8 +124,6 @@ class SerialSim {
 
     private:
 
-    void _emit_message(DPDMessage msg);
-
     std::vector<DPDState> _cells;
     uint32_t _num_cells = 0;
     uint32_t _timestep = 0;
@@ -133,10 +131,9 @@ class SerialSim {
     uint32_t _N = 0;
     ptype _cell_size = 0;
     #ifdef VISUALISE
-    uint32_t _emitcnt = 0;
+    uint32_t _emitcnt = emitperiod;
     #endif
-    std::queue<DPDMessage> _queue;
-    std::mutex _mutex;
+    moodycamel::BlockingConcurrentQueue<DPDMessage> *_queue;
 
 };
 

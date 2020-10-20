@@ -260,7 +260,6 @@ inline void velocity_Verlet(bead_t *bead, Vector3D<int32_t> *f, const ptype dt) 
 
     // Update position
     bead->pos = bead->pos + (bead->velo * dt) + (new_acc * ptype(0.5) * dt * dt);
-
     // ----- clear the forces ---------------
     f->clear();
 #endif
@@ -274,7 +273,6 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
         // ----- migration code ------
     bool migrating = false; // flag that says whether this particle needs to migrate
     cell_t d_loc; // the potential destination for this bead
-
     //    migration in the x dim
     if (bead->pos.x() >= cell_size){
         migrating = true;
@@ -382,6 +380,7 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
                 #endif
                     Vector3D<int32_t> x = f.floatToFixed();
                     forces[ci] = forces[ci] + x;
+
                 }
                 j = clear_slot(j, cj);
             }
