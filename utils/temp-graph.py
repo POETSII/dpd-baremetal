@@ -65,7 +65,7 @@ ax = data_frame.plot(kind = 'line', x = 'Timestep', y = "Temperature", ax = ax, 
 print("Complete")
 # Plot configuration
 plt.xticks(np.arange(0, max_timestep + 1, 1000), rotation=90)
-plt.yticks(np.arange(0, max_average + 1, 1))
+# plt.yticks(np.arange(0, max_average + 1, 1))
 plt.grid(b=True, which='major', color='#cccccccc', linestyle='-')
 
 # Save the figure

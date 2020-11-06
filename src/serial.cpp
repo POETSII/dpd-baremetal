@@ -53,17 +53,19 @@ void SerialSim::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue)
 }
 
 /************** DPD Functions ***************/
-// dt10's random number generator
-uint32_t SerialSim::p_rand(DPDState *s) {
-    uint32_t c = (s->rngstate)>>32, x=(s->rngstate)&0xFFFFFFFF;
-    s->rngstate = x*((uint64_t)429488355U) + c;
-    return x^c;
-}
-
 // Initialise each cell
 void SerialSim::init(DPDState *s) {
-        s->grand = rand();
-        s->sentslot = s->bslot;
+        // Generate first global random number
+        s->grand = p_rand(&s->rngstate);
+        // Zero the old_velo arrays (problems occur if not done)
+    #ifdef BETTER_VERLET
+        uint32_t i = s->bslot;
+        while (i) {
+            uint8_t ci = get_next_slot(i);
+            s->old_velo[ci].clear();
+            i = clear_slot(i, ci);
+        }
+    #endif
 }
 
 // Calculate forces of neighbour cell's beads acting on this cells beads
@@ -74,19 +76,19 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
     while (i) {
         // Get the local bead
         uint8_t ci = get_next_slot(i);
-        bead_t local_bead = local_state->bead_slot[ci];
+        bead_t *local_bead = &local_state->bead_slot[ci];
         // Get neighbour bead map
         uint32_t j = neighbour_state->bslot;
         // For each neighbour bead
         while (j) {
             // Get neighbour bead
             uint8_t cj = get_next_slot(j);
-            bead_t neighbour_bead = neighbour_state->bead_slot[cj];
+            bead_t *neighbour_bead = &neighbour_state->bead_slot[cj];
             bead_t b;
-            b.id = neighbour_bead.id;
-            b.type = neighbour_bead.type;
-            b.pos.set(neighbour_bead.pos.x(), neighbour_bead.pos.y(), neighbour_bead.pos.z());
-            b.velo.set(neighbour_bead.velo.x(), neighbour_bead.velo.y(), neighbour_bead.velo.z());
+            b.id = neighbour_bead->id;
+            b.type = neighbour_bead->type;
+            b.pos.set(neighbour_bead->pos.x(), neighbour_bead->pos.y(), neighbour_bead->pos.z());
+            b.velo.set(neighbour_bead->velo.x(), neighbour_bead->velo.y(), neighbour_bead->velo.z());
             // from the device locaton get the adjustments to the bead positions
             int x_rel = period_bound_adj(neighbour_state->loc.x - local_state->loc.x);
             int y_rel = period_bound_adj(neighbour_state->loc.y - local_state->loc.y);
@@ -98,9 +100,9 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
             b.pos.z(b.pos.z() + ptype(z_rel));
             // Calculate the forces acting on the local bead
           #ifdef SMALL_DT_EARLY
-            Vector3D<ptype> f = force_update(&local_bead, &b, local_state->grand, local_state->inv_sqrt_dt);
+            Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, local_state->inv_sqrt_dt);
           #else
-            Vector3D<ptype> f = force_update(&local_bead, &b, local_state->grand, inv_sqrt_dt);
+            Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, inv_sqrt_dt);
           #endif
             // Convert this force to fixed point to make it deterministic
             Vector3D<int32_t> x = f.floatToFixed();
@@ -114,7 +116,7 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
     }
 }
 
-void SerialSim::migrate_bead(const bead_t migrating_bead, const cell_t dest, const PDeviceId *neighbours) {
+void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId *neighbours) {
     // Find which neighbour this is going to
     for (uint8_t i = 0; i < NEIGHBOURS; i++) {
         // Get the neighbour state
@@ -127,25 +129,25 @@ void SerialSim::migrate_bead(const bead_t migrating_bead, const cell_t dest, con
             n_s->bslot = set_slot(n_s->bslot, ni);
             // Welcome the new  bead
         #ifndef BETTER_VERLET
-            n_s->bead_slot[ni].type = migrating_bead.type;
-            n_s->bead_slot[ni].id = migrating_bead.id;
-            n_s->bead_slot[ni].pos.set(migrating_bead.pos.x(), migrating_bead.pos.y(), migrating_bead.pos.z());
-            n_s->bead_slot[ni].velo.set(migrating_bead.velo.x(), migrating_bead.velo.y(), migrating_bead.velo.z());
+            n_s->bead_slot[ni].type = migrating_bead->type;
+            n_s->bead_slot[ni].id = migrating_bead->id;
+            n_s->bead_slot[ni].pos.set(migrating_bead->pos.x(), migrating_bead->pos.y(), migrating_bead->pos.z());
+            n_s->bead_slot[ni].velo.set(migrating_bead->velo.x(), migrating_bead->velo.y(), migrating_bead->velo.z());
             n_s->force_slot[ni].set(0.0, 0.0, 0.0);
         #else
-            n_s->bead_slot[ni].type = migrating_bead.type;
-            n_s->bead_slot[ni].id = migrating_bead.id;
-            n_s->bead_slot[ni].pos.set(migrating_bead.pos.x(), migrating_bead.pos.y(), migrating_bead.pos.z());
-            n_s->bead_slot[ni].acc.set(migrating_bead.acc.x(), migrating_bead.acc.y(), migrating_bead.acc.z());
+            n_s->bead_slot[ni].type = migrating_bead->type;
+            n_s->bead_slot[ni].id = migrating_bead->id;
+            n_s->bead_slot[ni].pos.set(migrating_bead->pos.x(), migrating_bead->pos.y(), migrating_bead->pos.z());
+            n_s->bead_slot[ni].acc.set(migrating_bead->acc.x(), migrating_bead->acc.y(), migrating_bead->acc.z());
             n_s->force_slot[ni].set(0.0, 0.0, 0.0);
 
             // Store old velocity
-            n_s->old_velo[ni].set(migrating_bead.velo.x(), migrating_bead.velo.y(), migrating_bead.velo.z());
+            n_s->old_velo[ni].set(migrating_bead->velo.x(), migrating_bead->velo.y(), migrating_bead->velo.z());
             // Update velocity
           #ifndef SMALL_DT_EARLY
             update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], dt);
           #else
-            update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], s->dt);
+            update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], n_s->dt);
           #endif
         #endif
             // We've migrated the bead, no need to keep looping
@@ -153,8 +155,19 @@ void SerialSim::migrate_bead(const bead_t migrating_bead, const cell_t dest, con
         }
     }
 }
-
 /************** Runtime functions ***************/
+// Send a message from the thread to the host
+void SerialSim::sendMessage(DPDMessage *msg) {
+    while (!_queue->try_enqueue(*msg)) { };
+}
+
+// Host receive a message from the thread
+DPDMessage SerialSim::receiveMessage() {
+    DPDMessage msg;
+    while (!_queue->try_dequeue(msg)) { };
+    return msg;
+}
+
 // Run the simulator
 void SerialSim::run() {
     // Initialise the system
@@ -190,6 +203,18 @@ void SerialSim::run() {
         // Increment timestep
         _timestep++;
         std::cout << "Timestep " << _timestep << "\r";
+        FILE* g = fopen("../force-2147488052.csv", "a+");
+        fprintf(g, "\n");
+        fclose(g);
+        g = fopen("../force-calc-2147488052.csv", "a+");
+        fprintf(g, "\n");
+        fclose(g);
+        g = fopen("../force-2147483648.csv", "a+");
+        fprintf(g, "\n");
+        fclose(g);
+        g = fopen("../force-calc-2147483648.csv", "a+");
+        fprintf(g, "\n");
+        fclose(g);
         // std::cin.get();
     #ifdef TIMER
         // Timed run has ended
@@ -199,8 +224,7 @@ void SerialSim::run() {
             msg.timestep = _timestep;
             msg.type = 0xAA; // Indicates end of run
             // Emit this (add it to the queue)
-            // _emit_message(msg);
-            _queue->enqueue(msg);
+            sendMessage(&msg);
             // Exit the simulation
             return;
         }
@@ -219,7 +243,7 @@ void SerialSim::run() {
         #endif
 
             // Advance the random number
-            s->grand = p_rand(s);
+            s->grand = p_rand(&s->rngstate);
 
             // Get the bead map for this cell
             uint32_t i = s->bslot;
@@ -265,7 +289,7 @@ void SerialSim::run() {
             while (i) {
                 // Get the bead
                 uint8_t ci = get_next_slot(i);
-                bead_t migrating_bead = s->bead_slot[ci];
+                bead_t *migrating_bead = &s->bead_slot[ci];
                 // Get its destination
                 cell_t dest = s->migrate_loc[ci];
                 // Find the correct neighbour and add this bead to its state
@@ -302,18 +326,24 @@ void SerialSim::run() {
                 uint32_t i = s->bslot;
                 while (i) {
                     uint8_t ci = get_next_slot(i);
-                    bead_t bead = s->bead_slot[ci];
+                    bead_t *bead = &s->bead_slot[ci];
                     DPDMessage msg;
                     msg.type = 0;
                     msg.timestep = _timestep;
                     msg.from = s->loc;
-                    msg.beads[0] = bead;
-                    _queue->enqueue(msg);
+                    msg.beads[0].id = bead->id;
+                    msg.beads[0].type = bead->type;
+                    msg.beads[0].pos.set(bead->pos.x(), bead->pos.y(), bead->pos.z());
+                    msg.beads[0].velo.set(bead->velo.x(), bead->velo.y(), bead->velo.z());
+                    sendMessage(&msg);
+
                     i = clear_slot(i, ci);
                 }
+            #ifdef TESTING
                 DPDMessage msg;
                 msg.type = 0xAA;
-                _queue->enqueue(msg);
+                sendMessage(&msg);
+            #endif
             }
         #ifdef TESTING
             break;
@@ -324,7 +354,6 @@ void SerialSim::run() {
         #endif
         }
     #endif
-
     }
-    std::cout << "COMPLETE\n";
+    std::cout << "COMPLETE         \n";
 }

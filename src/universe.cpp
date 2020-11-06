@@ -778,8 +778,7 @@ void Universe<S>::run() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg;
-        while (!queue.try_dequeue(msg)) {};
+        DPDMessage msg = _sim.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -882,6 +881,12 @@ void Universe<S>::run() {
         }
         // if (msg.beads[0].id == (0x80000000ul + 473) || msg.beads[0].id == (0x80000000ul + 474)) {
             bead_t b = msg.beads[0];
+            // if (b.pos.x() > 1 || b.pos.y() > 1 || b.pos.z() > 1 || b.velo.x() > 10 || b.velo.y() > 10 || b.velo.z() > 10) {
+            //     std::cout << "Received problem\n";
+            //     std::cout << "Pos = (" << b.pos.x() << ", " << b.pos.y() << ", " << b.pos.z() << ")\n";
+            //     std::cout << "Velo = (" << b.velo.x() << ", " << b.velo.y() << ", " << b.velo.z() << ")\n";
+            //     std::cin.get();
+            // }
             b.pos.x(b.pos.x() + msg.from.x);
             b.pos.y(b.pos.y() + msg.from.y);
             b.pos.z(b.pos.z() + msg.from.z);
@@ -910,8 +915,7 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg;
-        while (!queue.try_dequeue(msg)) {};
+        DPDMessage msg = _sim.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));

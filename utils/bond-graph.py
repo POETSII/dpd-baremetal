@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 volLength = 25
-bond_length_threshold = 0.0
+bond_length_threshold = 4.0
 min_timestep = 0
 max_timestep = 2000
 
@@ -81,8 +81,8 @@ for timestep in range(min_timestep, max_timestep + 1):
         data = json.load(json_file) # Load JSON file
         for b in data["beads"]: # For each bead in the file
             # File should have only bonded beads in, but double check
-            if b["id"] == (0x80000000 + 473) or b["id"] == (0x80000000 + 474):
-                b["id"] = b["id"] - 0x80000000;
+            if b["id"] >= 2147483648:
+                # b["id"] = b["id"] - 0x80000000;
                 beads[b["id"]] = b
 
     # Go through each bead and generate a bond
@@ -160,7 +160,8 @@ plt.grid(b=True, which='major', color='#cccccccc', linestyle='-')
 
 # Save the figure
 print("Saving the figure")
-plt.savefig("test.pdf", bbox_extra_artists=(lgd,), bbox_inches='tight')
+# plt.savefig("test.pdf", bbox_extra_artists=(lgd,), bbox_inches='tight')
+plt.savefig("test.pdf", bbox_inches='tight')
 print("Complete")
 
 

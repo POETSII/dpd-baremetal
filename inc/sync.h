@@ -124,11 +124,7 @@ struct DPDState {
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
     // dt10's random number generator
-	uint32_t rand() {
-            uint32_t c = (s->rngstate)>>32, x=(s->rngstate)&0xFFFFFFFF;
-	    s->rngstate = x*((uint64_t)429488355U) + c;
-	    return x^c;
-	}
+
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
@@ -136,7 +132,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         s->message_counter = 0;
     #endif
 		// s->rngstate = 1234; // start with a seed
-		s->grand = rand();
+		s->grand = p_rand(&s->rngstate);
     #ifdef VISUALISE
 		s->emitcnt = emitperiod;
     #endif
@@ -176,7 +172,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 return false;
             }
         #endif
-    	    s->grand = rand(); // advance the random number
+    	    s->grand = p_rand(&s->rngstate); // advance the random number
     	    uint32_t i = s->bslot;
     	    while(i){
                 uint8_t ci = get_next_slot(i);

@@ -45,8 +45,6 @@ const uint8_t NEIGHBOURS = 27;
 const uint8_t NEIGHBOURS = 26;
 #endif
 
-// typedef float ptype;
-
 // ------------------------- SIMULATION PARAMETERS --------------------------------------
 
 // Timestep and inverse sqrt of timestep
@@ -122,18 +120,11 @@ struct DPDState {
     int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
     uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
 #endif
-    uint8_t error;
+    // uint8_t error;
 };
 
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
-
-    // dt10's random number generator
-	uint32_t rand() {
-        uint32_t c = (s->rngstate)>>32, x=(s->rngstate)&0xFFFFFFFF;
-	    s->rngstate = x*((uint64_t)429488355U) + c;
-	    return x^c;
-	}
 
     __attribute__((noinline)) bool update_complete() {
         if (!(s->update_completes_received == NEIGHBOURS && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == NEIGHBOURS && s->updates_sent == 2)) {
@@ -168,7 +159,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             return false;
         }
     #endif
-        s->grand = rand(); // advance the random number
+        s->grand = p_rand(&s->rngstate); // advance the random number
         // ------ velocity verlet ------
         uint32_t i = s->bslot;
         while(i){
@@ -291,7 +282,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
 		s->rngstate = 1234; // start with a seed
-		s->grand = rand();
+		s->grand = p_rand(&s->rngstate);
 		// s->mode = UPDATE;
         *readyToSend = Pin(0);
 		if(s->bslot == 0) {
@@ -467,7 +458,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             msg->type = 0x00;
 	        uint8_t ci = get_next_slot(s->sentslot);
             // Already done at start of send()
-            // msg->timestep = s->timestep;
+            msg->timestep = s->timestep;
             msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
             msg->from.z = s->loc.z;

@@ -85,7 +85,7 @@ const ptype drag_coef = 4.5;
 const ptype sigma_ij = 3;
 
 // Mass of all beads
-const ptype p_mass = 1.0;
+// const ptype p_mass = 1.0;
 
 // Lambda used in verlet
 const ptype lambda = 0.5;
@@ -120,7 +120,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 /********************* DPD FUNCTIONS **************************/
 
 // dt10's hash based random num gen
-inline uint32_t pairwise_rand(uint32_t pid1, uint32_t pid2, const uint32_t grand){
+inline uint32_t pairwise_rand(const uint32_t pid1, const uint32_t pid2, const uint32_t grand){
     uint32_t s0 = (pid1 ^ grand)*pid2;
     uint32_t s1 = (pid2 ^ grand)*pid1;
     return s0 + s1;
@@ -137,11 +137,19 @@ inline int period_bound_adj(int dim) {
     }
 }
 
+inline uint32_t p_rand(uint64_t *rngstate) {
+    uint32_t c = (*rngstate) >> 32;
+    uint32_t x = (*rngstate) & 0xFFFFFFFF;
+    *rngstate = x * ((uint64_t)429488355U) + c;
+    return x^c;
+}
+
 inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, const ptype inv_sqrt_dt) {
 
     ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
     Vector3D<ptype> force = Vector3D<ptype>(0.0, 0.0, 0.0); // accumulate the force here
+
 
 #ifndef BONDS
     if (r_ij_dist_sq < sq_r_c)
@@ -149,8 +157,8 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
     if ((r_ij_dist_sq < sq_r_c) || are_beads_bonded(a->id, b->id))
 #endif
     {
-
-        ptype r_ij_dist = newt_sqrt(r_ij_dist_sq); // Only square root for distance once it's known these beads interact
+        // Only square root for distance once it's known these beads interact
+        ptype r_ij_dist = newt_sqrt(r_ij_dist_sq);
 
 #if !defined(DISABLE_CONS_FORCE) || !defined(DISABLE_DRAG_FORCE) || !defined(DISABLE_RAND_FORCE)
         // Switching function - w_r is used for conservative too
@@ -203,20 +211,19 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
 
     #ifndef DISABLE_RAND_FORCE
         // Get the pairwise random number
-        // ptype r((pairwise_rand(a->id, b->id) / (float)(DT10_RAND_MAX/2)));
-        const ptype test = 3.466008;
-        ptype r = (pairwise_rand(a->id, b->id, grand) / float(DT10_RAND_MAX)) * test;
-        r = ((test/2) - r);
+        uint32_t rand = pairwise_rand(a->id, b->id, grand) >> 1;
+        uint32_t max = DT10_RAND_MAX >> 1;
+        float test = 3.46939;
+        ptype r = (float(rand) / float(max)) * test;
+        r = (test/2 - r);
 
         // random force
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
     #else
         ptype ran = 0;
     #endif
-
         return force + (scale * (con + drag + ran));
     }
-
     return force;
 }
 
@@ -236,30 +243,33 @@ inline void velocity_Verlet(bead_t *bead, Vector3D<int32_t> *f, const ptype dt) 
     Vector3D<ptype> force = f->fixedToFloat();
 
 #ifndef BETTER_VERLET
-    Vector3D<ptype> acceleration = force / p_mass;
+    // Vector3D<ptype> acceleration = force / p_mass;
 
-    Vector3D<ptype> delta_v = acceleration * dt;
+    Vector3D<ptype> delta_v = force * dt;
     // update velocity
     bead->velo = bead->velo + delta_v;
 
     // update position
-    bead->pos = bead->pos + bead->velo * dt + acceleration * ptype(0.5) * dt * dt;
+    bead->pos = bead->pos + bead->velo * dt + force * ptype(0.5) * dt * dt;
 
     // ----- clear the forces ---------------
     f->clear();
 #else
-    Vector3D<ptype> new_acc = force / p_mass;
+    // Vector3D<ptype> force = force / p_mass;
     // ------ End of previous velocity Verlet -----
-    bead->velo = *old_velo + ((new_acc + bead->acc) * dt * ptype(0.5));
+
+    bead->velo = *old_velo + ((force + bead->acc) * dt * ptype(0.5));
     // Store old velocity
     old_velo->set(bead->velo.x(), bead->velo.y(), bead->velo.z());
     // Store old Force
-    bead->acc.set(new_acc.x(), new_acc.y(), new_acc.z());
+    bead->acc.set(force.x(), force.y(), force.z());
 
     // ------ Start of new velocity Verlet ------
 
+
     // Update position
-    bead->pos = bead->pos + (bead->velo * dt) + (new_acc * ptype(0.5) * dt * dt);
+    bead->pos = bead->pos + (bead->velo * dt) + (force * ptype(0.5) * dt * dt);
+
     // ----- clear the forces ---------------
     f->clear();
 #endif
@@ -365,6 +375,7 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
             while(j) {
                 uint8_t cj = get_next_slot(j);
                 if(ci != cj) {
+
                 #ifndef ACCELERATE
                     Vector3D<ptype> f = force_update(&beads[ci], &beads[cj], grand, inv_sqrt_dt);
                 #else
@@ -380,7 +391,6 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
                 #endif
                     Vector3D<int32_t> x = f.floatToFixed();
                     forces[ci] = forces[ci] + x;
-
                 }
                 j = clear_slot(j, cj);
             }

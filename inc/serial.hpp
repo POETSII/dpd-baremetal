@@ -108,15 +108,14 @@ class SerialSim {
     void setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage>* queue);
 
 /************** DPD Functions ***************/
-    uint32_t p_rand(DPDState *s);
     // Initialise each cell
     void init(DPDState *s);
     // Calculate forces of neighbour cell's beads acting on this cells beads
     void neighbour_forces(DPDState *local_state, DPDState *neighbour_state);
     // Migrate a bead to its given neighbour
-    void migrate_bead(const bead_t migrating_bead, const cell_t dest, const PDeviceId neighbours[NEIGHBOURS]);
-    // Get a message from the thread
-    DPDMessage getMessage();
+    void migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId neighbours[NEIGHBOURS]);
+    // Host receive a message from the thread
+    DPDMessage receiveMessage();
 
 /************** Runtime functions ***************/
     // Run the simulator
@@ -134,6 +133,9 @@ class SerialSim {
     uint32_t _emitcnt = emitperiod;
     #endif
     moodycamel::BlockingConcurrentQueue<DPDMessage> *_queue;
+
+    // Send a message from thread to host
+    void sendMessage(DPDMessage *msg);
 
 };
 
