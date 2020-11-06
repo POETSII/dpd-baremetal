@@ -27,6 +27,9 @@ SOCAT_SCRIPT = ./scripts/socat_script
 # This should be kept up to date as the "best" POETS DPD version
 run: timed-improved-gals-new-verlet
 
+visual: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DONE_BY_ONE
+visual: base-gals oil-water
+
 # This is used on a client PC to receive bead data for visualisation
 bridge: $(INC)/config.h $(DPD_BIN)/dpd-bridge
 
@@ -667,7 +670,11 @@ visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
-visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_BIN)/bonds_run
+visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
+
+visual-serial-oil-water-bonds: DFLAGS=-DSERIAL -DBONDS -DVISUALISE -DBETTER_VERLET -DSMALL_DT_EARLY
+visual-serial-oil-water-bonds: HOST_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+visual-serial-oil-water-bonds: serial-objs $(DPD_BIN)/serial.o $(HOST_OBJS) oil-water-bonds
 
 timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
