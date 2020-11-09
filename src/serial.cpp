@@ -105,9 +105,13 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
             Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, inv_sqrt_dt);
           #endif
             // Convert this force to fixed point to make it deterministic
+        #ifndef FLOAT_ONLY
             Vector3D<int32_t> x = f.floatToFixed();
             // Add this to the force accumulator for this bead
             local_state->force_slot[ci] = local_state->force_slot[ci] + x;
+        #else
+            local_state->force_slot[ci] = local_state->force_slot[ci] + f;
+        #endif
             // Clear the local bead map of the neighbour bead
             j = clear_slot(j, cj);
         }

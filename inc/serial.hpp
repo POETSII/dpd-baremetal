@@ -61,7 +61,11 @@ struct DPDState {
     uint32_t bslot = 0; // a bitmap of which bead slot is occupied
     uint32_t sentslot = 0; // a bitmap of which bead slot has not been sent from yet
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-    Vector3D<int32_t> force_slot[MAX_BEADS]; // at most 5 beads -- force for each bead
+#ifdef FLOAT_ONLY
+    Vector3D<float> force_slot[MAX_BEADS];
+#else
+    Vector3D<int32_t> force_slot[MAX_BEADS]; // force for each bead
+#endif
 #ifdef BETTER_VERLET
     Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
 #endif

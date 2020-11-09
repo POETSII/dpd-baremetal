@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 volLength = 25
-bond_length_threshold = 4.0
+bond_length_threshold = 3.0
 min_timestep = 0
 max_timestep = 2000
 

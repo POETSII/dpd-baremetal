@@ -213,7 +213,8 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
         // Get the pairwise random number
         uint32_t rand = pairwise_rand(a->id, b->id, grand) >> 1;
         uint32_t max = DT10_RAND_MAX >> 1;
-        float test = 3.46939;
+        // float test = 3.46939;
+        float test = 3.35;
         ptype r = (float(rand) / float(max)) * test;
         r = (test/2 - r);
 
@@ -235,12 +236,25 @@ inline void update_velocity(bead_t *bead, Vector3D<ptype> *old_velo, const ptype
 #endif
 
 #ifdef BETTER_VERLET
+  #ifndef FLOAT_ONLY
 inline void velocity_Verlet(bead_t *bead, Vector3D<int32_t> *f, Vector3D<ptype> *old_velo, const ptype dt) {
+  #else
+inline void velocity_Verlet(bead_t *bead, Vector3D<float> *f, Vector3D<ptype> *old_velo, const ptype dt) {
+  #endif
 #else
+  #ifndef FLOAT_ONLY
 inline void velocity_Verlet(bead_t *bead, Vector3D<int32_t> *f, const ptype dt) {
+  #else
+inline void velocity_Verlet(bead_t *bead, Vector3D<float> *f, const ptype dt) {
+  #endif
 #endif
 
+#ifndef FLOAT_ONLY
     Vector3D<ptype> force = f->fixedToFloat();
+#else
+    Vector3D<ptype> force;
+    force.set(f->x(), f->y(), f->z());
+#endif
 
 #ifndef BETTER_VERLET
     // Vector3D<ptype> acceleration = force / p_mass;
@@ -361,9 +375,17 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
 }
 
 #ifdef ONE_BY_ONE
+  #ifndef FLOAT_ONLY
     inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
+  #else
+    inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
+  #endif
 #else
+  #ifndef FLOAT_ONLY
     inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
+  #else
+    inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
+  #endif
 #endif
     {
     #ifndef ONE_BY_ONE
@@ -389,8 +411,12 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
                     Vector3D<ptype> f;
                     f.set(r.x, r.y, r.z);
                 #endif
+                #ifndef FLOAT_ONLY
                     Vector3D<int32_t> x = f.floatToFixed();
                     forces[ci] = forces[ci] + x;
+                #else
+                    forces[ci] = forces[ci] + f;
+                #endif
                 }
                 j = clear_slot(j, cj);
             }
