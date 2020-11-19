@@ -523,8 +523,9 @@ bool Universe<S>::space(const bead_t *in) {
     unit_pos_t x = floor(b.pos.x()/_unit_size);
     unit_pos_t y = floor(b.pos.y()/_unit_size);
     unit_pos_t z = floor(b.pos.z()/_unit_size);
+
     cell_t t = {x,y,z};
-    if (x > _size || x < 0 || y > _size || y < 0 || z > _size || z < 0) {
+    if (x >= _size || x < 0 || y >= _size || y < 0 || z >= _size || z < 0) {
         return false;
     }
 
@@ -545,6 +546,10 @@ bool Universe<S>::space(const bead_t *in) {
     b.pos.x(b.pos.x() - x);
     b.pos.y(b.pos.y() - y);
     b.pos.z(b.pos.z() - z);
+
+    if (find_nearest_bead_distance(&b, t) < 0.4) {
+        return false;
+    }
 
     return true;
 }
@@ -627,6 +632,7 @@ cell_t Universe<S>::add(const bead_t *in) {
         state->bead_slot[slot] = b;
         state->bslot = set_slot(state->bslot, slot);
         state->force_slot[slot].set(0.0, 0.0, 0.0);
+        state->old_velo[slot].set(b.velo.x(), b.velo.y(), b.velo.z());
     }
 
     return t;
@@ -887,11 +893,13 @@ void Universe<S>::run() {
             //     std::cout << "Velo = (" << b.velo.x() << ", " << b.velo.y() << ", " << b.velo.z() << ")\n";
             //     std::cin.get();
             // }
+        // if (msg.beads[0].id == 2147593947 || msg.beads[0].id == 2147593948 || msg.beads[0].id == 2147593949) {
+        if (msg.beads[0].id >= 0x80000000ul) {
             b.pos.x(b.pos.x() + msg.from.x);
             b.pos.y(b.pos.y() + msg.from.y);
             b.pos.z(b.pos.z() + msg.from.z);
             bead_map[msg.timestep][msg.beads[0].id] = b;
-        // }
+        }
     #endif
     }
 }
