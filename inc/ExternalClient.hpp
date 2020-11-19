@@ -13,7 +13,7 @@
 #include "gals.h"
 #elif defined(SERIAL)
 #else
-#include "gals.h"
+#include "sync.h"
 #endif
 #include "externals-common.h"
 
