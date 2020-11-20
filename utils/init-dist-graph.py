@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 bars = {}
-range_width = 0.1
+range_width = 0.01
 max_dist = 1.0
 
 c = 0

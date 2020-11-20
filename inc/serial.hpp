@@ -14,6 +14,12 @@
 #include <iostream>
 #include "blockingconcurrentqueue.h"
 #include <thread>
+#include <map>
+
+#include <boost/algorithm/string.hpp>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
 
 /********************* TYPEDEFS **************************/
 
@@ -33,10 +39,12 @@ const ptype dt = 0.02;
 const ptype inv_sqrt_dt = 7.071067812;
 #else
 const ptype normal_dt = 0.02;
-const ptype early_dt = 0.002;
+// const ptype early_dt = 0.002;
+const ptype early_dt = 0.005;
 // Inverse square root of dt - dt^(-1/2)
 const ptype normal_inv_sqrt_dt = 7.071067812;
-const ptype early_inv_sqrt_dt = 22.360679775;
+// const ptype early_inv_sqrt_dt = 22.360679775;
+const ptype early_inv_sqrt_dt = 14.142135624;
 #endif
 
 #ifdef VISUALISE
@@ -115,7 +123,7 @@ class SerialSim {
     // Initialise each cell
     void init(DPDState *s);
     // Calculate forces of neighbour cell's beads acting on this cells beads
-    void neighbour_forces(DPDState *local_state, DPDState *neighbour_state);
+    void neighbour_forces(DPDState *local_state, DPDState *neighbour_state, float *cons, float *drag, float *rand, float *bond1, float *bond2, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg);
     // Migrate a bead to its given neighbour
     void migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId neighbours[NEIGHBOURS]);
     // Host receive a message from the thread

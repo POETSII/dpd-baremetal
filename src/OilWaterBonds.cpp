@@ -363,7 +363,6 @@ int main(int argc, char *argv[]) {
 #endif
 
     // uni.print_occupancy();
-
     printf("running...\n");
     uni.run(); // start the simulation
 

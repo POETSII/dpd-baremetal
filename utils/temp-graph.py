@@ -5,9 +5,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-volLength = 25
+volLength = 75
 min_timestep = 0
-max_timestep = 2000
+max_timestep = 200
 
 timesteps = []
 temperatures = []

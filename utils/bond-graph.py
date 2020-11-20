@@ -5,10 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-volLength = 25
-bond_length_threshold = 3.0
+volLength = 75
+bond_length_threshold = 2.0
 min_timestep = 0
-max_timestep = 2000
+max_timestep = 200
 
 class Bond:
     def __init__(self, bead1, bead2):
@@ -36,7 +36,7 @@ class Bond:
         y_diff = smallestDiff(self.bead1["y"], self.bead2["y"])
         z_diff = smallestDiff(self.bead1["z"], self.bead2["z"])
 
-        return math.sqrt((x_diff ** 2) + (y_diff**2) + (z_diff ** 2))
+        return math.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
 
 def smallestDiff(p1, p2):
     d1 = p1 - p2
@@ -153,9 +153,10 @@ print("                                                                        "
 print("Complete")
 # Plot configuration
 lgd = plt.legend(loc = (1.04, 0.5), ncol=1)
+# ax.get_legend().remove()
 ax.set_ylabel('Bond length')
 plt.xticks(np.arange(0, max_timestep + 1, 1000), rotation=90)
-plt.yticks(np.arange(0, 20, 1.0))
+plt.yticks(np.arange(0, volLength / 2, 1.0))
 plt.grid(b=True, which='major', color='#cccccccc', linestyle='-')
 
 # Save the figure
