@@ -547,7 +547,7 @@ bool Universe<S>::space(const bead_t *in) {
     b.pos.y(b.pos.y() - y);
     b.pos.z(b.pos.z() - z);
 
-    if (find_nearest_bead_distance(&b, t) < 0.4) {
+    if (find_nearest_bead_distance(&b, t) < 0.45) {
         return false;
     }
 
@@ -853,6 +853,7 @@ void Universe<S>::run() {
         if (timestep < msg.timestep) {
             timestep = msg.timestep;
             std::cout << "Timestep " << timestep << "\r";
+            fflush(stdout);
         }
         // pts_to_extern_t eMsg;
         // eMsg.timestep = msg.timestep;
@@ -864,6 +865,7 @@ void Universe<S>::run() {
             std::cout << "Finished, saving now\n";
             for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
                 std::cout << "Timestep " << i->first << "\r";
+                fflush(stdout);
                 std::string path = "../25_bond_frames/state_" + std::to_string(i->first) + ".json";
                 FILE* f = fopen(path.c_str(), "w+");
                 fprintf(f, "{\n\t\"beads\":[\n");
@@ -885,21 +887,11 @@ void Universe<S>::run() {
         #endif
             return;
         }
-        // if (msg.beads[0].id == (0x80000000ul + 473) || msg.beads[0].id == (0x80000000ul + 474)) {
-            bead_t b = msg.beads[0];
-            // if (b.pos.x() > 1 || b.pos.y() > 1 || b.pos.z() > 1 || b.velo.x() > 10 || b.velo.y() > 10 || b.velo.z() > 10) {
-            //     std::cout << "Received problem\n";
-            //     std::cout << "Pos = (" << b.pos.x() << ", " << b.pos.y() << ", " << b.pos.z() << ")\n";
-            //     std::cout << "Velo = (" << b.velo.x() << ", " << b.velo.y() << ", " << b.velo.z() << ")\n";
-            //     std::cin.get();
-            // }
-        // if (msg.beads[0].id == 2147593947 || msg.beads[0].id == 2147593948 || msg.beads[0].id == 2147593949) {
-        if (msg.beads[0].id >= 0x80000000ul) {
-            b.pos.x(b.pos.x() + msg.from.x);
-            b.pos.y(b.pos.y() + msg.from.y);
-            b.pos.z(b.pos.z() + msg.from.z);
-            bead_map[msg.timestep][msg.beads[0].id] = b;
-        }
+        bead_t b = msg.beads[0];
+        b.pos.x(b.pos.x() + msg.from.x);
+        b.pos.y(b.pos.y() + msg.from.y);
+        b.pos.z(b.pos.z() + msg.from.z);
+        bead_map[msg.timestep][msg.beads[0].id] = b;
     #endif
     }
 }

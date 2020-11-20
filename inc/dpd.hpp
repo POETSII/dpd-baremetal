@@ -94,10 +94,10 @@ const ptype lambda = 0.5;
 /********************* BOND CONSTANTS **************************/
 
 #ifdef BONDS
-// Bond_kappa is the force between two bonded beads. It is very strong
-const ptype bond_kappa=128;
 // 0.5 is the distance aimed to be kept between two bonded beads
-const ptype bond_r0=0.5;
+const ptype bond_r0 = 0.5;
+// Bond_kappa is the force between two bonded beads. It is very strong
+const ptype bond_kappa = 128;
 #endif
 
 /********************* BOND FUNCTIONS **************************/
@@ -175,34 +175,35 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
 #ifdef BONDS
         if (are_beads_bonded(a->id, b->id)) {
             ptype s = r_ij_dist - bond_r0;
+
             force = force - (scale * bond_kappa * s);
-        #ifdef SERIAL
-            if (a->id == 2147483805) {
-                if (b->id == 2147483804) {
-                    bond1_acc[0] = -1 * bond_kappa * s;
-                } else if (b->id == 2147483806) {
-                    bond2_acc[0] = -1 * bond_kappa * s;
-                }
-            } else if (a->id == 2147483806) {
-                if (b->id == 2147483805) {
-                    bond1_acc[1] = -1 * bond_kappa * s;
-                } else if (b->id == 2147483807) {
-                    bond2_acc[1] = -1 * bond_kappa * s;
-                }
-            } else if (a->id == 2147487592) {
-                if (b->id == 2147487591) {
-                    bond1_acc[2] = -1 * bond_kappa * s;
-                } else if (b->id == 2147487593) {
-                    bond2_acc[2] = -1 * bond_kappa * s;
-                }
-            } else if (a->id == 2147487593) {
-                if (b->id == 2147487592) {
-                    bond1_acc[3] = -1 * bond_kappa * s;
-                } else if (b->id == 2147487592) {
-                    bond2_acc[3] = -1 * bond_kappa * s;
-                }
-            }
-        #endif
+        // #ifdef SERIAL
+        //     if (a->id == 2147483805) {
+        //         if (b->id == 2147483804) {
+        //             bond1_acc[0] = -1 * bond_kappa * s;
+        //         } else if (b->id == 2147483806) {
+        //             bond2_acc[0] = -1 * bond_kappa * s;
+        //         }
+        //     } else if (a->id == 2147483806) {
+        //         if (b->id == 2147483805) {
+        //             bond1_acc[1] = -1 * bond_kappa * s;
+        //         } else if (b->id == 2147483807) {
+        //             bond2_acc[1] = -1 * bond_kappa * s;
+        //         }
+        //     } else if (a->id == 2147487592) {
+        //         if (b->id == 2147487591) {
+        //             bond1_acc[2] = -1 * bond_kappa * s;
+        //         } else if (b->id == 2147487593) {
+        //             bond2_acc[2] = -1 * bond_kappa * s;
+        //         }
+        //     } else if (a->id == 2147487593) {
+        //         if (b->id == 2147487592) {
+        //             bond1_acc[3] = -1 * bond_kappa * s;
+        //         } else if (b->id == 2147487592) {
+        //             bond2_acc[3] = -1 * bond_kappa * s;
+        //         }
+        //     }
+        // #endif
         }
         if (!(r_ij_dist < r_c)) {
             return force;
@@ -218,17 +219,17 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
         ptype a_ij = A[a->type][b->type];
         // Conservative portion of the force
         ptype con = a_ij * w_r;
-    #ifdef SERIAL
-        if (a->id == 2147483805) {
-            cons_acc[0] += con;
-        } else if (a->id == 2147483806) {
-            cons_acc[1] += con;
-        } else if (a->id == 2147487592) {
-            cons_acc[2] += con;
-        } else if (a->id == 2147487593) {
-            cons_acc[3] += con;
-        }
-    #endif
+    // #ifdef SERIAL
+    //     if (a->id == 2147483805) {
+    //         cons_acc[0] += con;
+    //     } else if (a->id == 2147483806) {
+    //         cons_acc[1] += con;
+    //     } else if (a->id == 2147487592) {
+    //         cons_acc[2] += con;
+    //     } else if (a->id == 2147487593) {
+    //         cons_acc[3] += con;
+    //     }
+    // #endif
     #else
         ptype con = 0;
     #endif
@@ -244,17 +245,17 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
         dotProd /= r_ij_dist;
         // Get the drag force
         ptype drag = ptype(-1.0) * drag_coef * w_d * dotProd;
-    #ifdef SERIAL
-        if (a->id == 2147483805) {
-            drag_acc[0] += drag;
-        } else if (a->id == 2147483806) {
-            drag_acc[1] += drag;
-        } else if (a->id == 2147487592) {
-            drag_acc[2] += drag;
-        } else if (a->id == 2147487593) {
-            drag_acc[3] += drag;
-        }
-    #endif
+    // #ifdef SERIAL
+    //     if (a->id == 2147483805) {
+    //         drag_acc[0] += drag;
+    //     } else if (a->id == 2147483806) {
+    //         drag_acc[1] += drag;
+    //     } else if (a->id == 2147487592) {
+    //         drag_acc[2] += drag;
+    //     } else if (a->id == 2147487593) {
+    //         drag_acc[3] += drag;
+    //     }
+    // #endif
     #else
         ptype drag = 0;
     #endif
@@ -273,17 +274,17 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const uint32_t grand, 
 
         // random force
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
-    #ifdef SERIAL
-        if (a->id == 2147483805) {
-            rand_acc[0] += ran;
-        } else if (a->id == 2147483806) {
-            rand_acc[1] += ran;
-        } else if (a->id == 2147487592) {
-            rand_acc[2] += ran;
-        } else if (a->id == 2147487593) {
-            rand_acc[3] += ran;
-        }
-    #endif
+    // #ifdef SERIAL
+    //     if (a->id == 2147483805) {
+    //         rand_acc[0] += ran;
+    //     } else if (a->id == 2147483806) {
+    //         rand_acc[1] += ran;
+    //     } else if (a->id == 2147487592) {
+    //         rand_acc[2] += ran;
+    //     } else if (a->id == 2147487593) {
+    //         rand_acc[3] += ran;
+    //     }
+    // #endif
     #else
         ptype ran = 0;
     #endif
@@ -321,25 +322,25 @@ inline void velocity_Verlet(bead_t *bead, Vector3D<float> *f, const ptype dt) {
     Vector3D<ptype> force;
     force.set(f->x(), f->y(), f->z());
 #endif
-#ifdef SERIAL
-    if (bead->id == 2147483805) {
-        forcex[0] = force.x();
-        forcey[0] = force.y();
-        forcez[0] = force.z();
-    } else if (bead->id == 2147483806) {
-        forcex[1] = force.x();
-        forcey[1] = force.y();
-        forcez[1] = force.z();
-    } else if (bead->id == 2147487592) {
-        forcex[2] = force.x();
-        forcey[2] = force.y();
-        forcez[2] = force.z();
-    } else if (bead->id == 2147487593) {
-        forcex[3] = force.x();
-        forcey[3] = force.y();
-        forcez[3] = force.z();
-    }
-#endif
+// #ifdef SERIAL
+//     if (bead->id == 2147483805) {
+//         forcex[0] = force.x();
+//         forcey[0] = force.y();
+//         forcez[0] = force.z();
+//     } else if (bead->id == 2147483806) {
+//         forcex[1] = force.x();
+//         forcey[1] = force.y();
+//         forcez[1] = force.z();
+//     } else if (bead->id == 2147487592) {
+//         forcex[2] = force.x();
+//         forcey[2] = force.y();
+//         forcez[2] = force.z();
+//     } else if (bead->id == 2147487593) {
+//         forcex[3] = force.x();
+//         forcey[3] = force.y();
+//         forcez[3] = force.z();
+//     }
+// #endif
 
 #ifndef BETTER_VERLET
     // Vector3D<ptype> acceleration = force / p_mass;
@@ -356,62 +357,62 @@ inline void velocity_Verlet(bead_t *bead, Vector3D<float> *f, const ptype dt) {
 #else
     // Vector3D<ptype> force = force / p_mass;
     // ------ End of previous velocity Verlet -----
-#ifdef SERIAL
-    if (bead->id == 2147483805) {
-        oldvelox[0] = old_velo->x();
-        oldveloy[0] = old_velo->y();
-        oldveloz[0] = old_velo->z();
-    } else if (bead->id == 2147483806) {
-        oldvelox[1] = old_velo->x();
-        oldveloy[1] = old_velo->y();
-        oldveloz[1] = old_velo->z();
-    } else if (bead->id == 2147487592) {
-        oldvelox[2] = old_velo->x();
-        oldveloy[2] = old_velo->y();
-        oldveloz[2] = old_velo->z();
-    } else if (bead->id == 2147487593) {
-        oldvelox[3] = old_velo->x();
-        oldveloy[3] = old_velo->y();
-        oldveloz[3] = old_velo->z();
-    }
-    if (bead->id == 2147483805) {
-        beadaccx[0] = bead->acc.x();
-        beadaccy[0] = bead->acc.y();
-        beadaccz[0] = bead->acc.z();
-    } else if (bead->id == 2147483806) {
-        beadaccx[1] = bead->acc.x();
-        beadaccy[1] = bead->acc.y();
-        beadaccz[1] = bead->acc.z();
-    } else if (bead->id == 2147487592) {
-        beadaccx[2] = bead->acc.x();
-        beadaccy[2] = bead->acc.y();
-        beadaccz[2] = bead->acc.z();
-    } else if (bead->id == 2147487593) {
-        beadaccx[3] = bead->acc.x();
-        beadaccy[3] = bead->acc.y();
-        beadaccz[3] = bead->acc.z();
-    }
-#endif
+// #ifdef SERIAL
+//     if (bead->id == 2147483805) {
+//         oldvelox[0] = old_velo->x();
+//         oldveloy[0] = old_velo->y();
+//         oldveloz[0] = old_velo->z();
+//     } else if (bead->id == 2147483806) {
+//         oldvelox[1] = old_velo->x();
+//         oldveloy[1] = old_velo->y();
+//         oldveloz[1] = old_velo->z();
+//     } else if (bead->id == 2147487592) {
+//         oldvelox[2] = old_velo->x();
+//         oldveloy[2] = old_velo->y();
+//         oldveloz[2] = old_velo->z();
+//     } else if (bead->id == 2147487593) {
+//         oldvelox[3] = old_velo->x();
+//         oldveloy[3] = old_velo->y();
+//         oldveloz[3] = old_velo->z();
+//     }
+//     if (bead->id == 2147483805) {
+//         beadaccx[0] = bead->acc.x();
+//         beadaccy[0] = bead->acc.y();
+//         beadaccz[0] = bead->acc.z();
+//     } else if (bead->id == 2147483806) {
+//         beadaccx[1] = bead->acc.x();
+//         beadaccy[1] = bead->acc.y();
+//         beadaccz[1] = bead->acc.z();
+//     } else if (bead->id == 2147487592) {
+//         beadaccx[2] = bead->acc.x();
+//         beadaccy[2] = bead->acc.y();
+//         beadaccz[2] = bead->acc.z();
+//     } else if (bead->id == 2147487593) {
+//         beadaccx[3] = bead->acc.x();
+//         beadaccy[3] = bead->acc.y();
+//         beadaccz[3] = bead->acc.z();
+//     }
+// #endif
     bead->velo = *old_velo + ((force + bead->acc) * dt * ptype(0.5));
-#ifdef SERIAL
-    if (bead->id == 2147483805) {
-        beadvelox[0] = bead->velo.x();
-        beadveloy[0] = bead->velo.y();
-        beadveloz[0] = bead->velo.z();
-    } else if (bead->id == 2147483806) {
-        beadvelox[1] = bead->velo.x();
-        beadveloy[1] = bead->velo.y();
-        beadveloz[1] = bead->velo.z();
-    } else if (bead->id == 2147487592) {
-        beadvelox[2] = bead->velo.x();
-        beadveloy[2] = bead->velo.y();
-        beadveloz[2] = bead->velo.z();
-    } else if (bead->id == 2147487593) {
-        beadvelox[3] = bead->velo.x();
-        beadveloy[3] = bead->velo.y();
-        beadveloz[3] = bead->velo.z();
-    }
-#endif
+// #ifdef SERIAL
+//     if (bead->id == 2147483805) {
+//         beadvelox[0] = bead->velo.x();
+//         beadveloy[0] = bead->velo.y();
+//         beadveloz[0] = bead->velo.z();
+//     } else if (bead->id == 2147483806) {
+//         beadvelox[1] = bead->velo.x();
+//         beadveloy[1] = bead->velo.y();
+//         beadveloz[1] = bead->velo.z();
+//     } else if (bead->id == 2147487592) {
+//         beadvelox[2] = bead->velo.x();
+//         beadveloy[2] = bead->velo.y();
+//         beadveloz[2] = bead->velo.z();
+//     } else if (bead->id == 2147487593) {
+//         beadvelox[3] = bead->velo.x();
+//         beadveloy[3] = bead->velo.y();
+//         beadveloz[3] = bead->velo.z();
+//     }
+// #endif
     // Store old velocity
     old_velo->set(bead->velo.x(), bead->velo.y(), bead->velo.z());
     // Store old Force
@@ -511,7 +512,6 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
 #endif
     return migrating;
 }
-
 #ifdef ONE_BY_ONE
   #ifndef FLOAT_ONLY
     // inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces, float *cons_acc, float *drag_acc, float *rand_acc, float *bond1_acc, float *bond2_acc, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg)
@@ -522,9 +522,11 @@ inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslo
   #endif
 #else
   #ifndef FLOAT_ONLY
-    inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces, float *cons_acc, float *drag_acc, float *rand_acc, float *bond1_acc, float *bond2_acc, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg)
+    // inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces, float *cons_acc, float *drag_acc, float *rand_acc, float *bond1_acc, float *bond2_acc, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg)
+inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
   #else
-    inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces, float *cons_acc, float *drag_acc, float *rand_acc, float *bond1_acc, float *bond2_acc, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg)
+    // inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces, float *cons_acc, float *drag_acc, float *rand_acc, float *bond1_acc, float *bond2_acc, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg)
+inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
   #endif
 #endif
     {

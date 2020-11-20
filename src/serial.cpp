@@ -61,7 +61,8 @@ void SerialSim::init(DPDState *s) {
 }
 
 // Calculate forces of neighbour cell's beads acting on this cells beads
-void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_state, float *cons, float *drag, float *rand, float *bond1, float *bond2, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg) {
+// void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_state, float *cons, float *drag, float *rand, float *bond1, float *bond2, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg) {
+void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
     // Get the local bead map
     uint32_t i = local_state->bslot;
     // For each local bead calculate its interaction with neighbouring beads
@@ -92,7 +93,8 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
             b.pos.z(b.pos.z() + ptype(z_rel));
             // Calculate the forces acting on the local bead
           #ifdef SMALL_DT_EARLY
-            Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, local_state->inv_sqrt_dt, cons, drag, rand, bond1, bond2, rands, rands_mag, total_rands, rands_variance_total, rands_avg);
+            // Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, local_state->inv_sqrt_dt, cons, drag, rand, bond1, bond2, rands, rands_mag, total_rands, rands_variance_total, rands_avg);
+            Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, local_state->inv_sqrt_dt);
           #else
             Vector3D<ptype> f = force_update(local_bead, b, local_state->grand, inv_sqrt_dt);
           #endif
@@ -172,74 +174,74 @@ void SerialSim::run() {
         init(s);
     }
 
-    float cons[4] = {0.0, 0.0, 0.0, 0.0};
-    float drag[4] = {0.0, 0.0, 0.0, 0.0};
-    float rand[4] = {0.0, 0.0, 0.0, 0.0};
-    float bond1[4] = {0.0, 0.0, 0.0, 0.0};
-    float bond2[4] = {0.0, 0.0, 0.0, 0.0};
-    float forcex[4] = {0.0, 0.0, 0.0, 0.0};
-    float forcey[4] = {0.0, 0.0, 0.0, 0.0};
-    float forcez[4] = {0.0, 0.0, 0.0, 0.0};
-    float oldvelox[4] = {0.0, 0.0, 0.0, 0.0};
-    float oldveloy[4] = {0.0, 0.0, 0.0, 0.0};
-    float oldveloz[4] = {0.0, 0.0, 0.0, 0.0};
-    float beadaccx[4] = {0.0, 0.0, 0.0, 0.0};
-    float beadaccy[4] = {0.0, 0.0, 0.0, 0.0};
-    float beadaccz[4] = {0.0, 0.0, 0.0, 0.0};
-    float beadvelox[4] = {0.0, 0.0, 0.0, 0.0};
-    float beadveloy[4] = {0.0, 0.0, 0.0, 0.0};
-    float beadveloz[4] = {0.0, 0.0, 0.0, 0.0};
+    // float cons[4] = {0.0, 0.0, 0.0, 0.0};
+    // float drag[4] = {0.0, 0.0, 0.0, 0.0};
+    // float rand[4] = {0.0, 0.0, 0.0, 0.0};
+    // float bond1[4] = {0.0, 0.0, 0.0, 0.0};
+    // float bond2[4] = {0.0, 0.0, 0.0, 0.0};
+    // float forcex[4] = {0.0, 0.0, 0.0, 0.0};
+    // float forcey[4] = {0.0, 0.0, 0.0, 0.0};
+    // float forcez[4] = {0.0, 0.0, 0.0, 0.0};
+    // float oldvelox[4] = {0.0, 0.0, 0.0, 0.0};
+    // float oldveloy[4] = {0.0, 0.0, 0.0, 0.0};
+    // float oldveloz[4] = {0.0, 0.0, 0.0, 0.0};
+    // float beadaccx[4] = {0.0, 0.0, 0.0, 0.0};
+    // float beadaccy[4] = {0.0, 0.0, 0.0, 0.0};
+    // float beadaccz[4] = {0.0, 0.0, 0.0, 0.0};
+    // float beadvelox[4] = {0.0, 0.0, 0.0, 0.0};
+    // float beadveloy[4] = {0.0, 0.0, 0.0, 0.0};
+    // float beadveloz[4] = {0.0, 0.0, 0.0, 0.0};
 
-    double rands_total_variance = 0.0;
-    double rands = 0.0;
-    double rands_mag = 0.0;
-    double rands_avg = 0.0;
-    uint64_t total_rands = 0;
+    // double rands_total_variance = 0.0;
+    // double rands = 0.0;
+    // double rands_mag = 0.0;
+    // double rands_avg = 0.0;
+    // uint64_t total_rands = 0;
 
-    FILE* f = fopen("../2147483805-forces.csv", "w+");
-    fclose(f);
-    FILE* g = fopen("../2147483806-forces.csv", "w+");
-    fclose(g);
-    FILE* h = fopen("../2147487592-forces.csv", "w+");
-    fclose(h);
-    FILE* i = fopen("../2147487593-forces.csv", "w+");
-    fclose(i);
-    FILE* j = fopen("../2147483805-verlet.csv", "w+");
-    fclose(j);
-    FILE* k = fopen("../2147483806-verlet.csv", "w+");
-    fclose(k);
-    FILE* l = fopen("../2147487592-verlet.csv", "w+");
-    fclose(l);
-    FILE* m = fopen("../2147487593-verlet.csv", "w+");
-    fclose(m);
-    FILE* n = fopen("../rand-avg-variance.csv", "w+");
-    fclose(n);
-    // FILE* n = fopen("../rand-avg.csv", "w+");
+    // FILE* f = fopen("../2147483805-forces.csv", "w+");
+    // fclose(f);
+    // FILE* g = fopen("../2147483806-forces.csv", "w+");
+    // fclose(g);
+    // FILE* h = fopen("../2147487592-forces.csv", "w+");
+    // fclose(h);
+    // FILE* i = fopen("../2147487593-forces.csv", "w+");
+    // fclose(i);
+    // FILE* j = fopen("../2147483805-verlet.csv", "w+");
+    // fclose(j);
+    // FILE* k = fopen("../2147483806-verlet.csv", "w+");
+    // fclose(k);
+    // FILE* l = fopen("../2147487592-verlet.csv", "w+");
+    // fclose(l);
+    // FILE* m = fopen("../2147487593-verlet.csv", "w+");
+    // fclose(m);
+    // FILE* n = fopen("../rand-avg-variance.csv", "w+");
     // fclose(n);
+    // // FILE* n = fopen("../rand-avg.csv", "w+");
+    // // fclose(n);
 
-    // File holding Rand stuff
-    std::string rng_str("../rand-avg.csv");
-    std::ifstream rng_in(rng_str);
+    // // File holding Rand stuff
+    // std::string rng_str("../rand-avg.csv");
+    // std::ifstream rng_in(rng_str);
 
     // Main loop. Continues until an end point is reached
     while(1) {
-        std::string line;
-        std::getline(rng_in, line);
-        std::stringstream ss(line);
-        std::string s;
-        std::vector<std::string> rngs;
-        // Loop through the line, split it into separate parts
-        while (std::getline(ss, s, ',')) {
-            // Remove whitespaces
-            boost::trim(s);
-            // Add to vector
-            rngs.push_back(s);
-        }
-        rands = std::stof(rngs.at(1));
-        rands_mag = std::stof(rngs.at(2));
-        total_rands = std::stol(rngs.at(3));
-        double rands_avg = std::stof(rngs.at(4));
-        double rands_mag_avg = std::stof(rngs.at(5));
+        // std::string line;
+        // std::getline(rng_in, line);
+        // std::stringstream ss(line);
+        // std::string s;
+        // std::vector<std::string> rngs;
+        // // Loop through the line, split it into separate parts
+        // while (std::getline(ss, s, ',')) {
+        //     // Remove whitespaces
+        //     boost::trim(s);
+        //     // Add to vector
+        //     rngs.push_back(s);
+        // }
+        // rands = std::stof(rngs.at(1));
+        // rands_mag = std::stof(rngs.at(2));
+        // total_rands = std::stol(rngs.at(3));
+        // double rands_avg = std::stof(rngs.at(4));
+        // double rands_mag_avg = std::stof(rngs.at(5));
 
         // UPDATE PHASE
         // For each cell
@@ -247,9 +249,11 @@ void SerialSim::run() {
             DPDState *s = getCell(c);
             // Calculate forces of beads within this cell
           #ifdef SMALL_DT_EARLY
-            local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot, cons, drag, rand, bond1, bond2, &rands, &rands_mag, &total_rands, &rands_total_variance, &rands_avg);
+            // local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot, cons, drag, rand, bond1, bond2, &rands, &rands_mag, &total_rands, &rands_total_variance, &rands_avg);
+            local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
           #else
-            local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot, cons, drag, rand, bond1, bond2);
+            // local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot, cons, drag, rand, bond1, bond2);
+            local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
           #endif
 
             // Calculate forces acting on beads in this cell from beads in
@@ -257,7 +261,8 @@ void SerialSim::run() {
             // For each neighbour
             for (PDeviceId n : s->neighbours) {
                 DPDState *n_s = getCell(n);
-                neighbour_forces(s, n_s, cons, drag, rand, bond1, bond2, &rands, &rands_mag, &total_rands, &rands_total_variance, &rands_avg);
+                // neighbour_forces(s, n_s, cons, drag, rand, bond1, bond2, &rands, &rands_mag, &total_rands, &rands_total_variance, &rands_avg);
+                neighbour_forces(s, n_s);
             }
         }
 
@@ -265,62 +270,62 @@ void SerialSim::run() {
         // Increment timestep
         _timestep++;
         std::cout << "Timestep " << _timestep << "\r";
-        FILE* f = fopen("../2147483805-forces.csv", "a+");
-        fprintf(f, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[0], drag[0], rand[0], bond1[0], bond2[0]);
-        fclose(f);
-        FILE* g = fopen("../2147483806-forces.csv", "a+");
-        fprintf(g, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[1], drag[1], rand[1], bond1[1], bond2[1]);
-        fclose(g);
-        FILE* h = fopen("../2147487592-forces.csv", "a+");
-        fprintf(h, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[2], drag[2], rand[2], bond1[2], bond2[2]);
-        fclose(h);
-        FILE* i = fopen("../2147487593-forces.csv", "a+");
-        fprintf(i, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[3], drag[3], rand[3], bond1[3], bond2[3]);
-        fclose(i);
-        FILE* j = fopen("../2147483805-verlet.csv", "a+");
-        fprintf(j, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[0], forcey[0], forcez[0], oldvelox[0], oldveloy[0], oldveloz[0], beadaccx[0], beadaccy[0], beadaccz[0], beadvelox[0], beadveloy[0], beadveloz[0]);
-        fclose(j);
-        FILE* k = fopen("../2147483806-verlet.csv", "a+");
-        fprintf(k, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[1], forcey[1], forcez[1], oldvelox[1], oldveloy[1], oldveloz[1], beadaccx[1], beadaccy[1], beadaccz[1], beadvelox[1], beadveloy[1], beadveloz[1]);
-        fclose(k);
-        FILE* l = fopen("../2147487592-verlet.csv", "a+");
-        fprintf(l, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[2], forcey[2], forcez[2], oldvelox[2], oldveloy[2], oldveloz[2], beadaccx[2], beadaccy[2], beadaccz[2], beadvelox[2], beadveloy[2], beadveloz[2]);
-        fclose(l);
-        FILE* m = fopen("../2147487593-verlet.csv", "a+");
-        fprintf(m, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[3], forcey[3], forcez[3], oldvelox[3], oldveloy[3], oldveloz[3], beadaccx[3], beadaccy[3], beadaccz[3], beadvelox[3], beadveloy[3], beadveloz[3]);
-        fclose(m);
+        // FILE* f = fopen("../2147483805-forces.csv", "a+");
+        // fprintf(f, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[0], drag[0], rand[0], bond1[0], bond2[0]);
+        // fclose(f);
+        // FILE* g = fopen("../2147483806-forces.csv", "a+");
+        // fprintf(g, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[1], drag[1], rand[1], bond1[1], bond2[1]);
+        // fclose(g);
+        // FILE* h = fopen("../2147487592-forces.csv", "a+");
+        // fprintf(h, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[2], drag[2], rand[2], bond1[2], bond2[2]);
+        // fclose(h);
+        // FILE* i = fopen("../2147487593-forces.csv", "a+");
+        // fprintf(i, "%u, %f, %f, %f, %f, %f\n", _timestep, cons[3], drag[3], rand[3], bond1[3], bond2[3]);
+        // fclose(i);
+        // FILE* j = fopen("../2147483805-verlet.csv", "a+");
+        // fprintf(j, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[0], forcey[0], forcez[0], oldvelox[0], oldveloy[0], oldveloz[0], beadaccx[0], beadaccy[0], beadaccz[0], beadvelox[0], beadveloy[0], beadveloz[0]);
+        // fclose(j);
+        // FILE* k = fopen("../2147483806-verlet.csv", "a+");
+        // fprintf(k, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[1], forcey[1], forcez[1], oldvelox[1], oldveloy[1], oldveloz[1], beadaccx[1], beadaccy[1], beadaccz[1], beadvelox[1], beadveloy[1], beadveloz[1]);
+        // fclose(k);
+        // FILE* l = fopen("../2147487592-verlet.csv", "a+");
+        // fprintf(l, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[2], forcey[2], forcez[2], oldvelox[2], oldveloy[2], oldveloz[2], beadaccx[2], beadaccy[2], beadaccz[2], beadvelox[2], beadveloy[2], beadveloz[2]);
+        // fclose(l);
+        // FILE* m = fopen("../2147487593-verlet.csv", "a+");
+        // fprintf(m, "%u, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", _timestep, forcex[3], forcey[3], forcez[3], oldvelox[3], oldveloy[3], oldveloz[3], beadaccx[3], beadaccy[3], beadaccz[3], beadvelox[3], beadveloy[3], beadveloz[3]);
+        // fclose(m);
 
-        cons[0] = 0.0; cons[1] = 0.0; cons[2] = 0.0; cons[3] = 0.0;
-        drag[0] = 0.0; drag[1] = 0.0; drag[2] = 0.0; drag[3] = 0.0;
-        rand[0] = 0.0; rand[1] = 0.0; rand[2] = 0.0; rand[3] = 0.0;
-        bond1[0] = 0.0; bond1[1] = 0.0; bond1[2] = 0.0; bond1[3] = 0.0;
-        bond2[0] = 0.0; bond2[1] = 0.0; bond2[2] = 0.0; bond2[3] = 0.0;
-        forcex[0] = 0.0; forcex[1] = 0.0; forcex[2] = 0.0; forcex[3] = 0.0;
-        forcey[0] = 0.0; forcey[1] = 0.0; forcey[2] = 0.0; forcey[3] = 0.0;
-        forcez[0] = 0.0; forcez[1] = 0.0; forcez[2] = 0.0; forcez[3] = 0.0;
-        oldvelox[0] = 0.0; oldvelox[1] = 0.0; oldvelox[2] = 0.0; oldvelox[3] = 0.0;
-        oldveloy[0] = 0.0; oldveloy[1] = 0.0; oldveloy[2] = 0.0; oldveloy[3] = 0.0;
-        oldveloz[0] = 0.0; oldveloz[1] = 0.0; oldveloz[2] = 0.0; oldveloz[3] = 0.0;
-        beadaccx[0] = 0.0; beadaccx[1] = 0.0; beadaccx[2] = 0.0; beadaccx[3] = 0.0;
-        beadaccy[0] = 0.0; beadaccy[1] = 0.0; beadaccy[2] = 0.0; beadaccy[3] = 0.0;
-        beadaccz[0] = 0.0; beadaccz[1] = 0.0; beadaccz[2] = 0.0; beadaccz[3] = 0.0;
-        beadvelox[0] = 0.0; beadvelox[1] = 0.0; beadvelox[2] = 0.0; beadvelox[3] = 0.0;
-        beadveloy[0] = 0.0; beadveloy[1] = 0.0; beadveloy[2] = 0.0; beadveloy[3] = 0.0;
-        beadveloz[0] = 0.0; beadveloz[1] = 0.0; beadveloz[2] = 0.0; beadveloz[3] = 0.0;
+        // cons[0] = 0.0; cons[1] = 0.0; cons[2] = 0.0; cons[3] = 0.0;
+        // drag[0] = 0.0; drag[1] = 0.0; drag[2] = 0.0; drag[3] = 0.0;
+        // rand[0] = 0.0; rand[1] = 0.0; rand[2] = 0.0; rand[3] = 0.0;
+        // bond1[0] = 0.0; bond1[1] = 0.0; bond1[2] = 0.0; bond1[3] = 0.0;
+        // bond2[0] = 0.0; bond2[1] = 0.0; bond2[2] = 0.0; bond2[3] = 0.0;
+        // forcex[0] = 0.0; forcex[1] = 0.0; forcex[2] = 0.0; forcex[3] = 0.0;
+        // forcey[0] = 0.0; forcey[1] = 0.0; forcey[2] = 0.0; forcey[3] = 0.0;
+        // forcez[0] = 0.0; forcez[1] = 0.0; forcez[2] = 0.0; forcez[3] = 0.0;
+        // oldvelox[0] = 0.0; oldvelox[1] = 0.0; oldvelox[2] = 0.0; oldvelox[3] = 0.0;
+        // oldveloy[0] = 0.0; oldveloy[1] = 0.0; oldveloy[2] = 0.0; oldveloy[3] = 0.0;
+        // oldveloz[0] = 0.0; oldveloz[1] = 0.0; oldveloz[2] = 0.0; oldveloz[3] = 0.0;
+        // beadaccx[0] = 0.0; beadaccx[1] = 0.0; beadaccx[2] = 0.0; beadaccx[3] = 0.0;
+        // beadaccy[0] = 0.0; beadaccy[1] = 0.0; beadaccy[2] = 0.0; beadaccy[3] = 0.0;
+        // beadaccz[0] = 0.0; beadaccz[1] = 0.0; beadaccz[2] = 0.0; beadaccz[3] = 0.0;
+        // beadvelox[0] = 0.0; beadvelox[1] = 0.0; beadvelox[2] = 0.0; beadvelox[3] = 0.0;
+        // beadveloy[0] = 0.0; beadveloy[1] = 0.0; beadveloy[2] = 0.0; beadveloy[3] = 0.0;
+        // beadveloz[0] = 0.0; beadveloz[1] = 0.0; beadveloz[2] = 0.0; beadveloz[3] = 0.0;
 
-        FILE* n = fopen("../rand-avg-variance.csv", "a+");
-        // FILE* n = fopen("../rand-avg.csv", "a+");
-        double rands_vairance = rands_total_variance / (total_rands - 1);
-        fprintf(n, "%u, %f, %f, %lu, %f, %f, %f, %f\n", _timestep, rands, rands_mag, total_rands, rands_avg, rands_mag_avg, rands_total_variance, rands_vairance);
-        // double rands_avg = rands / total_rands;
-        // double rands_mag_avg = rands_mag / total_rands;
-        // fprintf(n, "%u, %f, %f, %lu, %f, %f\n", _timestep, rands, rands_mag, total_rands, rands_avg, rands_mag_avg);
-        fclose(n);
+        // FILE* n = fopen("../rand-avg-variance.csv", "a+");
+        // // FILE* n = fopen("../rand-avg.csv", "a+");
+        // double rands_vairance = rands_total_variance / (total_rands - 1);
+        // fprintf(n, "%u, %f, %f, %lu, %f, %f, %f, %f\n", _timestep, rands, rands_mag, total_rands, rands_avg, rands_mag_avg, rands_total_variance, rands_vairance);
+        // // double rands_avg = rands / total_rands;
+        // // double rands_mag_avg = rands_mag / total_rands;
+        // // fprintf(n, "%u, %f, %f, %lu, %f, %f\n", _timestep, rands, rands_mag, total_rands, rands_avg, rands_mag_avg);
+        // fclose(n);
 
-        rands_total_variance = 0.0;
-        rands = 0.0;
-        rands_mag = 0.0;
-        total_rands = 0;
+        // rands_total_variance = 0.0;
+        // rands = 0.0;
+        // rands_mag = 0.0;
+        // total_rands = 0;
 
     #ifdef TIMER
         // Timed run has ended
@@ -360,7 +365,8 @@ void SerialSim::run() {
                 // Perform velocity Verlet on this bead to update its
                 // velocity, position and acceleration
             #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt, forcex, forcey, forcez, oldvelox, oldveloy, oldveloz, beadaccx, beadaccy, beadaccz, beadvelox, beadveloy, beadveloz);
+                // velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt, forcex, forcey, forcez, oldvelox, oldveloy, oldveloz, beadaccx, beadaccy, beadaccz, beadvelox, beadveloy, beadveloz);
+                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt);
             #elif defined(SMALL_DT_EARLY)
                 velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], s->dt);
             #elif defined(BETTER_VERLET)

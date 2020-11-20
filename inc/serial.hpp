@@ -123,7 +123,8 @@ class SerialSim {
     // Initialise each cell
     void init(DPDState *s);
     // Calculate forces of neighbour cell's beads acting on this cells beads
-    void neighbour_forces(DPDState *local_state, DPDState *neighbour_state, float *cons, float *drag, float *rand, float *bond1, float *bond2, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg);
+    // void neighbour_forces(DPDState *local_state, DPDState *neighbour_state, float *cons, float *drag, float *rand, float *bond1, float *bond2, double *rands, double *rands_mag, uint64_t *total_rands, double *rands_variance_total, double *rands_avg);
+    void neighbour_forces(DPDState *local_state, DPDState *neighbour_state);
     // Migrate a bead to its given neighbour
     void migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId neighbours[NEIGHBOURS]);
     // Host receive a message from the thread
