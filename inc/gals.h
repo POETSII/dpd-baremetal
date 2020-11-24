@@ -25,8 +25,6 @@
 #define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
 #define PADDING 0
 
-// #define DT10_RAND_MAX 4294967295
-
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
@@ -283,6 +281,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	inline void init() {
 		s->rngstate = 1234; // start with a seed
 		s->grand = p_rand(&s->rngstate);
+        s->grand = p_rand(&s->rngstate);
 		// s->mode = UPDATE;
         *readyToSend = Pin(0);
 		if(s->bslot == 0) {
