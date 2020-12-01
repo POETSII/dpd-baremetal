@@ -129,21 +129,35 @@ int main(int argc, char *argv[]) {
     unsigned failures = 0;
 
     uint32_t total_beads = BEAD_DENSITY * N * N * N; // Get the total number of beads we ideally want (Volume * Bead density)
+    double alphasum = 0.0;
 
-    uint32_t const bead_chain_numbers = 10; // Each chain is 10 beads, 5 water and 5 oil. Hopefully we'll see a membrane-like-thing form
-    uint32_t bonded_oil_water = 0.1 * total_beads; // 10% of these are oil 1 and water chains
+    float const w_fraction = 0.55;
+    uint32_t const w_size = 1;
+    float const o1_fraction = 0.25;
+    uint32_t const o1_size = 1;
+    float const o2_fraction = 0.1;
+    uint32_t const o2_size = 1;
+    float const chain_fraction = 0.1;
+    uint32_t const chain_size = 10; // Each chain is 10 beads, 5 water and 5 oil. Hopefully we'll see a membrane-like-thing form
+
+    alphasum += w_fraction * w_size;
+    alphasum += o1_fraction * o1_size;
+    alphasum += o2_fraction * o2_size;
+    alphasum += chain_fraction * chain_size;
+
+    uint32_t w = w_fraction * total_beads / alphasum;
+    uint32_t o1 = o1_fraction * total_beads / alphasum;
+    uint32_t o2 = o2_fraction * total_beads / alphasum;
+    uint32_t bonded_oil_water = chain_fraction * total_beads / alphasum;
     // Each chain is a certain length, in this case, 10 beads.
     // To ensure we have all chains at the same length, we decrease this number until we hit the next multiple of 10
     // It is better to have fewer beads so we are less than the number density, than larger
-    while ((bonded_oil_water % bead_chain_numbers) != 0) {
+    while ((bonded_oil_water % chain_size) != 0) {
         bonded_oil_water--;
     }
-    uint32_t w = 0.55 * total_beads; // 55% are single water beads
-    uint32_t o1 = 0.25 * total_beads; // 25% are single oil 1 beads
-    uint32_t o2 = 0.1 * total_beads; // 10% are single oil 2 beads
 
     // May lose one or two bead in conversion from float to int, so let's get the real number
-    total_beads = bonded_oil_water + w + o1 + o2;
+    total_beads = (bonded_oil_water * chain_size) + (w * w_size) + (o1 * o1_size) + (o2 * o2_size);
 
     // Generate initial velocities (Maxwell distribution, courtesy of Julian)
     std::vector<float> rvelDist = maxwellDist(total_beads); // Unused initial velocities isn't an issue really
@@ -200,7 +214,7 @@ int main(int argc, char *argv[]) {
     FILE* f = fopen("../25_bond_frames/state_0.json", "w+");
     fprintf(f, "{\n\t\"beads\":[\n");
 
-    for(int i = 0; i < bonded_oil_water; i += bead_chain_numbers) {
+    for(int i = 0; i < bonded_oil_water; i++) {
         bool added = false;
         auto prev_bead = std::make_shared<bead_t>();
         prev_bead->id = b_uid_bonded++;
@@ -222,7 +236,7 @@ int main(int argc, char *argv[]) {
             } else {
             }
         }
-        for (int j = 1; j < bead_chain_numbers; j++) {
+        for (int j = 1; j < chain_size; j++) {
             bool added = false;
             uint32_t bid_a=b_uid_bonded++;
             while(!added) {

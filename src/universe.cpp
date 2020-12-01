@@ -860,7 +860,7 @@ void Universe<S>::run() {
         // eMsg.from = msg.from;
         // eMsg.bead = msg.beads[0];
         // _extern->send(&eMsg);
-        if (msg.timestep >= _max_timestep) {
+        if (msg.timestep >= _max_timestep + 100) {
             std::cout << "\n";
             std::cout << "Finished, saving now\n";
             for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
@@ -887,11 +887,13 @@ void Universe<S>::run() {
         #endif
             return;
         }
+        if (msg.timestep == 1 || msg.timestep == 1000 || msg.timestep == 2000 || msg.timestep == 3000 || msg.timestep == 4000 || msg.timestep == 5000 || msg.timestep == 6000 || msg.timestep == 7000 || msg.timestep == 8000 || msg.timestep == 9000 || msg.timestep == 10000) {
         bead_t b = msg.beads[0];
         b.pos.x(b.pos.x() + msg.from.x);
         b.pos.y(b.pos.y() + msg.from.y);
         b.pos.z(b.pos.z() + msg.from.z);
         bead_map[msg.timestep][msg.beads[0].id] = b;
+    }
     #endif
     }
 }
