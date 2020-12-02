@@ -505,6 +505,9 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         if (start_timestep < 1000) {
             state->dt = early_dt;
             state->inv_sqrt_dt = early_inv_sqrt_dt;
+        } else {
+            state->dt = normal_dt;
+            state->inv_sqrt_dt = normal_inv_sqrt_dt;
         }
     #endif
     }
