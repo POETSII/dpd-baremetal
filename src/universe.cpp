@@ -242,7 +242,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 #endif
 
 #ifndef SERIAL
-    _boxesX = 1;//TinselBoxMeshXLen;
+    _boxesX = 2;//TinselBoxMeshXLen;
     _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
@@ -502,8 +502,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         state->emitcnt = emitperiod;
     #endif
     #ifdef SMALL_DT_EARLY
-        state->dt = early_dt;
-        state->inv_sqrt_dt = early_inv_sqrt_dt;
+        if (start_timestep < 1000) {
+            state->dt = early_dt;
+            state->inv_sqrt_dt = early_inv_sqrt_dt;
+        }
     #endif
     }
 }
@@ -780,6 +782,7 @@ void Universe<S>::run() {
     std::map<cell_t, uint32_t> cell_messages;
 #endif
     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
+    bool first = true;
     // enter the main loop
     while(1) {
     #ifdef SERIAL
@@ -853,47 +856,67 @@ void Universe<S>::run() {
         if (timestep < msg.timestep) {
             timestep = msg.timestep;
             std::cout << "Timestep " << timestep << "\r";
-            fflush(stdout);
+            if (timestep > 1) {
+                fflush(stdout);
+                std::string path = "../25_bond_frames/state_" + std::to_string(timestep - 1000) + ".json";
+                FILE* old_file = fopen(path.c_str(), "a+");
+                fprintf(old_file, "\n]}\n");
+                fclose(old_file);
+            }
+
+            std::string fpath = "../25_bond_frames/state_" + std::to_string(timestep) + ".json";
+            FILE* f = fopen(fpath.c_str(), "w+");
+            fprintf(f, "{\n\t\"beads\":[\n");
+            fclose(f);
+            first = true;
         }
         // pts_to_extern_t eMsg;
         // eMsg.timestep = msg.timestep;
         // eMsg.from = msg.from;
         // eMsg.bead = msg.beads[0];
         // _extern->send(&eMsg);
-        if (msg.timestep >= _max_timestep + 100) {
-            std::cout << "\n";
-            std::cout << "Finished, saving now\n";
-            for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
-                std::cout << "Timestep " << i->first << "\r";
-                fflush(stdout);
-                std::string path = "../25_bond_frames/state_" + std::to_string(i->first) + ".json";
-                FILE* f = fopen(path.c_str(), "w+");
-                fprintf(f, "{\n\t\"beads\":[\n");
-                bool first = true;
-                for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
-                    if (first) {
-                        first = false;
-                    } else {
-                        fprintf(f, ",\n");
-                    }
-                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
-                }
-                fprintf(f, "\n]}");
-                fclose(f);
-            }
-            std::cout << "\n";
-        #ifdef SERIAL
-            thread.join();
-        #endif
-            return;
-        }
-        if (msg.timestep == 1 || msg.timestep == 1000 || msg.timestep == 2000 || msg.timestep == 3000 || msg.timestep == 4000 || msg.timestep == 5000 || msg.timestep == 6000 || msg.timestep == 7000 || msg.timestep == 8000 || msg.timestep == 9000 || msg.timestep == 10000) {
+        // if (msg.timestep >= _max_timestep + 100) {
+        //     std::cout << "\n";
+        //     std::cout << "Finished, saving now\n";
+        //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
+        //         std::cout << "Timestep " << i->first << "\r";
+        //         fflush(stdout);
+        //         std::string path = "../25_bond_frames/state_" + std::to_string(i->first) + ".json";
+        //         FILE* f = fopen(path.c_str(), "w+");
+        //         fprintf(f, "{\n\t\"beads\":[\n");
+        //         bool first = true;
+        //         for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
+        //             if (first) {
+        //                 first = false;
+        //             } else {
+        //                 fprintf(f, ",\n");
+        //             }
+        //             fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
+        //         }
+        //         fprintf(f, "\n]}");
+        //         fclose(f);
+        //     }
+        //     std::cout << "\n";
+        // #ifdef SERIAL
+        //     thread.join();
+        // #endif
+        //     return;
+        // }
         bead_t b = msg.beads[0];
         b.pos.x(b.pos.x() + msg.from.x);
         b.pos.y(b.pos.y() + msg.from.y);
         b.pos.z(b.pos.z() + msg.from.z);
-        bead_map[msg.timestep][msg.beads[0].id] = b;
-    }
+        // bead_map[msg.timestep][msg.beads[0].id] = b;
+        std::string path = "../25_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+        FILE* f = fopen(path.c_str(), "a+");
+        if (first) {
+            first = false;
+        } else {
+            fprintf(f, ",\n");
+        }
+        fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
+        fclose(f);
+
     #endif
     }
 }
