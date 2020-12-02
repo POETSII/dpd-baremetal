@@ -9,7 +9,11 @@ This is hard coded to use the GALS Oil and water simulation.
 #include <stdint.h> // We use different sizes of integer
 #include <sys/time.h> // We are interested in how long simulations can take
 #include <HostLink.h> // Allows us access to read/write from the POETS hardware
-#include "dpdGALS.h" // We are forcing this to use GALS for now.
+#ifndef GALS
+#include "sync.h"
+#else
+#include "gals.h" // We are forcing this to use GALS for now.
+#endif
 // There may come a point when the option is available at compile or runtime
 // But for now, they're both about as good as eachother, and GALS is more
 // interesting in how it synchronises
@@ -98,7 +102,10 @@ void parse_restart_file(const std::string filePath, float *problem_size, int *N,
     // Convert the strings to floats
     float x_dim = std::stof(lines.at(0));
     float y_dim = std::stof(lines.at(1));
-    float z_dim = std::stof(lines.at(2));
+    float z_dim = 0;
+    if (dimensions == 3) {
+        z_dim = std::stof(lines.at(2));
+    }
     // As our simulator only allows volumes with the same length for each dimension let's check these are the same
     assert(x_dim == y_dim);
     if (dimensions == 3) {
@@ -157,7 +164,7 @@ void parse_restart_file(const std::string filePath, float *problem_size, int *N,
         // Split the line at the comma
         std::getline(sm, s, ',');
         // First entry is the ID
-        bead_id_t id = std::stoi(s);
+        bead_id_t id = std::stoul(s);
         // Check if this is the largest bead ID
         if (id > *max_bead_id) {
             *max_bead_id = id;
@@ -308,7 +315,7 @@ int main(int argc, char *argv[]) {
 
     // The file path for the restart data
     // Hard coded for now as we just want to test the initial state from Julian's sim
-    std::string restart_file = "../initialState.csv";
+    std::string restart_file = "../restart_4200001.csv";
 
     std::cout << "Loading restart state from " << restart_file << "\n";
     // Get data from the input file
