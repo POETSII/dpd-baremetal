@@ -59,7 +59,7 @@ const ptype early_inv_sqrt_dt = 22.360679775;
 #endif
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 1;
+const uint32_t emitperiod = 1000;
 #endif
 
 // Format of message

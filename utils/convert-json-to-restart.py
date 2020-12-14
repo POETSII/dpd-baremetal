@@ -1,9 +1,9 @@
 import json
 
 volLength = 25
-timestep = 4200001
+timestep = 224000
 in_filepath = "../25_bond_frames/state_" + str(timestep) + ".json"
-out_filepath = "../restart_4200001.csv"
+out_filepath = "../restart_224000.csv"
 f = open(out_filepath, "w+")
 
 print("Writing CSV file preamble")

@@ -499,7 +499,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
     #endif
         state->rngstate = 1234; // start with a seed
     #if defined(VISUALISE) && !defined(SERIAL)
-        state->emitcnt = emitperiod;
+        state->emitcnt = 1;
     #endif
     #ifdef SMALL_DT_EARLY
         if (start_timestep < 1000) {

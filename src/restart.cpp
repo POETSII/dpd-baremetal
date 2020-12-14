@@ -134,6 +134,11 @@ void parse_restart_file(const std::string filePath, float *problem_size, int *N,
     std::getline(in, line);
     // Keep going until we reach the next section title
     while(line != "BEAD POSITIONS") {
+      #ifndef BONDS
+        std::cerr << "Error: Bonds have been defined in restart, but -DBONDS has not been given as a compiler flag\n";
+        std::cerr << "Please add \"EXTERNAL_FLAGS=-DBONDS\" before the make command for compiling with bonds\n";
+        exit(1);
+      #endif
         // Reuse the string stream from before
         sm.clear();
         sm.str(line);
@@ -314,8 +319,8 @@ int main(int argc, char *argv[]) {
     parse_arguments(argc, argv, &additional_timesteps);
 
     // The file path for the restart data
-    // Hard coded for now as we just want to test the initial state from Julian's sim
-    std::string restart_file = "../restart_4200001.csv";
+    // Hard coded for now
+    std::string restart_file = "../restart_224000.csv";
 
     std::cout << "Loading restart state from " << restart_file << "\n";
     // Get data from the input file

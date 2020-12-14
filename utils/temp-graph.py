@@ -5,9 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-volLength = 75
+volLength = 25
 min_timestep = 0
-max_timestep = 200
+max_timestep = 245000
+emitperiod = 1000
 
 timesteps = []
 temperatures = []
@@ -15,9 +16,11 @@ max_average = 0
 
 print("Loading velocities")
 # For each timestep
-for timestep in range(min_timestep, max_timestep + 1):
+# for timestep in [min_timestep, min_timestep + 1000, min_timestep + 2000, min_timestep + 3000, min_timestep + 4000]:#range(min_timestep, max_timestep + 1):
+timestep = min_timestep
+while timestep <= max_timestep:
     timesteps.append(timestep)
-    print("Timestep " + str(timestep), end = "\r") # Print timestep to give an idea of progress
+    print("Timestep " + str(timestep), end = "\n") # Print timestep to give an idea of progress
     # JSON filepath filled with bead info
     filepath = "../25_bond_frames/state_" + str(timestep) + ".json"
     # Total number of beads in this timestep
@@ -38,6 +41,7 @@ for timestep in range(min_timestep, max_timestep + 1):
         max_average = average_velocity
 
     temperatures.append(average_velocity)
+    timestep += emitperiod
 
 print("              ",end = "\r")
 print("Complete")
@@ -64,8 +68,8 @@ ax = data_frame.plot(kind = 'line', x = 'Timestep', y = "Temperature", ax = ax, 
 
 print("Complete")
 # Plot configuration
-plt.xticks(np.arange(0, max_timestep + 1, 1000), rotation=90)
-# plt.yticks(np.arange(0, max_average + 1, 1))
+plt.xticks(np.arange(0, max_timestep + 1, 100000), rotation=90)
+plt.yticks(np.arange(0, 5, 1))
 plt.grid(b=True, which='major', color='#cccccccc', linestyle='-')
 
 # Save the figure
