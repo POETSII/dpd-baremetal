@@ -693,7 +693,7 @@ visual-water-only: $(DPD_BIN) base-gals water-only
 visual-bonds-only: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS
 visual-bonds-only: $(DPD_BIN) base-gals bonds-only
 
-visual-gals-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY
+visual-gals-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS -DDRAM -DFLOAT_ONLY
 visual-gals-restart: $(DPD_BIN) base-gals restart
 
 # ---------------------------- x86 SERIAL SIMULATOR --------------------------------

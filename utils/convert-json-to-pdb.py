@@ -1,32 +1,51 @@
 import json
 import numpy as np
 
-volLength = 25
-min_timestep = 0
-max_timestep = 5005000
+volLength = 100
+min_timestep = 720000
+max_timestep = 1723000
 emitperiod = 1000
-in_dir = "../25_bond_frames/"
-out_filepath = "../test.pdb"
+in_dir = "../100_bond_frames/"
+out_filepath = "../test1.pdb"
 bead_types = ["WAT", "OIL", "AIL"]
 includeWater = False
+append = True
 
 volLength_str = "{:.3f}".format(volLength)
 
-f = open(out_filepath, "w+")
-print("Writing PDB preamble", end="\r")
-f.write("TITLE     MDANALYSIS FRAMES FROM 0\n")
-f.write("CRYST1   " + str(volLength_str) + "   " + str(volLength_str) + "   " + str(volLength_str) + "   0.00   0.00   0.00 P 1           1\n")
+if not append:
+    f = open(out_filepath, "w+")
+    print("Writing PDB preamble", end="\r")
+    f.write("TITLE     MDANALYSIS FRAMES FROM 0\n")
+    f.write("CRYST1   " + str(volLength_str) + "   " + str(volLength_str) + "   " + str(volLength_str) + "   0.00   0.00   0.00 P 1           1\n")
+else:
+    f = open(out_filepath, "a+")
 
-model_num = 1
+model_num = 244
 coords = {}
 types = {}
+
+def increment_id(id):
+    for i in range (0, len(id)):
+        c = id[i]
+        if c == '9':
+            id[i] = 'A'
+        elif c == 'Z':
+            id[i] = 'a'
+        elif c == 'z':
+            id[i] = '0'
+            if len(id) == (i + 1):
+                id.append('0')
+            else:
+                continue
+        else:
+            id[i] = chr(ord(c) + 1)
+
+        return
 
 print("Converting now             ")
 timestep = min_timestep
 while timestep <= max_timestep:
-    if (timestep == 244000):
-        timestep += emitperiod
-        continue
     print("Timestep " + str(timestep) + ": Loading state from JSON file", end="\r")
     in_filepath = in_dir + "state_" + str(timestep) + ".json"
     with open(in_filepath) as json_file:
@@ -43,20 +62,21 @@ while timestep <= max_timestep:
     # Print bead data in PDB format
     print("Timestep " + str(timestep) + ": Printing to PDB              ", end="\r")
     f.write("MODEL        " + str(model_num) + "\n")
-    counter = 1
+    bead_id = ['0']
     for b in coords:
         type = bead_types[types[b]]
         f.write("ATOM  ")
         # Atom ID
-        if (counter < 10000):
+        if (len(bead_id) < 5):
             f.write(" ")
-        if (counter < 1000):
+        if (len(bead_id) < 4):
             f.write(" ")
-        if (counter < 100):
+        if (len(bead_id) < 3):
             f.write(" ")
-        if (counter < 10):
+        if (len(bead_id) < 2):
             f.write(" ")
-        f.write(str(counter))
+        for c in bead_id:
+            f.write(str(c))
         # Atom type
         f.write("  " + str(type[0]))
         # Atom type again (not sure whats happening here honestly)
@@ -85,7 +105,7 @@ while timestep <= max_timestep:
         f.write(str(type[0]))
         # leovnpv = str(coords[b]["x"]) + "  " + str(coords[b]["y"]) + "   " + str(coords[b]["z"]) + "  1.00  0.00           " + str(type[0]) + "\n")
         f.write("\n")
-        counter += 1
+        increment_id(bead_id)
 
     timestep += emitperiod
     model_num += 1

@@ -1,9 +1,9 @@
 import json
 
-volLength = 25
-timestep = 224000
-in_filepath = "../25_bond_frames/state_" + str(timestep) + ".json"
-out_filepath = "../restart_224000.csv"
+volLength = 100
+timestep = 719000
+in_filepath = "../" + str(volLength) + "_bond_frames/state_" + str(timestep) + ".json"
+out_filepath = "../restart_" + str(timestep) + ".csv"
 f = open(out_filepath, "w+")
 
 print("Writing CSV file preamble")
@@ -29,6 +29,7 @@ with open(in_filepath) as json_file:
         y_vel = b["vy"]
         z_vel = b["vz"]
         f.write(str(bead_id) + ", " + str(bead_type) + ", " + str(x_pos) + ", " + str(y_pos) + ", " + str(z_pos) + ", " + str(x_vel) + ", " + str(y_vel) + ", " + str(z_vel) + "\n")
+        count += 1
 
 f.close()
 print("\nComplete")

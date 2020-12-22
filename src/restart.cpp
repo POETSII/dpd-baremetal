@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
 
     // The file path for the restart data
     // Hard coded for now
-    std::string restart_file = "../restart_224000.csv";
+    std::string restart_file = "../restart_719000.csv";
 
     std::cout << "Loading restart state from " << restart_file << "\n";
     // Get data from the input file
@@ -367,7 +367,7 @@ int main(int argc, char *argv[]) {
     fclose(f);
 
     // Store the minimum initial distances between beads to be used for analysis
-    simulation.store_initial_bead_distances();
+    // simulation.store_initial_bead_distances();
 
     // Write the simulation into POETS hardware memory
     simulation.write();

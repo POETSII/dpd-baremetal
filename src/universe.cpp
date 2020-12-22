@@ -243,7 +243,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 
 #ifndef SERIAL
     _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 1;//TinselBoxMeshYLen;
+    _boxesY = 4;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -861,13 +861,13 @@ void Universe<S>::run() {
             std::cout << "Timestep " << timestep << "\r";
             if (timestep > 1) {
                 fflush(stdout);
-                std::string path = "../25_bond_frames/state_" + std::to_string(timestep - 1000) + ".json";
+                std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
                 FILE* old_file = fopen(path.c_str(), "a+");
                 fprintf(old_file, "\n]}\n");
                 fclose(old_file);
             }
 
-            std::string fpath = "../25_bond_frames/state_" + std::to_string(timestep) + ".json";
+            std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
             FILE* f = fopen(fpath.c_str(), "w+");
             fprintf(f, "{\n\t\"beads\":[\n");
             fclose(f);
@@ -884,7 +884,7 @@ void Universe<S>::run() {
         //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
         //         std::cout << "Timestep " << i->first << "\r";
         //         fflush(stdout);
-        //         std::string path = "../25_bond_frames/state_" + std::to_string(i->first) + ".json";
+        //         std::string path = "../100_bond_frames/state_" + std::to_string(i->first) + ".json";
         //         FILE* f = fopen(path.c_str(), "w+");
         //         fprintf(f, "{\n\t\"beads\":[\n");
         //         bool first = true;
@@ -910,7 +910,7 @@ void Universe<S>::run() {
         b.pos.y(b.pos.y() + msg.from.y);
         b.pos.z(b.pos.z() + msg.from.z);
         // bead_map[msg.timestep][msg.beads[0].id] = b;
-        std::string path = "../25_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+        std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
         FILE* f = fopen(path.c_str(), "a+");
         if (first) {
             first = false;
