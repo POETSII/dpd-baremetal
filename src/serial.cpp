@@ -63,14 +63,14 @@ void SerialSim::init(DPDState *s) {
 // Calculate forces of neighbour cell's beads acting on this cells beads
 void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
     // Get the local bead map
-    uint32_t i = local_state->bslot;
+    uint16_t i = local_state->bslot;
     // For each local bead calculate its interaction with neighbouring beads
     while (i) {
         // Get the local bead
         uint8_t ci = get_next_slot(i);
         bead_t *local_bead = &local_state->bead_slot[ci];
         // Get neighbour bead map
-        uint32_t j = neighbour_state->bslot;
+        uint16_t j = neighbour_state->bslot;
         // For each neighbour bead
         while (j) {
             // Get neighbour bead
@@ -121,6 +121,10 @@ void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, co
         if (n_s->loc.x == dest.x && n_s->loc.y == dest.y && n_s->loc.z == dest.z) {
             // Get the neighbours next available bead slot
             uint8_t ni = get_next_free_slot(n_s->bslot);
+            if (ni == 0xFF) {
+                std::cerr << "ERROR: No free slot for bead to migrate to. Terminating.\n";
+                exit(0xFF);
+            }
             // Set this slot in the bead map
             n_s->bslot = set_slot(n_s->bslot, ni);
             // Welcome the new  bead
@@ -229,7 +233,7 @@ void SerialSim::run() {
             s->grand = p_rand(&s->rngstate);
 
             // Get the bead map for this cell
-            uint32_t i = s->bslot;
+            uint16_t i = s->bslot;
             // For each bead in this cell
             while(i) {
                 // Get the bead
@@ -263,26 +267,32 @@ void SerialSim::run() {
         }
 
         // MIGRATION PHASE
-        // For each cell
-        for (uint32_t c = 0; c < _cells.size(); c++) {
-            DPDState *s = getCell(c);
-            // Get the migrate bit map
-            uint32_t i = s->migrateslot;
-            // For each migrating bead
-            while (i) {
-                // Get the bead
-                uint8_t ci = get_next_slot(i);
-                bead_t *migrating_bead = &s->bead_slot[ci];
-                // Get its destination
-                cell_t dest = s->migrate_loc[ci];
-                // Find the correct neighbour and add this bead to its state
-                migrate_bead(migrating_bead, dest, s->neighbours);
-                // Clear the bead slot -- it no longer belongs to us
-                s->bslot = clear_slot(s->bslot, ci);
-                // Clear this bead from the migrate slot
-                i = clear_slot(i, ci);
+        // Each cell must be passed over one at a time or we risk overflowing the bead array
+        bool beads_to_migrate = true;
+        // While there are beads to migrate
+        while (beads_to_migrate) {
+            // Set this to false for each pass
+            beads_to_migrate = false;
+            // For each cell
+            for (uint32_t c = 0; c < _cells.size(); c++) {
+                // Get the cell state
+                DPDState *s = getCell(c);
+                // For each migrating bead
+                if (s->migrateslot) {
+                    beads_to_migrate = true;
+                    // Get the bead
+                    uint8_t ci = get_next_slot(s->migrateslot);
+                    bead_t *migrating_bead = &s->bead_slot[ci];
+                    // Get its destination
+                    cell_t dest = s->migrate_loc[ci];
+                    // Find the correct neighbour and add this bead to its state
+                    migrate_bead(migrating_bead, dest, s->neighbours);
+                    // Clear the bead slot -- it no longer belongs to us
+                    s->bslot = clear_slot(s->bslot, ci);
+                    // Clear this bead from the migrate slot
+                    s->migrateslot = clear_slot(s->migrateslot, ci);
+                }
             }
-            s->migrateslot = 0;
         }
 
         // MIGRATION COMPLETE
@@ -306,7 +316,7 @@ void SerialSim::run() {
             // For each cell
             for (uint32_t c = 0; c < _cells.size(); c++) {
                 DPDState *s = getCell(c);
-                uint32_t i = s->bslot;
+                uint16_t i = s->bslot;
                 while (i) {
                     uint8_t ci = get_next_slot(i);
                     bead_t *bead = &s->bead_slot[ci];

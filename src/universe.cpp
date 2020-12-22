@@ -243,7 +243,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 
 #ifndef SERIAL
     _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 4;//TinselBoxMeshYLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -478,7 +478,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
     _sim.setN(_D);
 #endif
 
-    // initialise all the devices with their position and the max time
+    // Initialise all the devices with as much as possible to reduce code in the cell
     for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
       #ifdef SERIAL
@@ -509,6 +509,9 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
             state->dt = normal_dt;
             state->inv_sqrt_dt = normal_inv_sqrt_dt;
         }
+    #endif
+    #ifndef SERIAL
+        state->error = 0;
     #endif
     }
 }
@@ -796,6 +799,10 @@ void Universe<S>::run() {
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
         DPDMessage msg = pmsg.payload;
     #endif
+        if (msg.type == 0xE0) {
+            std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+            exit(1);
+        }
     #ifdef TIMER
       #ifdef BEAD_COUNTER
         if (msg.type == 0xAA) {

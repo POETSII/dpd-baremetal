@@ -77,9 +77,9 @@ struct DPDState {
     float unit_size; // the size of this spatial unit in one dimension
     uint8_t N;
     cell_t loc; // the location of this cube
-    uint32_t bslot; // a bitmap of which bead slot is occupied
-    uint32_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    uint32_t newBeadMap;
+    uint16_t bslot; // a bitmap of which bead slot is occupied
+    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    uint16_t newBeadMap;
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
 #ifdef FLOAT_ONLY
     Vector3D<float> force_slot[MAX_BEADS];
@@ -89,7 +89,7 @@ struct DPDState {
 #ifdef BETTER_VERLET
     Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
 #endif
-    uint32_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
+    uint16_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
     cell_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode; // the mode that this device is in.
 #ifdef VISUALISE
@@ -122,7 +122,7 @@ struct DPDState {
     int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
     uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
 #endif
-    // uint8_t error;
+    uint8_t error; // Error code to be returned to the host
 };
 
 // DPD Device code
@@ -163,7 +163,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     #endif
         s->grand = p_rand(&s->rngstate); // advance the random number
         // ------ velocity verlet ------
-        uint32_t i = s->bslot;
+        uint16_t i = s->bslot;
         while(i){
             uint8_t ci = get_next_slot(i);
         #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
@@ -309,6 +309,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         msg->mode = 0x00;
         msg->type = 0x00;
         msg->timestep = s->timestep;
+
+        // If there has been an error, send it to the host and then halt
+        if (s->error) {
+            msg->type = s->error;
+            *readyToSend = No;
+            return;
+        }
+
 	    if(s->mode == UPDATE) {
             msg->mode = UPDATE;
         #ifdef MESSAGE_MANAGEMENT
@@ -569,7 +577,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     b.pos.z(b.pos.z() + ptype(z_rel));
 
                     // loop through the occupied bead slots -- update force
-                    uint32_t i = s->bslot;
+                    uint16_t i = s->bslot;
                     while(i) {
                         uint8_t ci = get_next_slot(i);
                     #ifndef ONE_BY_ONE
@@ -645,7 +653,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     if( (msg->from.x == s->loc.x) && (msg->from.y == s->loc.y) && (msg->from.z == s->loc.z) ) {
                         // looks like we are getting a new addition to our family
                         uint8_t ni = get_next_free_slot(s->newBeadMap);
-                        if (ni != 0xFFFFFFFF) {
+                        if (ni == 0xFF) {
+                            s->error = 0xE0;
+                            *readyToSend = HostPin;
+                            return;
+                        } else {
                             s->newBeadMap = set_slot(s->newBeadMap, ni);
 
                         #ifndef BETTER_VERLET

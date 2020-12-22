@@ -66,8 +66,8 @@ struct DPDState {
     PDeviceId neighbours[NEIGHBOURS]; // Holds a list of the neighbours of this cell
     uint8_t num_neighbours = 0; // Holds how many neighbours this cell currently has
     cell_t loc; // the location of this cube
-    uint32_t bslot = 0; // a bitmap of which bead slot is occupied
-    uint32_t sentslot = 0; // a bitmap of which bead slot has not been sent from yet
+    uint16_t bslot = 0; // a bitmap of which bead slot is occupied
+    uint16_t sentslot = 0; // a bitmap of which bead slot has not been sent from yet
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
 #ifdef FLOAT_ONLY
     Vector3D<float> force_slot[MAX_BEADS];
@@ -77,7 +77,7 @@ struct DPDState {
 #ifdef BETTER_VERLET
     Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
 #endif
-    uint32_t migrateslot = 0; // a bitmask of which bead slot is being migrated in the next phase
+    uint16_t migrateslot = 0; // a bitmask of which bead slot is being migrated in the next phase
     cell_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
     uint8_t mode = 0; // the mode that this device is in 0 = update; 1 = migration
 

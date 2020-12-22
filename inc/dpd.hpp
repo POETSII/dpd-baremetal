@@ -287,9 +287,9 @@ inline void velocity_Verlet(bead_t *bead, Vector3D<float> *f, const ptype dt) {
 }
 
 #ifdef BETTER_VERLET
-inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_size, const cell_t current_cell, const uint32_t vol_len, uint32_t *migrateslot, cell_t *migrate_loc, const ptype dt, Vector3D<ptype> *old_velo) {
+inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_size, const cell_t current_cell, const uint32_t vol_len, uint16_t *migrateslot, cell_t *migrate_loc, const ptype dt, Vector3D<ptype> *old_velo) {
 #else
-inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_size, const cell_t current_cell, const uint32_t vol_len, uint32_t *migrateslot, cell_t *migrate_loc, const ptype dt) {
+inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_size, const cell_t current_cell, const uint32_t vol_len, uint16_t *migrateslot, cell_t *migrate_loc, const ptype dt) {
 #endif
         // ----- migration code ------
     bool migrating = false; // flag that says whether this particle needs to migrate
@@ -372,24 +372,24 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
 }
 #ifdef ONE_BY_ONE
   #ifndef FLOAT_ONLY
-inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
+inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
   #else
-inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
+inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
   #endif
 #else
   #ifndef FLOAT_ONLY
-inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
+inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
   #else
-inline void local_calcs(const ptype inv_sqrt_dt, const uint32_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
+inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces)
   #endif
 #endif
     {
     #ifndef ONE_BY_ONE
-        uint32_t i = bslot;
+        uint16_t i = bslot;
         while (i) {
             uint8_t ci = get_next_slot(i);
     #endif
-            uint32_t j = bslot;
+            uint16_t j = bslot;
             while(j) {
                 uint8_t cj = get_next_slot(j);
                 if(ci != cj) {
