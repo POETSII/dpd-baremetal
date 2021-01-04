@@ -75,9 +75,18 @@ const ptype r_c(1.0);
 const ptype sq_r_c(r_c * r_c);
 
 // Interaction matrix for water and two types of oil
+#ifndef VESICLE_SELF_ASSEMBLY
 const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},
                          {ptype(75.0), ptype(25.0), ptype(50.0)},
-                         {ptype(35.0), ptype(50.0), ptype(25.0)}};
+                         {ptype(35.0), ptype(50.0), ptype(25.0)}
+                      };
+#else
+const ptype A[4][4] = {  {ptype(25.0), ptype(50.0), ptype(20.0), ptype(50.0)},
+                         {ptype(50.0), ptype(25.0), ptype(75.0), ptype(25.0)},
+                         {ptype(20.0), ptype(75.0), ptype(25.0), ptype(75.0)},
+                         {ptype(50.0), ptype(25.0), ptype(75.0), ptype(25.0)}
+                      };
+#endif
 
 // Drag coefficient
 const ptype drag_coef = 4.5;
@@ -94,10 +103,15 @@ const ptype lambda = 0.5;
 /********************* BOND CONSTANTS **************************/
 
 #ifdef BONDS
+#ifndef VESICLE_SELF_ASSEMBLY
 // 0.5 is the distance aimed to be kept between two bonded beads
 const ptype bond_r0 = 0.5;
 // Bond_kappa is the force between two bonded beads. It is very strong
-const ptype bond_kappa = 128;
+const ptype bond_kappa = 128.0;
+#else
+const ptype bond_r0 = 0.3;
+const ptype bond_kappa = 256.0;
+#endif
 #endif
 
 /********************* BOND FUNCTIONS **************************/

@@ -320,7 +320,11 @@ int main(int argc, char *argv[]) {
 
     // The file path for the restart data
     // Hard coded for now
-    std::string restart_file = "../restart_719000.csv";
+  #ifndef VESICLE_SELF_ASSEMBLY
+    std::string restart_file = "../restart-oil-water/restart_719000.csv";
+  #else
+    std::string restart_file = "../restart-vesicle/vesicle_restart_193000.csv";
+  #endif
 
     std::cout << "Loading restart state from " << restart_file << "\n";
     // Get data from the input file
@@ -332,7 +336,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Continuing from timestep: " << restart_timestep << "\n";
 
     // Open file to store this state as JSON for analysis by tools in utils/
-    std::string stateFilePath = "../" + std::to_string(N) + "_bond_frames/state_" + std::to_string(restart_timestep) + ".json";
+    // std::string stateFilePath = "../" + std::to_string(N) + "_bond_frames/state_" + std::to_string(restart_timestep) + ".json";
     FILE* f = fopen(stateFilePath.c_str(), "w+");
     fprintf(f, "{\n\t\"beads\":[\n");
 
@@ -364,7 +368,7 @@ int main(int argc, char *argv[]) {
 
     // Close the JSON file
     fprintf(f, "\n\t]\n}");
-    fclose(f);
+    // fclose(f);
 
     // Store the minimum initial distances between beads to be used for analysis
     // simulation.store_initial_bead_distances();

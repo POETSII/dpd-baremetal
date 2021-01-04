@@ -243,7 +243,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 
 #ifndef SERIAL
     _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 1;//TinselBoxMeshYLen;
+    _boxesY = 4;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -779,7 +779,7 @@ void Universe<S>::run() {
 #endif
 
     uint32_t devices = 0;
-    uint32_t timestep = 0;
+    uint32_t timestep = _start_timestep;
 #ifdef BEAD_COUNTER
     uint32_t beads_out = 0;
 #endif
@@ -866,15 +866,23 @@ void Universe<S>::run() {
         if (timestep < msg.timestep) {
             timestep = msg.timestep;
             std::cout << "Timestep " << timestep << "\r";
-            if (timestep > 1) {
-                fflush(stdout);
+            fflush(stdout);
+            if (timestep > _start_timestep + emitperiod) {
+            #ifndef VESICLE_SELF_ASSEMBLY
                 std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+            #else
+                std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+            #endif
                 FILE* old_file = fopen(path.c_str(), "a+");
                 fprintf(old_file, "\n]}\n");
                 fclose(old_file);
             }
 
+        #ifndef VESICLE_SELF_ASSEMBLY
             std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
+        #else
+            std::string fpath = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
+        #endif
             FILE* f = fopen(fpath.c_str(), "w+");
             fprintf(f, "{\n\t\"beads\":[\n");
             fclose(f);
@@ -917,7 +925,11 @@ void Universe<S>::run() {
         b.pos.y(b.pos.y() + msg.from.y);
         b.pos.z(b.pos.z() + msg.from.z);
         // bead_map[msg.timestep][msg.beads[0].id] = b;
+    #ifndef VESICLE_SELF_ASSEMBLY
         std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+    #else
+        std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
+    #endif
         FILE* f = fopen(path.c_str(), "a+");
         if (first) {
             first = false;

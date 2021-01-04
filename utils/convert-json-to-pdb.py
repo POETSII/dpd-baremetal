@@ -2,14 +2,15 @@ import json
 import numpy as np
 
 volLength = 100
-min_timestep = 720000
-max_timestep = 1723000
+min_timestep = 1000
+max_timestep = 1000
 emitperiod = 1000
-in_dir = "../100_bond_frames/"
-out_filepath = "../test1.pdb"
-bead_types = ["WAT", "OIL", "AIL"]
+in_dir = "../100_vesicle_frames/"
+out_filepath = "../DELETE-ME.pdb"
+bead_types = ["HHH", "TaT", "WWW", "Tb1"]
 includeWater = False
-append = True
+waterTypeNum = 2
+append = False
 
 volLength_str = "{:.3f}".format(volLength)
 
@@ -21,7 +22,7 @@ if not append:
 else:
     f = open(out_filepath, "a+")
 
-model_num = 244
+model_num = 0
 coords = {}
 types = {}
 
@@ -48,12 +49,13 @@ timestep = min_timestep
 while timestep <= max_timestep:
     print("Timestep " + str(timestep) + ": Loading state from JSON file", end="\r")
     in_filepath = in_dir + "state_" + str(timestep) + ".json"
+
     with open(in_filepath) as json_file:
         data = json.load(json_file) # Load JSON file
         for b in data["beads"]: # For each bead in the file
             bead_id = b["id"]
             bead_type = int(b["type"])
-            if includeWater or (bead_type != 0):
+            if includeWater or (bead_type != waterTypeNum):
                 x_pos = b["x"]
                 y_pos = b["y"]
                 z_pos = b["z"]
@@ -63,7 +65,7 @@ while timestep <= max_timestep:
     print("Timestep " + str(timestep) + ": Printing to PDB              ", end="\r")
     f.write("MODEL        " + str(model_num) + "\n")
     bead_id = ['0']
-    for b in coords:
+    for b, v in sorted(coords.items()):
         type = bead_types[types[b]]
         f.write("ATOM  ")
         # Atom ID
@@ -78,9 +80,9 @@ while timestep <= max_timestep:
         for c in bead_id:
             f.write(str(c))
         # Atom type
-        f.write("  " + str(type[0]))
+        f.write("  " + str(type[0]) + str(type[1]))
         # Atom type again (not sure whats happening here honestly)
-        f.write("   " + str(type))
+        f.write("  " + str(type))
         # Put a 1 in there apparently
         f.write("     1")
         # Now onto coordinates

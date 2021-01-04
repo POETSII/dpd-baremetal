@@ -5,10 +5,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-volLength = 75
-bond_length_threshold = 2.0
+volLength = 100
+bond_length_threshold = 1.0
 min_timestep = 0
-max_timestep = 200
+max_timestep = 50000
+emitperiod = 1000
 
 class Bond:
     def __init__(self, bead1, bead2):
@@ -59,7 +60,7 @@ def is_end_of_chain(id, n_id, beads):
         return True
     return False
 
-bonds = [] # Dictionary of beads that are bonded
+bonds = {} # Dictionary of beads that are bonded
 all_bonds = False
 bonds_of_interest = []
 
@@ -69,11 +70,12 @@ if (len(sys.argv) > 1):
 
 print("Loading bonds")
 # For each timestep
-for timestep in range(min_timestep, max_timestep + 1):
-    bonds.append({}) # Do bonds via dictionary to keep an order
+timestep = min_timestep
+while timestep <= max_timestep:
+    bonds[timestep] = {} # Do bonds via dictionary to keep an order
     print("Timestep " + str(timestep), end = "\r") # Print timestep to keep an idea of progress
     # JSON filepath filled with bond info
-    filepath = "../25_bond_frames/state_" + str(timestep) + ".json"
+    filepath = "../100_vesicle_frames/state_" + str(timestep) + ".json"
     # Store beads to then be worked on below
     beads = {}
     # Get beads from file and add to dictionary
@@ -105,6 +107,8 @@ for timestep in range(min_timestep, max_timestep + 1):
                 bonds_of_interest.append(bond.id) # Add this bond id so we can find it later
                 bonds_of_interest = list(set(bonds_of_interest)) # Remove duplicates
 
+    timestep += emitperiod
+
 # If we want to see all bonds, the bonds_of interest become all bonds
 if all_bonds:
     bonds_of_interest = bonds[0].keys()
@@ -122,7 +126,8 @@ for bond_id in bonds_of_interest:
     data_frame[bond_id] = [] # Add the bond ID as a column to the data frame
 
 # For each timestep
-for timestep in range(min_timestep, max_timestep + 1):
+timestep = min_timestep
+while timestep <= max_timestep:
     print("Timestep " + str(timestep), end = "\r")
     # Add the timestep to the data frame
     row = { "Timestep": timestep }
@@ -132,6 +137,7 @@ for timestep in range(min_timestep, max_timestep + 1):
         row[bond_id] = length # Add the length to this row
     # Add the row to the data frame
     data_frame = data_frame.append(pd.Series(row, index = data_frame.columns), ignore_index = True)
+    timestep += emitperiod
 
 # Change timestep data type
 data_frame = data_frame.astype({'Timestep': int})
