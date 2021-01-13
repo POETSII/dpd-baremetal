@@ -323,7 +323,7 @@ int main(int argc, char *argv[]) {
   #ifndef VESICLE_SELF_ASSEMBLY
     std::string restart_file = "../restart-oil-water/restart_719000.csv";
   #else
-    std::string restart_file = "../restart-vesicle/vesicle_restart_193000.csv";
+    std::string restart_file = "../restart-vesicle/vesicle_restart_161000.csv";
   #endif
 
     std::cout << "Loading restart state from " << restart_file << "\n";
@@ -337,8 +337,8 @@ int main(int argc, char *argv[]) {
 
     // Open file to store this state as JSON for analysis by tools in utils/
     // std::string stateFilePath = "../" + std::to_string(N) + "_bond_frames/state_" + std::to_string(restart_timestep) + ".json";
-    FILE* f = fopen(stateFilePath.c_str(), "w+");
-    fprintf(f, "{\n\t\"beads\":[\n");
+    // FILE* f = fopen(stateFilePath.c_str(), "w+");
+    // fprintf(f, "{\n\t\"beads\":[\n");
 
     // Build the simulation volume (universe)
     // Hard coding float for now
@@ -356,18 +356,18 @@ int main(int argc, char *argv[]) {
         if (first) {
             first = false;
         } else {
-            fprintf(f, ",\n");
+            // fprintf(f, ",\n");
         }
         // Don't need the ID, just the bead
         bead_t b = i->second;
         simulation.add(&b); // This will crash if a bead cannot fit in a cell
         // Write this to the JSON so it can be used for analysis
-        fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
+        // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
     }
 
 
     // Close the JSON file
-    fprintf(f, "\n\t]\n}");
+    // fprintf(f, "\n\t]\n}");
     // fclose(f);
 
     // Store the minimum initial distances between beads to be used for analysis

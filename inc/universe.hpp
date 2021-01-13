@@ -74,16 +74,14 @@ class Universe {
     // debugging
     void print_occupancy(); // prints the number of beads assigned to each devices
 
-    void set_beads_added(uint32_t beads_added);
-
     private:
     S _size;
     unsigned _D;
 	S _unit_size;
-    uint32_t _start_timestep;
-    uint32_t _max_timestep;
+    uint32_t _start_timestep = 0;
+    uint32_t _max_timestep = 0;
 
-    uint32_t _beads_added;
+    uint32_t _beads_added = 0;
 
 #ifdef SERIAL
     SerialSim _sim;
@@ -93,12 +91,12 @@ class Universe {
     HostLink *_hostLink; // the hostlink
 #endif
 
-        // maintain a map of ID's to locations in the space
-        std::map<PDeviceId, cell_t> _idToLoc;
-        std::map<cell_t, PDeviceId> _locToId;
+    // maintain a map of ID's to locations in the space
+    std::map<PDeviceId, cell_t> _idToLoc;
+    std::map<cell_t, PDeviceId> _locToId;
 
 	// for the external connection
-        ExternalServer *_extern;
+    ExternalServer *_extern;
 
 	// measuring performance
 	struct timeval _start, _finish, _diff;

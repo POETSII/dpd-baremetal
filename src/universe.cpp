@@ -179,11 +179,6 @@ void Universe<S>::outputMapping() {
 }
 #endif
 
-template<class S>
-void Universe<S>::set_beads_added(uint32_t beads_added) {
-    _beads_added = beads_added;
-}
-
 // constructor
 template<class S>
 Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_timestep) {
@@ -243,7 +238,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 
 #ifndef SERIAL
     _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 4;//TinselBoxMeshYLen;
+    _boxesY = 1;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -640,7 +635,10 @@ cell_t Universe<S>::add(const bead_t *in) {
         state->bead_slot[slot] = b;
         state->bslot = set_slot(state->bslot, slot);
         state->force_slot[slot].set(0.0, 0.0, 0.0);
+    #ifdef BETTER_VERLET
         state->old_velo[slot].set(b.velo.x(), b.velo.y(), b.velo.z());
+    #endif
+        _beads_added++;
     }
 
     return t;
@@ -670,7 +668,8 @@ void Universe<S>::add(const cell_t cell, const bead_t *in) {
     state->bead_slot[slot] = b;
     state->bslot = set_slot(state->bslot, slot);
     state->force_slot[slot].set(0.0, 0.0, 0.0);
-    }
+    _beads_added++;
+}
 
 // writes the universe into the POETS system
 #ifndef SERIAL
@@ -784,6 +783,10 @@ void Universe<S>::run() {
     uint32_t beads_out = 0;
 #endif
 
+#ifdef VISUALISE
+    std::map<uint32_t, uint32_t> bead_print_map;
+#endif
+
 #ifdef MESSAGE_COUNTER
     std::map<cell_t, uint32_t> cell_messages;
 #endif
@@ -862,21 +865,22 @@ void Universe<S>::run() {
                 return;
             }
         }
-    #else
+    #elif defined(VISUALISE)
         if (timestep < msg.timestep) {
             timestep = msg.timestep;
             std::cout << "Timestep " << timestep << "\r";
             fflush(stdout);
-            if (timestep > _start_timestep + emitperiod) {
-            #ifndef VESICLE_SELF_ASSEMBLY
-                std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-            #else
-                std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-            #endif
-                FILE* old_file = fopen(path.c_str(), "a+");
-                fprintf(old_file, "\n]}\n");
-                fclose(old_file);
-            }
+            bead_print_map[timestep] = 0;
+            // if (timestep > _start_timestep + emitperiod) {
+            // #ifndef VESICLE_SELF_ASSEMBLY
+            //     std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+            // #else
+            //     std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+            // #endif
+            //     FILE* old_file = fopen(path.c_str(), "a+");
+            //     fprintf(old_file, "\n]}\n");
+            //     fclose(old_file);
+            // }
 
         #ifndef VESICLE_SELF_ASSEMBLY
             std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
@@ -893,6 +897,8 @@ void Universe<S>::run() {
         // eMsg.from = msg.from;
         // eMsg.bead = msg.beads[0];
         // _extern->send(&eMsg);
+
+
         // if (msg.timestep >= _max_timestep + 100) {
         //     std::cout << "\n";
         //     std::cout << "Finished, saving now\n";
@@ -920,6 +926,7 @@ void Universe<S>::run() {
         // #endif
         //     return;
         // }
+
         bead_t b = msg.beads[0];
         b.pos.x(b.pos.x() + msg.from.x);
         b.pos.y(b.pos.y() + msg.from.y);
@@ -938,6 +945,20 @@ void Universe<S>::run() {
         }
         fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
         fclose(f);
+        bead_print_map[msg.timestep]++;
+        if (bead_print_map[msg.timestep] >= _beads_added) {
+          #ifndef VESICLE_SELF_ASSEMBLY
+            std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+          #else
+            std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
+          #endif
+            FILE* old_file = fopen(path.c_str(), "a+");
+            fprintf(old_file, "\n]}\n");
+            fclose(old_file);
+            if (msg.timestep == 341000) {
+                return;
+            }
+        }
 
     #endif
     }
@@ -968,10 +989,14 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
         DPDMessage msg = pmsg.payload;
     #endif
+        if (msg.type == 0xE0) {
+            std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+            exit(1);
+        }
         result[msg.beads[0].id] = msg;
         if (msg.type == 0xAA) {
             finish++;
-            if (finish >= (_D*_D*_D)) {
+            if (finish >= (_D*_D*_D) && result.size() >= _beads_added) {
             #ifdef SERIAL
                 thread.join();
             #endif

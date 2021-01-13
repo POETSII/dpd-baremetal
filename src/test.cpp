@@ -190,7 +190,7 @@ int main() {
 
     bool fail = false;
 
-    // FILE* newFile = fopen("../tests/beads_bonds_out_25_new_verlet_small_dt_early.csv", "w+");
+    FILE* newFile = fopen(expected.c_str(), "w+");
 
     // Ensure the number of input beads is the same as the number of output beads
     if (actual_out.size() != num_beads_in) {
@@ -218,7 +218,7 @@ int main() {
             expected_cell.y = expected_cell_map[i->first].y;
             expected_cell.z = expected_cell_map[i->first].z;
 
-            // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
+            fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
 
             if (expected_type != actual_type) {
                 std::cerr << "ID: " << actual_id << "\n";
@@ -242,7 +242,7 @@ int main() {
 
         }
     }
-    // fclose(newFile);
+    fclose(newFile);
 
     uint8_t exit_code = 0;
     printf("TESTING HAS ");
