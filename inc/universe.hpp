@@ -83,6 +83,10 @@ class Universe {
 
     uint32_t _beads_added = 0;
 
+    uint32_t _runtime_hours = 0;
+    uint32_t _runtime_minutes = 0;
+    uint32_t _runtime_seconds = 0;
+
 #ifdef SERIAL
     SerialSim _sim;
 #else
@@ -108,6 +112,8 @@ class Universe {
 #if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
     FPGALinks _link_messages, _link_edges;
 #endif
+
+    void calculate_runtime();
 };
 
 #include "../src/universe.cpp"

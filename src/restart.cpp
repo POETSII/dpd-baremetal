@@ -323,7 +323,7 @@ int main(int argc, char *argv[]) {
   #ifndef VESICLE_SELF_ASSEMBLY
     std::string restart_file = "../restart-oil-water/restart_719000.csv";
   #else
-    std::string restart_file = "../restart-vesicle/vesicle_restart_161000.csv";
+    std::string restart_file = "../restart-vesicle/vesicle_restart_242000.csv";
   #endif
 
     std::cout << "Loading restart state from " << restart_file << "\n";

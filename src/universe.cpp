@@ -238,7 +238,7 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
 
 #ifndef SERIAL
     _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 1;//TinselBoxMeshYLen;
+    _boxesY = 4;//TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -758,9 +758,40 @@ void Universe<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messa
 }
 #endif
 
+template<class S>
+void Universe<S>::calculate_runtime() {
+    // Hours
+    _runtime_seconds += _runtime_hours * 60 * 60; // Hours * 60 minutes per hour * 60 seconds per minute
+    // Minutes
+    _runtime_seconds += _runtime_minutes * 60; // Minutes * 60 seconds per minute;
+}
+
 // starts the simulation
 template<class S>
 void Universe<S>::run() {
+#ifdef VISUALISE
+    // Max runtime - currently only checked when a json file is closed
+    _runtime_hours = 4;
+    _runtime_minutes = 45;
+    _runtime_seconds = 0;
+
+    std::cout << "Will run for a maximum time of ";
+    if (_runtime_hours > 0) {
+        std::cout << _runtime_hours << " hours ";
+    }
+    if (_runtime_minutes > 0) {
+        std::cout << _runtime_minutes << " minutes ";
+    }
+    if (_runtime_seconds > 0) {
+        std::cout << _runtime_minutes << " seconds";
+    }
+    std::cout << "\n";
+
+    calculate_runtime();
+
+    std::cout << "This totals " << _runtime_seconds << " seconds.\n";
+#endif
+
 #ifdef SERIAL
     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
     _sim.setQueue(&queue);
@@ -868,8 +899,6 @@ void Universe<S>::run() {
     #elif defined(VISUALISE)
         if (timestep < msg.timestep) {
             timestep = msg.timestep;
-            std::cout << "Timestep " << timestep << "\r";
-            fflush(stdout);
             bead_print_map[timestep] = 0;
             // if (timestep > _start_timestep + emitperiod) {
             // #ifndef VESICLE_SELF_ASSEMBLY
@@ -955,7 +984,20 @@ void Universe<S>::run() {
             FILE* old_file = fopen(path.c_str(), "a+");
             fprintf(old_file, "\n]}\n");
             fclose(old_file);
-            if (msg.timestep == 341000) {
+
+            // Check if we've run for longer than the max time
+            gettimeofday(&finish, NULL);
+            timersub(&finish, &start, &elapsedTime);
+            double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+            std::cout << "Timestep " << timestep << " stored after " << duration << " seconds                        \r";
+            if (duration >= _runtime_seconds) {
+                std::cout << "\nMax runtime reached, exiting\n";
+            #ifdef VESICLE_SELF_ASSEMBLY
+                FILE* timeFile = fopen("../vesicle_total_run_time.csv", "a+");
+            #else
+                FILE* timeFile = fopen("../oil_water_total_run_time.csv", "a+");
+            #endif
+                fprintf(timeFile, "%u, %u, %f\n", _start_timestep, msg.timestep, duration);
                 return;
             }
         }
