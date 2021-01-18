@@ -771,8 +771,8 @@ template<class S>
 void Universe<S>::run() {
 #ifdef VISUALISE
     // Max runtime - currently only checked when a json file is closed
-    _runtime_hours = 4;
-    _runtime_minutes = 45;
+    _runtime_hours = 45;
+    _runtime_minutes = 20;
     _runtime_seconds = 0;
 
     std::cout << "Will run for a maximum time of ";
@@ -989,7 +989,8 @@ void Universe<S>::run() {
             gettimeofday(&finish, NULL);
             timersub(&finish, &start, &elapsedTime);
             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-            std::cout << "Timestep " << timestep << " stored after " << duration << " seconds                        \r";
+            printf("Timestep %u stored after %1.10f seconds                     \r", timestep,  duration);
+            fflush(stdout);
             if (duration >= _runtime_seconds) {
                 std::cout << "\nMax runtime reached, exiting\n";
             #ifdef VESICLE_SELF_ASSEMBLY
