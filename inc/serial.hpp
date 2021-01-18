@@ -115,8 +115,8 @@ class SerialSim {
     // Set max timestep
     void setMaxTimestep(uint32_t maxTimestep);
     // Set cell size
-    void setN(uint32_t N);
-    void setCellSize(ptype cell_size);
+    void setCellsPerDimension(uint32_t _cells_per_dimension);
+    void setCellLength(ptype cell_length);
     void setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage>* queue);
 
 /************** DPD Functions ***************/
@@ -139,7 +139,7 @@ class SerialSim {
     uint32_t _num_cells = 0;
     uint32_t _timestep = 0;
     uint32_t _max_timestep = 0;
-    uint32_t _N = 0;
+    uint32_t _cells_per_dimension = 0;
     ptype _cell_size = 0;
     #ifdef VISUALISE
     uint32_t _emitcnt = emitperiod;

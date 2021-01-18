@@ -15,6 +15,7 @@ PDeviceId SerialSim::newCell() {
     _cells.push_back(s);
     return _num_cells++;
 }
+
 // Get a pointer to a cell
 DPDState* SerialSim::getCell(PDeviceId id) {
     return &_cells.at(id);
@@ -40,12 +41,12 @@ void SerialSim::setMaxTimestep(uint32_t maxTimestep) {
 }
 
 // Set the cell size
-void SerialSim::setN(uint32_t N) {
-    _N = N;
+void SerialSim::setCellsPerDimension(uint32_t cells_per_dimension) {
+    _cells_per_dimension = cells_per_dimension;
 }
 
-void SerialSim::setCellSize(ptype cell_size) {
-    _cell_size = cell_size;
+void SerialSim::setCellLength(ptype cell_length) {
+    _cell_length = cell_length;
 }
 
 void SerialSim::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {

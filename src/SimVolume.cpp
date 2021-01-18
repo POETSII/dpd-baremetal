@@ -1,47 +1,30 @@
-// Implementation file for the host simulation universe class
+// Implementation file for the host SimVolume class
 
-#include "universe.hpp"
+#include "SimVolume.hpp"
 
 #ifdef STATS
 #define POLITE_DUMP_STATS
 #define POLITE_COUNT_MSGS
 #endif
 
-#ifndef __UNIVERSE_IMPL
-#define __UNIVERSE_IMPL
+#ifndef __SIM_VOLUME_IMPL
+#define __SIM_VOLUME_IMPL
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
 
-// print out the occupancy of each device
+// Make two devices neighbours
 template<class S>
-void Universe<S>::print_occupancy() {
-    // loop through all devices in the universe and print their number of particles assigned
-    printf("DeviceId\t\tbeads\n--------------\n");
-    for(auto const& x : _idToLoc) {
-        PDeviceId t = x.first;
-      #ifdef SERIAL
-        uint8_t beads = get_num_beads(_sim.getCell(t)->bslot);
-      #else
-        uint8_t beads = get_num_beads(_g->devices[t]->state.bslot);
-      #endif
-        if(beads > 0)
-            printf("%x\t\t\t%d\n", t, (uint32_t)beads);
-    }
-}
-
-// make two devices neighbours
-template<class S>
-void Universe<S>::addNeighbour(PDeviceId a, PDeviceId b) {
+void SimVolume<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 #ifdef SERIAL
-    _sim.addEdge(a, b);
+    _volume.addEdge(a, b);
 #else
-    _g->addEdge(a,0,b);
+    _volume->addEdge(a,0,b);
 #endif
 }
 
 #if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
 template<class S>
-uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, const float vol_max) {
+uint16_t SimVolume<S>::locOffset(const uint16_t current, const int16_t offset, const float vol_max) {
     if (offset == -1 && current == 0) {
         return vol_max - 1;
     } else if (offset == 1 && current == vol_max - 1) {
@@ -51,7 +34,7 @@ uint16_t Universe<S>::locOffset(const uint16_t current, const int16_t offset, co
     }
 }
 
-template<class S> void Universe<S>::clearLinks(FPGALinks* links) {
+template<class S> void SimVolume<S>::clearLinks(FPGALinks* links) {
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 8; j++) {
             links->x.at(i).at(j) = 0;
@@ -63,7 +46,7 @@ template<class S> void Universe<S>::clearLinks(FPGALinks* links) {
 
 // Find the link and add an edge to it
 template<class S>
-void Universe<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, FPGALinks* links) {
+void SimVolume<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, FPGALinks* links) {
     if (x0 == x1 && y0 == y1) {
         links->intra.at(x0).at(y0)++;
         return;
@@ -91,7 +74,7 @@ void Universe<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
 
 // Find the number of edges which cross links
 template<class S>
-void Universe<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* links) {
+void SimVolume<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* links) {
 
     uint32_t xmask = ((1<<TinselMeshXBits)-1);
     // Get FPGA coordinates of origin cell
@@ -111,7 +94,7 @@ void Universe<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* li
                 n_loc.z = locOffset(c_loc.z, z_off, _D);
 
                 PDeviceId nId = _locToId[n_loc];
-                PDeviceAddr n_addr = _g->toDeviceAddr[nId];
+                PDeviceAddr n_addr = _volume->toDeviceAddr[nId];
                 PThreadId n_thread = getThreadId(n_addr);
                 uint32_t n_FPGA_y = n_thread >> (TinselLogThreadsPerBoard + TinselMeshXBits);
                 uint32_t n_FPGA_x = (n_thread >> TinselLogThreadsPerBoard) & xmask;
@@ -126,7 +109,7 @@ void Universe<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* li
 #ifdef OUTPUT_MAPPING
 // Output mapping info as JSON
 template<class S>
-void Universe<S>::outputMapping() {
+void SimVolume<S>::outputMapping() {
     // Number of edges using the links in x and y direction for FPGAs
     clearLinks(&_link_edges);
     // JSON file
@@ -139,7 +122,7 @@ void Universe<S>::outputMapping() {
         PDeviceId cId = i->first;
         cell_t loc = i->second;
         std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
-        PDeviceAddr cellAddr = _g->toDeviceAddr[cId];
+        PDeviceAddr cellAddr = _cells->toDeviceAddr[cId];
         PThreadId cellThread = getThreadId(cellAddr);
         output += "\t\t" + cellName +": " + std::to_string(cellThread) + ", \n";
         updateLinkInfo(cellThread, loc, &_link_edges);
@@ -181,15 +164,15 @@ void Universe<S>::outputMapping() {
 
 // constructor
 template<class S>
-Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_timestep) {
-    _size = size;
-    _D = D;
-    _unit_size = _size / S(D);
+SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t start_time, uint32_t max_time) {
+    // Call parent class constructor
+    Volume(volume_length, cells_per_dimension);
+
+    // Store start and max timestep
     _start_timestep = start_timestep;
     _max_timestep = max_timestep;
 
-    std::cout << "Simulate to timestep    : " << max_timestep << "\n";
-
+// Prepare variables for message counting and output mapping
 #if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
     // Prep link 2D vectors
     _link_messages.x = std::vector<std::vector<uint64_t>>(6);
@@ -206,6 +189,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
         _link_edges.y.at(i).resize(8);
         _link_edges.intra.at(i).resize(8);
     }
+#endif
+
+#ifndef VISUALISE
+    std::cout << "Simulate to timestep    : " << max_timestep << "\n";
 #endif
 
 #ifdef VISUALISE
@@ -236,9 +223,10 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
     std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing" << "\n";
 #endif
 
+// Number of POETS boxes and Tinsel FPGAs to use
 #ifndef SERIAL
-    _boxesX = 2;//TinselBoxMeshXLen;
-    _boxesY = 4;//TinselBoxMeshYLen;
+    _boxesX = 2; //TinselBoxMeshXLen;
+    _boxesY = 4; //TinselBoxMeshYLen;
     _boardsX = _boxesX * TinselMeshXLenWithinBox;
     _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
@@ -249,85 +237,70 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
     std::cout << ".\n";
 #endif
 
+// Acquire Hostlink so we can communicate with the Tinsel FPGAs
 #if !defined(OUTPUT_MAPPING) && !defined(SERIAL)
     _hostLink = new HostLink(_boxesX, _boxesY);
 #endif
-#ifndef SERIAL
-    _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
-#endif
 
-    // create the devices
-    for(uint16_t x=0; x<D; x++) {
-        for(uint16_t y=0; y<D; y++) {
-            for(uint16_t z=0; z<D; z++) {
-                  #ifdef SERIAL
-                    PDeviceId id = _sim.newCell();
-                  #else
-                    PDeviceId id = _g->newDevice();
-                  #endif
-                    cell_t loc = {x, y, z};
-                    _idToLoc[id] = loc;
-                    _locToId[loc] = id;
-            }
-        }
-    }
-
-    // connect all the devices together appropriately
-    // a toroidal space (cube with periodic boundaries)
-    for(uint16_t x=0; x<_D; x++) {
-        for(uint16_t y=0; y<_D; y++) {
-            for(uint16_t z=0; z<_D; z++) {
-                // this device
+    // Connect the devices together appropriately.
+    // A toroidal space (cube with periodic boundaries)
+    for(uint16_t x=0; x<_cells_per_dimension; x++) {
+        for(uint16_t y=0; y<_cells_per_dimension; y++) {
+            for(uint16_t z=0; z<_cells_per_dimension; z++) {
+                // This device
                 cell_t c_loc = {x,y,z};
                 PDeviceId cId = _locToId[c_loc];
 
-                // calculate the neighbour positions
-                // (taking into account the periodic boundary)
+                // Calculate the neighbour positions
+                // (taking into account the periodic boundary).
                 int x_neg, y_neg, z_neg;
                 int x_pos, y_pos, z_pos;
 
                 // assign the x offsets
-                if(x==0) {
-                    x_neg = _D-1;
-                    x_pos = x+1;
-                } else if (x == (_D-1)) {
-                    x_neg = x-1;
+                if (x == 0) {
+                    x_neg = _cells_per_dimension - 1;
+                    x_pos = x + 1;
+                } else if (x == (_cells_per_dimension - 1)) {
+                    x_neg = x - 1;
                     x_pos = 0;
                 } else {
-                    x_neg = x-1;
-                    x_pos = x+1;
+                    x_neg = x - 1;
+                    x_pos = x + 1;
                 }
 
                 // assign the y offsets
-                if(y==0) {
-                    y_neg = _D-1;
-                    y_pos = y+1;
-                } else if (y == (_D-1)) {
-                    y_neg = y-1;
+                if(y == 0) {
+                    y_neg = _cells_per_dimension - 1;
+                    y_pos = y + 1;
+                } else if (y == (_cells_per_dimension - 1)) {
+                    y_neg = y - 1;
                     y_pos = 0;
                 } else {
-                    y_neg = y-1;
-                    y_pos = y+1;
+                    y_neg = y - 1;
+                    y_pos = y + 1;
                 }
 
                 // assign the z offsets
-                if(z==0) {
-                    z_neg = _D-1;
-                    z_pos = z+1;
-                } else if (z == (_D-1)) {
-                    z_neg = z-1;
+                if(z == 0) {
+                    z_neg = _cells_per_dimension - 1;
+                    z_pos = z + 1;
+                } else if (z == (_cells_per_dimension - 1)) {
+                    z_neg = z - 1;
                     z_pos = 0;
                 } else {
-                    z_neg = z-1;
-                    z_pos = z+1;
+                    z_neg = z - 1;
+                    z_pos = z + 1;
                 }
 
+                // Neighbour location and ID
                 cell_t n_loc;
                 PDeviceId nId;
 
+                // If we use send to self, a cell needs to be connected to itself
             #ifdef SEND_TO_SELF
                 addNeighbour(cId, cId);
             #elif defined(GALS) && !defined(ONE_BY_ONE)
+                // Non-improved GALS uses send to self by default
                 addNeighbour(cId, cId);
             #endif
 
@@ -452,39 +425,30 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
             }
         }
     }
-    // all the edges have been connected
+    // All the edges have been connected
 
 #ifndef SERIAL
   #ifdef DRAM
-    _g->mapVerticesToDRAM = true;
+    _cells->mapVerticesToDRAM = true;
     std::cout << "Mapping vertices to DRAM\n";
   #endif
-    _g->map(); // map the graph into hardware calling the POLite placer
+    // Map the graph into hardware calling the POLite placer
+    _cells->map();
 
   #ifdef OUTPUT_MAPPING
     outputMapping();
   #endif
 #endif
 
-#ifdef SERIAL
-    _sim.setTimestep(_start_timestep);
-    _sim.setMaxTimestep(_max_timestep);
-    _sim.setCellSize(_unit_size);
-    _sim.setN(_D);
-#endif
-
     // Initialise all the devices with as much as possible to reduce code in the cell
     for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
       #ifdef SERIAL
-        DPDState *state = _sim.getCell(cId);
+        DPDState *state = _cells.getCell(cId);
       #else
-        DPDState *state = &_g->devices[cId]->state;
+        DPDState *state = &_cells->devices[cId]->state;
       #endif
-        cell_t loc = i->second;
-        state->loc.x = loc.x;
-        state->loc.y = loc.y;
-        state->loc.z = loc.z;
+        // Location is set by Volume parent class
     #ifndef SERIAL
         state->unit_size = _unit_size;
         state->N = _D;
@@ -508,20 +472,22 @@ Universe<S>::Universe(S size, unsigned D, uint32_t start_timestep, uint32_t max_
     #ifndef SERIAL
         state->error = 0;
     #endif
+        for (int s = 0; s < MAX_BEADS; s++) {
+            state->force_slot[s].set(0.0, 0.0, 0.0);
+            state->old_velo[s].set(0.0, 0.0, 0.0);
+        }
     }
 }
 
 // deconstructor
 template<class S>
-Universe<S>::~Universe() {
-#ifndef SERIAL
-    delete _g;
-#endif
+SimVolume<S>::~SimVolume() {
+~Volume();
 }
 
-// checks to see if a bead can be added to the universe
+// Checks to see if a bead can be added to the volume
 template<class S>
-bool Universe<S>::space(const bead_t *in) {
+bool SimVolume<S>::space_for_bead(const bead_t *in) {
     bead_t b = *in;
     unit_pos_t x = floor(b.pos.x()/_unit_size);
     unit_pos_t y = floor(b.pos.y()/_unit_size);
@@ -532,16 +498,17 @@ bool Universe<S>::space(const bead_t *in) {
         return false;
     }
 
-    // lookup the device
+    // Find the device
     PDeviceId b_su = _locToId[t];
+    // Get the device
   #ifdef SERIAL
-    uint32_t bslot = _sim.getCell(b_su)->bslot;
+    uint32_t bslot = _cells.at(b_su)->bslot;
   #else
-    uint32_t bslot = _g->devices[b_su]->state.bslot;
+    uint32_t bslot = _cells->devices[b_su]->state.bslot;
   #endif
 
-    // check to make sure there is still enough room in the device
-    if(get_num_beads(bslot) >= (MAX_BEADS)) {
+    // Check to make sure there is still enough room in the device
+    if(get_num_beads(bslot) >= MAX_BEADS) {
         return false;
     }
 
@@ -557,9 +524,9 @@ bool Universe<S>::space(const bead_t *in) {
     return true;
 }
 
-// checks to see if a pair of beads can be added to the universe
+// Checks to see if a pair of beads can be added to the volume
 template<class S>
-bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
+bool SimVolume<S>::space_for_bead_pair(const bead_t *pa, const bead_t *pb) {
     unit_pos_t xa = floor(pa->pos.x() / _unit_size);
     unit_pos_t ya = floor(pa->pos.y() / _unit_size);
     unit_pos_t za = floor(pa->pos.z() / _unit_size);
@@ -582,123 +549,46 @@ bool Universe<S>::space(const bead_t *pa, const bead_t *pb) {
    PDeviceId b_sua = _locToId[ta];
    PDeviceId b_sub = _locToId[tb];
 
-    if (b_sua == b_sub){
+    if (b_sua == b_sub) {
       #ifdef SERIAL
-        return get_num_beads(_sim.getCell(b_sua)->bslot) + 1 < MAX_BEADS;
+        return get_num_beads(_cells.at(b_sua)->bslot) + 1 < MAX_BEADS;
       #else
-        return get_num_beads(_g->devices[b_sua]->state.bslot)+1 < MAX_BEADS;
+        return get_num_beads(_cells->devices[b_sua]->state.bslot) + 1 < MAX_BEADS;
       #endif
     } else {
       #ifdef SERIAL
-        return (get_num_beads(_sim.getCell(b_sua)->bslot) < MAX_BEADS) && (get_num_beads(_sim.getCell(b_sub)->bslot) < MAX_BEADS);
+        return (get_num_beads(_cells.at(b_sua)->bslot) < MAX_BEADS) && (get_num_beads(_cells.getCell(b_sub)->bslot) < MAX_BEADS);
       #else
-        return (get_num_beads(_g->devices[b_sua]->state.bslot) < MAX_BEADS) && (get_num_beads(_g->devices[b_sub]->state.bslot) < MAX_BEADS);
+        return (get_num_beads(_cells->devices[b_sua]->state.bslot) < MAX_BEADS) && (get_num_beads(_volume->devices[b_sub]->state.bslot) < MAX_BEADS);
       #endif
    }
 }
 
-// add a bead to the simulation universe
+// Writes the volume into the simulator memory
 template<class S>
-cell_t Universe<S>::add(const bead_t *in) {
-    bead_t b = *in;
-    unit_pos_t x = floor(b.pos.x()/_unit_size);
-    unit_pos_t y = floor(b.pos.y()/_unit_size);
-    unit_pos_t z = floor(b.pos.z()/_unit_size);
-    cell_t t = {x,y,z};
-
-    // Lookup the device
-    PDeviceId b_su = _locToId[t];
-
-    // Get the devices state
+void SimVolume<S>::write() {
 #ifdef SERIAL
-    DPDState *state = _sim.getCell(b_su);
+    // The x86 serial simulator can move some things out of the DPDState
+    _volume.setTimestep(_start_timestep);
+    _volume.setMaxTimestep(_max_timestep);
+    _volume.setCellLength(_cell_length);
+    _volume.setCellsPerDimension(_cells_per_dimension);
+    // Put the cells in the runnable
 #else
-    DPDState *state = &_g->devices[b_su]->state;
+    // Write the volume into the POETS system
+    _volume->write(_hostLink);
 #endif
-
-    // Check to make sure there is still enough room in the device
-    if (get_num_beads(state->bslot) > MAX_BEADS) {
-        std::cerr << "Error: there is not enough space in cell: " << t.x << ", " << t.y << ", " << t.z << " for bead: " << in->id << ".\n";
-        std::cerr << "There is already " << get_num_beads(state->bslot) << " beads in this cell for a max of\n";
-        fflush(stdout);
-        exit(EXIT_FAILURE);
-    } else {
-        // we can add the bead
-
-        // make the postion of the bead relative
-        b.pos.x(b.pos.x() - (S(float(t.x))*_unit_size));
-        b.pos.y(b.pos.y() - (S(float(t.y))*_unit_size));
-        b.pos.z(b.pos.z() - (S(float(t.z))*_unit_size));
-
-        // get the next free slot in this device
-        uint8_t slot = get_next_free_slot(state->bslot);
-        state->bead_slot[slot] = b;
-        state->bslot = set_slot(state->bslot, slot);
-        state->force_slot[slot].set(0.0, 0.0, 0.0);
-    #ifdef BETTER_VERLET
-        state->old_velo[slot].set(b.velo.x(), b.velo.y(), b.velo.z());
-    #endif
-        _beads_added++;
-    }
-
-    return t;
 }
-
-template<class S>
-void Universe<S>::add(const cell_t cell, const bead_t *in) {
-    bead_t b = *in;
-    if (b.pos.x() > _unit_size || b.pos.y() > _unit_size || b.pos.z() > _unit_size) {
-        printf("Error: Bead position given (%f, %f, %f) is outside the bounds of this unit (%d, %d, %d) which has side length %f\n", b.pos.x(), b.pos.y(), b.pos.z(), cell.x, cell.y, cell.z, _unit_size);
-        fflush(stdout);
-        exit(EXIT_FAILURE);
-    }
-
-    // Lookup the device
-    PDeviceId b_su = _locToId[cell];
-
-    // Get the device state
-#ifdef SERIAL
-    DPDState *state = _sim.getCell(b_su);
-#else
-    DPDState *state = &_g->devices[b_su]->state;
-#endif
-
-    // Get the next free slot in this device
-    uint8_t slot = get_next_free_slot(state->bslot);
-    state->bead_slot[slot] = b;
-    state->bslot = set_slot(state->bslot, slot);
-    state->force_slot[slot].set(0.0, 0.0, 0.0);
-    _beads_added++;
-}
-
-// writes the universe into the POETS system
-#ifndef SERIAL
-template<class S>
-void Universe<S>::write() {
-    _g->write(_hostLink);
-}
-#endif
-
-#ifndef SERIAL
-// Use cell_t location to acquire thread id
-template<class S>
-PThreadId Universe<S>::get_thread_from_loc(cell_t loc) {
-    PDeviceId dev_id = _locToId[loc];
-    PDeviceAddr dev_addr = _g->toDeviceAddr[dev_id];
-    PThreadId thread_id = getThreadId(dev_addr);
-    return thread_id;
-}
-#endif
 
 #ifdef MESSAGE_COUNTER
 template<class S>
-void Universe<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messages) {
+void SimVolume<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messages) {
     clearLinks(&_link_messages);
     for (std::map<cell_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
         clearLinks(&_link_edges);
         cell_t loc = i->first;
         uint32_t cellId = _locToId[loc];
-        PDeviceAddr cellAddr = _g->toDeviceAddr[cellId];
+        PDeviceAddr cellAddr = _volume->toDeviceAddr[cellId];
         PThreadId cellThread = getThreadId(cellAddr);
         uint32_t messages = i->second;
         updateLinkInfo(cellThread, loc, &_link_edges);
@@ -759,16 +649,16 @@ void Universe<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messa
 #endif
 
 template<class S>
-void Universe<S>::calculate_runtime() {
-    // Hours
-    _runtime_seconds += _runtime_hours * 60 * 60; // Hours * 60 minutes per hour * 60 seconds per minute
-    // Minutes
+void SimVolume<S>::calculate_runtime() {
+    // Hours to minutes
+    _runtime_minutes += _runtime_hours * 60; // Hours * 60 minutes per hour
+    // Minutes to seconds
     _runtime_seconds += _runtime_minutes * 60; // Minutes * 60 seconds per minute;
 }
 
-// starts the simulation
+// Run the simulation
 template<class S>
-void Universe<S>::run() {
+void SimVolume<S>::run() {
 #ifdef VISUALISE
     // Max runtime - currently only checked when a json file is closed
     _runtime_hours = 45;
@@ -794,8 +684,8 @@ void Universe<S>::run() {
 
 #ifdef SERIAL
     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _sim.setQueue(&queue);
-    std::thread thread(&SerialSim::run, _sim);
+    _volume.setQueue(&queue);
+    std::thread thread(&SerialSim::run, _volume);
 #else // We dont need host link if we're running serial sim on x86
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
@@ -827,7 +717,7 @@ void Universe<S>::run() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _sim.receiveMessage();
+        DPDMessage msg = _volume.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -1009,14 +899,14 @@ void Universe<S>::run() {
 
 // Runs a test, gets the bead outputs and returns this to the test file
 template<class S>
-std::map<uint32_t, DPDMessage> Universe<S>::test() {
+std::map<uint32_t, DPDMessage> SimVolume<S>::test() {
     std::map<uint32_t, DPDMessage> result;
     // Finish counter
     uint32_t finish = 0;
 #ifdef SERIAL
     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _sim.setQueue(&queue);
-    std::thread thread(&SerialSim::run, _sim);
+    _volume.setQueue(&queue);
+    std::thread thread(&SerialSim::run, _volume);
 #else // We dont need host link if we're running serial sim on x86
     _hostLink->boot("code.v", "data.v");
     _hostLink->go();
@@ -1026,7 +916,7 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _sim.receiveMessage();
+        DPDMessage msg = _volume.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -1052,7 +942,7 @@ std::map<uint32_t, DPDMessage> Universe<S>::test() {
 }
 
 template<class S>
-uint16_t Universe<S>::get_neighbour_cell_dimension(unit_pos_t c, int16_t n) {
+uint16_t SimVolume<S>::get_neighbour_cell_dimension(unit_pos_t c, int16_t n) {
     if (n == -1) {
         if (c == 0) {
             return _D - 1;
@@ -1071,7 +961,7 @@ uint16_t Universe<S>::get_neighbour_cell_dimension(unit_pos_t c, int16_t n) {
 }
 
 template<class S>
-PDeviceId Universe<S>::get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
+PDeviceId SimVolume<S>::get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
     cell_t u_j = {
         get_neighbour_cell_dimension(u_i.x, d_x),
         get_neighbour_cell_dimension(u_i.y, d_y),
@@ -1081,16 +971,16 @@ PDeviceId Universe<S>::get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_
 }
 
 template<class S>
-float Universe<S>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
+float SimVolume<S>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
     float min_dist = 100.0;
     for (int16_t d_x = -1; d_x <= 1; d_x++) {
         for (int16_t d_y = -1; d_y <= 1; d_y++) {
             for (int16_t d_z = -1; d_z <= 1; d_z++) {
                 PDeviceId n_id = get_neighbour_cell_id(u_i, d_x, d_y, d_z);
               #ifdef SERIAL
-                DPDState *state = _sim.getCell(n_id);
+                DPDState *state = _volume.getCell(n_id);
               #else
-                DPDState *state = &_g->devices[n_id]->state;
+                DPDState *state = &_volume->devices[n_id]->state;
               #endif
                 // Get neighbour bead slot
                 uint32_t nslot = state->bslot;
@@ -1118,7 +1008,7 @@ float Universe<S>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
 }
 
 template<class S>
-void Universe<S>::store_initial_bead_distances() {
+void SimVolume<S>::store_initial_bead_distances() {
     std::cerr << "Outputting minimum distances between beads for initial placement to ../init_dist.json\n";
     FILE* f = fopen("../init_dist.json", "w+");
     fprintf(f, "{ \"min_dists\":[\n");
@@ -1129,9 +1019,9 @@ void Universe<S>::store_initial_bead_distances() {
                 cell_t u = { u_x, u_y, u_z };
                 PDeviceId dev_id = _locToId[u];
               #ifdef SERIAL
-                DPDState* state = _sim.getCell(dev_id);
+                DPDState* state = _volume.getCell(dev_id);
               #else
-                DPDState* state = &_g->devices[dev_id]->state;
+                DPDState* state = &_volume->devices[dev_id]->state;
               #endif
                 uint32_t bslot = state->bslot;
                 while (bslot) {
@@ -1153,4 +1043,4 @@ void Universe<S>::store_initial_bead_distances() {
     std::cerr << "Complete\n";
 }
 
-#endif /* __UNIVERSE_IMPL */
+#endif /* __SIM_VOLUME_IMPL */
