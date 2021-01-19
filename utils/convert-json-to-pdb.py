@@ -2,11 +2,11 @@ import json
 import numpy as np
 
 volLength = 100
-min_timestep = 342000
-max_timestep = 967000
+min_timestep = 0
+max_timestep = 1000000
 emitperiod = 1000
 in_dir = "../100_vesicle_frames/"
-out_filepath = "../100-100-100-vesicle-342k-967k-timesteps.pdb"
+out_filepath = "../100-100-100-vesicle-1m-timesteps.pdb"
 bead_types = ["HHH", "TaT", "WWW", "Tb1"]
 includeWater = False
 waterTypeNum = 2

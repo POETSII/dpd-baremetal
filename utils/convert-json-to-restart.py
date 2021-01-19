@@ -1,7 +1,7 @@
 import json
 
 volLength = 100
-timestep = 916000
+timestep = 1000000
 in_filepath = "../" + str(volLength) + "_vesicle_frames/state_" + str(timestep) + ".json"
 out_filepath = "../restart-vesicle/vesicle_restart_" + str(timestep) + ".csv"
 f = open(out_filepath, "w+")
