@@ -38,17 +38,17 @@ typedef struct _bead_t {
 #endif
 } bead_t; // 29 bytes - 41 with BETTER_VERLET
 
-typedef uint16_t unit_pos_t;
+typedef uint16_t cell_pos_t;
 
 // defines the cell location
 struct cell_t {
-    unit_pos_t x;
-    unit_pos_t y;
-    unit_pos_t z;
+    cell_pos_t x;
+    cell_pos_t y;
+    cell_pos_t z;
 
     #ifndef TINSEL // below is only needed for the host code
 
-    // so that we can use the co-ordinate of the spatial unit as a key
+    // So that we can use the co-ordinate of the cell as a key
     bool operator<(const cell_t& coord) const {
         if(x < coord.x) return true;
         if(x > coord.x) return false;

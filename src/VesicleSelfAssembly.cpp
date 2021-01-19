@@ -11,7 +11,7 @@
 #else
 #include "sync.h"
 #endif
-#include "universe.hpp"
+#include "SimVolume.hpp"
 #include <map>
 #include <math.h>
 #include <random>
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, 0, max_time);
+    SimVolume<ptype> volume(problem_size, N, 0, max_time);
 
     printf("Universe setup -- adding beads\n");
 
@@ -220,8 +220,8 @@ int main(int argc, char *argv[]) {
         #elif defined(BETTER_VERLET)
             prev_bead->acc.set(0.0, 0.0, 0.0);
         #endif
-            if (uni.space(prev_bead.get())) {
-                uni.add(prev_bead.get());
+            if (volume.space_for_bead(prev_bead.get())) {
+                volume.add_bead(prev_bead.get());
                 fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
                 added = true;
                 beads_added++;
@@ -269,8 +269,8 @@ int main(int argc, char *argv[]) {
             #elif defined(BETTER_VERLET)
                 b1->acc.set(0.0, 0.0, 0.0);
             #endif
-                if(uni.space(b1.get())) {
-                    uni.add(b1.get());
+                if(volume.space_for_bead(b1.get())) {
+                    volume.add_bead(b1.get());
                     fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                     added = true;
                     prev_bead = b1;
@@ -297,8 +297,8 @@ int main(int argc, char *argv[]) {
         #elif defined(BETTER_VERLET)
             b1->acc.set(0.0, 0.0, 0.0);
         #endif
-            if (uni.space(b1)) {
-                uni.add(b1);
+            if (volume.space_for_bead(b1)) {
+                volume.add_bead(b1);
                 fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
@@ -310,12 +310,12 @@ int main(int argc, char *argv[]) {
     fclose(f);
 
 #ifndef SERIAL
-    uni.write(); // write the universe into the POETS memory
+    // volume.write(); // write the universe into the POETS memory
 #endif
 
-    // uni.print_occupancy();
+    // volume.print_occupancy();
     printf("running...\n");
-    uni.run(); // start the simulation
+    // volume.run(); // start the simulation
 
     return 0;
 }

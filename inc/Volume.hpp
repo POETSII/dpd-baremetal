@@ -42,31 +42,31 @@ class Volume {
     // Prints the number of beads assigned to each cell
     void print_occupancy();
 
-    private:
+    protected:
 
     // Length of one side of cubic volume in generic
-    S _volume_length;
+    S volume_length;
     // Length of one side of cubic volume in number of cells
-    unsigned _cells_per_dimension;
+    unsigned cells_per_dimension;
     // Length of one side of cubic cell in generic
-	S _cell_length;
+	S cell_length;
 
     // Total beads this volume contains
-    uint32_t _beads_added = 0;
+    uint32_t beads_added = 0;
 
     // The cells
-#if defined(SERIAL) || defined(RDF)
+  #if defined(SERIAL) || defined(RDF)
     // A vector where PDeviceId represents its index in the vector
-    std::vector<DPDState> _cells;
-#else
+    std::vector<DPDState> *cells;
+  #else
 	// POLite graph containing the cells
     // PDeviceId represents its device ID in the graph
-	PGraph<DPDDevice, DPDState, None, DPDMessage> * _cells;
-#endif
+	PGraph<DPDDevice, DPDState, None, DPDMessage> *cells;
+  #endif
 
     // Maintain maps of ID's to locations (and vice versa) in the volume
-    std::map<PDeviceId, cell_t> _idToLoc;
-    std::map<cell_t, PDeviceId> _locToId;
+    std::map<PDeviceId, cell_t> idToLoc;
+    std::map<cell_t, PDeviceId> locToId;
 };
 
 #include "../src/Volume.cpp"

@@ -74,11 +74,11 @@ struct DPDMessage {
 
 // the state of the DPD Device
 struct DPDState {
-    float unit_size; // the size of this spatial unit in one dimension
-    uint8_t cells_per_dimension;
-    cell_t loc; // the location of this cube
-    uint16_t bslot; // a bitmap of which bead slot is occupied
-    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    float unit_size; // The size of this spatial unit in one dimension
+    uint8_t cells_per_dimension; // The length of one side of the volume in number of cells
+    cell_t loc; // The location of this cell
+    uint16_t bslot; // A bitmap of which bead slot is occupied
+    uint16_t sentslot; // A bitmap of which bead slot has not been sent from yet
     uint16_t newBeadMap;
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
 #ifdef FLOAT_ONLY

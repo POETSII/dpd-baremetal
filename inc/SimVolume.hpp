@@ -23,7 +23,7 @@
 #endif
 
 template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
-class SimVolume : public Volume {
+class SimVolume : public Volume<S> {
     public:
 
     // Constructors and destructors
@@ -57,15 +57,15 @@ class SimVolume : public Volume {
 
     // Simulation control
     // Writes the simulation volume onto the POETS system
-    void write();
+    // void write();
     // Runs the simulation
-    void run();
+    // void run();
     // Runs a test, gets the bead positions and returns them for comparison
-    std::map<uint32_t, DPDMessage> test();
+    // std::map<uint32_t, DPDMessage> test();
 
     // Debugging
     // Gets single dimension neighbour based on n which is -1, 0 or 1
-    uint16_t get_neighbour_cell_dimension(unit_pos_t c, int16_t n);
+    uint16_t get_neighbour_cell_dimension(cell_pos_t c, int16_t n);
     // Gets device ID for neighbouring cell. d_x, d_y and d_z are between -1 and 1 and used for to find the 26 neighbours
     PDeviceId get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z);
     // Find the distance between the given bead and its nearest bead
@@ -73,35 +73,35 @@ class SimVolume : public Volume {
     // Store the nearest bead distances for each bead in a JSON file
     void store_initial_bead_distances();
 
-    private:
+    protected:
     // First timestep to run. 0 if starting a new simulation. n if restarting a simulation
-    uint32_t _start_timestep = 0;
-    // Last timestep to run. Not always used if simulation is to run indefinitely
-    uint32_t _max_timestep = 0;
+    // uint32_t start_timestep = 0;
+    // // Last timestep to run. Not always used if simulation is to run indefinitely
+    // uint32_t max_timestep = 0;
 
     // Runtime variables
     // These are used so the simulation finishes after a given period of time.
     // When the simulation emits its state, these are checked, and only then
     // will the simulation terminate. This ensures we have complete states when
     // the simulation ends.
-    uint32_t _runtime_hours = 0;
-    uint32_t _runtime_minutes = 0;
-    uint32_t _runtime_seconds = 0;
+    // uint32_t _runtime_hours = 0;
+    // uint32_t _runtime_minutes = 0;
+    // uint32_t _runtime_seconds = 0;
     // timeval is used to get seconds of runtime, so calculate_runtime takes
     // the above variables and converts them into seconds
     // (stored in _runtime_seconds).
-    void calculate_runtime();
+    // void calculate_runtime();
 
 	// For the external connection
-    ExternalServer *_extern;
+    // ExternalServer *_extern;
 
 	// Measuring performance
-	struct timeval _start, _finish, _diff;
+	// struct timeval _start, _finish, _diff;
 
     // Box mesh dimensions
-    uint32_t _boxesX, _boxesY;
+    // uint32_t _boxesX, _boxesY;
     // Board mesh dimensions
-    uint32_t _boardsX, _boardsY;
+    // uint32_t _boardsX, _boardsY;
 
 #if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
     FPGALinks _link_messages, _link_edges;

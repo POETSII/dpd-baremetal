@@ -16,9 +16,10 @@
 template<class S>
 void SimVolume<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 #ifdef SERIAL
-    _volume.addEdge(a, b);
+    DPDState *a_state = &this->cells.at(a);
+    a_state->neighbours[a_state->num_neighbours++] = b;
 #else
-    _volume->addEdge(a,0,b);
+    this->cells->addEdge(a,0,b);
 #endif
 }
 
@@ -93,7 +94,7 @@ void SimVolume<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* l
                 n_loc.y = locOffset(c_loc.y, y_off, _D);
                 n_loc.z = locOffset(c_loc.z, z_off, _D);
 
-                PDeviceId nId = _locToId[n_loc];
+                PDeviceId nId = this->locToId[n_loc];
                 PDeviceAddr n_addr = _volume->toDeviceAddr[nId];
                 PThreadId n_thread = getThreadId(n_addr);
                 uint32_t n_FPGA_y = n_thread >> (TinselLogThreadsPerBoard + TinselMeshXBits);
@@ -118,11 +119,11 @@ void SimVolume<S>::outputMapping() {
     // Open JSON
     output = "{\n";
     output += "\t\"vertices\": {\n";
-    for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+    for(std::map<PDeviceId, cell_t>::iterator i = this->idToLoc.begin(); i != this->idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
         cell_t loc = i->second;
         std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
-        PDeviceAddr cellAddr = _cells->toDeviceAddr[cId];
+        PDeviceAddr cellAddr = cells->toDeviceAddr[cId];
         PThreadId cellThread = getThreadId(cellAddr);
         output += "\t\t" + cellName +": " + std::to_string(cellThread) + ", \n";
         updateLinkInfo(cellThread, loc, &_link_edges);
@@ -164,40 +165,38 @@ void SimVolume<S>::outputMapping() {
 
 // constructor
 template<class S>
-SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t start_time, uint32_t max_time) {
-    // Call parent class constructor
-    Volume(volume_length, cells_per_dimension);
+SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t start_time, uint32_t max_time) : Volume<S>(volume_length, cells_per_dimension) {
 
     // Store start and max timestep
-    _start_timestep = start_timestep;
-    _max_timestep = max_timestep;
+    // this->start_timestep = start_timestep;
+    // this->max_timestep = max_timestep;
 
 // Prepare variables for message counting and output mapping
-#if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
-    // Prep link 2D vectors
-    _link_messages.x = std::vector<std::vector<uint64_t>>(6);
-    _link_messages.y = std::vector<std::vector<uint64_t>>(6);
-    _link_messages.intra = std::vector<std::vector<uint64_t>>(6);
-    _link_edges.x = std::vector<std::vector<uint64_t>>(6);
-    _link_edges.y = std::vector<std::vector<uint64_t>>(6);
-    _link_edges.intra = std::vector<std::vector<uint64_t>>(6);
-    for (int i = 0; i < 6; i++) {
-        _link_messages.x.at(i).resize(8);
-        _link_messages.y.at(i).resize(8);
-        _link_messages.intra.at(i).resize(8);
-        _link_edges.x.at(i).resize(8);
-        _link_edges.y.at(i).resize(8);
-        _link_edges.intra.at(i).resize(8);
-    }
-#endif
+// #if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
+//     // Prep link 2D vectors
+//     _link_messages.x = std::vector<std::vector<uint64_t>>(6);
+//     _link_messages.y = std::vector<std::vector<uint64_t>>(6);
+//     _link_messages.intra = std::vector<std::vector<uint64_t>>(6);
+//     _link_edges.x = std::vector<std::vector<uint64_t>>(6);
+//     _link_edges.y = std::vector<std::vector<uint64_t>>(6);
+//     _link_edges.intra = std::vector<std::vector<uint64_t>>(6);
+//     for (int i = 0; i < 6; i++) {
+//         _link_messages.x.at(i).resize(8);
+//         _link_messages.y.at(i).resize(8);
+//         _link_messages.intra.at(i).resize(8);
+//         _link_edges.x.at(i).resize(8);
+//         _link_edges.y.at(i).resize(8);
+//         _link_edges.intra.at(i).resize(8);
+//     }
+// #endif
 
 #ifndef VISUALISE
     std::cout << "Simulate to timestep    : " << max_timestep << "\n";
 #endif
 
-#ifdef VISUALISE
-    _extern = new ExternalServer("_external.sock");
-#endif
+// #ifdef VISUALISE
+//     _extern = new ExternalServer("_external.sock");
+// #endif
 
 #ifdef GALS
     std::cout << "Running GALS implementation ";
@@ -225,31 +224,31 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
 
 // Number of POETS boxes and Tinsel FPGAs to use
 #ifndef SERIAL
-    _boxesX = 2; //TinselBoxMeshXLen;
-    _boxesY = 4; //TinselBoxMeshYLen;
-    _boardsX = _boxesX * TinselMeshXLenWithinBox;
-    _boardsY = _boxesY * TinselMeshYLenWithinBox;
+    // _boxesX = 2; //TinselBoxMeshXLen;
+    // _boxesY = 4; //TinselBoxMeshYLen;
+    // _boardsX = _boxesX * TinselMeshXLenWithinBox;
+    // _boardsY = _boxesY * TinselMeshYLenWithinBox;
 
-    std::cout << "Running on " << _boxesX * _boxesY << " box";
-    if ((_boxesX * _boxesY) != 1) {
-        std::cout << "es";
-    }
-    std::cout << ".\n";
+    // std::cout << "Running on " << _boxesX * _boxesY << " box";
+    // if ((_boxesX * _boxesY) != 1) {
+    //     std::cout << "es";
+    // }
+    // std::cout << ".\n";
 #endif
 
 // Acquire Hostlink so we can communicate with the Tinsel FPGAs
-#if !defined(OUTPUT_MAPPING) && !defined(SERIAL)
-    _hostLink = new HostLink(_boxesX, _boxesY);
-#endif
+// #if !defined(OUTPUT_MAPPING) && !defined(SERIAL)
+//     _hostLink = new HostLink(_boxesX, _boxesY);
+// #endif
 
     // Connect the devices together appropriately.
     // A toroidal space (cube with periodic boundaries)
-    for(uint16_t x=0; x<_cells_per_dimension; x++) {
-        for(uint16_t y=0; y<_cells_per_dimension; y++) {
-            for(uint16_t z=0; z<_cells_per_dimension; z++) {
+    for(uint16_t x = 0; x < cells_per_dimension; x++) {
+        for(uint16_t y = 0; y < cells_per_dimension; y++) {
+            for(uint16_t z = 0; z < cells_per_dimension; z++) {
                 // This device
                 cell_t c_loc = {x,y,z};
-                PDeviceId cId = _locToId[c_loc];
+                PDeviceId cId = this->locToId[c_loc];
 
                 // Calculate the neighbour positions
                 // (taking into account the periodic boundary).
@@ -258,9 +257,9 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
 
                 // assign the x offsets
                 if (x == 0) {
-                    x_neg = _cells_per_dimension - 1;
+                    x_neg = cells_per_dimension - 1;
                     x_pos = x + 1;
-                } else if (x == (_cells_per_dimension - 1)) {
+                } else if (x == (cells_per_dimension - 1)) {
                     x_neg = x - 1;
                     x_pos = 0;
                 } else {
@@ -270,9 +269,9 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
 
                 // assign the y offsets
                 if(y == 0) {
-                    y_neg = _cells_per_dimension - 1;
+                    y_neg = cells_per_dimension - 1;
                     y_pos = y + 1;
-                } else if (y == (_cells_per_dimension - 1)) {
+                } else if (y == (cells_per_dimension - 1)) {
                     y_neg = y - 1;
                     y_pos = 0;
                 } else {
@@ -282,9 +281,9 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
 
                 // assign the z offsets
                 if(z == 0) {
-                    z_neg = _cells_per_dimension - 1;
+                    z_neg = cells_per_dimension - 1;
                     z_pos = z + 1;
-                } else if (z == (_cells_per_dimension - 1)) {
+                } else if (z == (cells_per_dimension - 1)) {
                     z_neg = z - 1;
                     z_pos = 0;
                 } else {
@@ -307,168 +306,168 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
                 // z = -1
                 // { -1,-1,-1 },  { -1,0,-1 },  { -1, +1,-1 }
                 n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_neg; n_loc.y = y; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_neg; n_loc.y = y_pos; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // { 0,-1, -1 },  { 0, 0,-1 },  { 0, +1, -1 }
                 n_loc.x = x; n_loc.y = y_neg; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x; n_loc.y = y; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x; n_loc.y = y_pos; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // { +1,-1,-1 },  { +1,0,-1 },  { +1, +1,-1 }
                 n_loc.x = x_pos; n_loc.y = y_neg; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_pos; n_loc.y = y; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_pos; n_loc.y = y_pos; n_loc.z = z_neg;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // z = 0
                 // { -1,-1,0 },  { -1,0,0 },  { -1, +1,0 }
                 n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_neg; n_loc.y = y; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_neg; n_loc.y = y_pos; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // { 0,-1, 0 },  { 0, 0, 0 },  { 0, +1, 0 }
                 n_loc.x = x; n_loc.y = y_neg; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // skipping! one is not a neighbour of oneself
                 //n_loc.x = x; n_loc.y = y; n_loc.z = z;
 
                 n_loc.x = x; n_loc.y = y_pos; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // { +1,-1, 0 },  { +1,0, 0 },  { +1, +1, 0 }
                 n_loc.x = x_pos; n_loc.y = y_neg; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_pos; n_loc.y = y; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_pos; n_loc.y = y_pos; n_loc.z = z;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // z = +1
                 // { -1,-1,+1 },  { -1,0,+1},  { -1, +1,+1 }
                 n_loc.x = x_neg; n_loc.y = y_neg; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_neg; n_loc.y = y; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_neg; n_loc.y = y_pos; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // { 0,-1, +1 },  { 0, 0, +1 },  { 0, +1, +1 }
                 n_loc.x = x; n_loc.y = y_neg; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x; n_loc.y = y; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x; n_loc.y = y_pos; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 // { +1,-1, +1 },  { +1,0, +1 },  { +1, +1, +1 }
                 n_loc.x = x_pos; n_loc.y = y_neg; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_pos; n_loc.y = y; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
 
                 n_loc.x = x_pos; n_loc.y = y_pos; n_loc.z = z_pos;
-                nId = _locToId[n_loc];
+                nId = this->locToId[n_loc];
                 addNeighbour(cId, nId);
             }
         }
     }
     // All the edges have been connected
 
-#ifndef SERIAL
-  #ifdef DRAM
-    _cells->mapVerticesToDRAM = true;
-    std::cout << "Mapping vertices to DRAM\n";
-  #endif
-    // Map the graph into hardware calling the POLite placer
-    _cells->map();
+// #ifndef SERIAL
+//   #ifdef DRAM
+//     cells->mapVerticesToDRAM = true;
+//     std::cout << "Mapping vertices to DRAM\n";
+//   #endif
+//     Map the graph into hardware calling the POLite placer
+//     cells->map();
 
-  #ifdef OUTPUT_MAPPING
-    outputMapping();
-  #endif
-#endif
+//   #ifdef OUTPUT_MAPPING
+//     outputMapping();
+//   #endif
+// #endif
 
     // Initialise all the devices with as much as possible to reduce code in the cell
-    for(std::map<PDeviceId, cell_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
+    for(std::map<PDeviceId, cell_t>::iterator i = this->idToLoc.begin(); i != this->idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
       #ifdef SERIAL
-        DPDState *state = _cells.getCell(cId);
+        DPDState *state = cells.at(cId);
       #else
-        DPDState *state = &_cells->devices[cId]->state;
+        DPDState *state = &this->cells->devices[cId]->state;
       #endif
         // Location is set by Volume parent class
     #ifndef SERIAL
-        state->unit_size = _unit_size;
-        state->N = _D;
-        state->timestep = _start_timestep;
-        state->max_timestep = _max_timestep;
+        state->unit_size = this->cell_length;
+        state->cells_per_dimension = this->cells_per_dimension;
+        // state->timestep = _start_timestep;
+        // state->max_timestep = _max_timestep;
         state->mode = UPDATE;
     #endif
         state->rngstate = 1234; // start with a seed
     #if defined(VISUALISE) && !defined(SERIAL)
         state->emitcnt = 1;
     #endif
-    #ifdef SMALL_DT_EARLY
-        if (start_timestep < 1000) {
-            state->dt = early_dt;
-            state->inv_sqrt_dt = early_inv_sqrt_dt;
-        } else {
-            state->dt = normal_dt;
-            state->inv_sqrt_dt = normal_inv_sqrt_dt;
-        }
-    #endif
+    // #ifdef SMALL_DT_EARLY
+    //     if (start_timestep < 1000) {
+    //         state->dt = early_dt;
+    //         state->inv_sqrt_dt = early_inv_sqrt_dt;
+    //     } else {
+    //         state->dt = normal_dt;
+    //         state->inv_sqrt_dt = normal_inv_sqrt_dt;
+    //     }
+    // #endif
     #ifndef SERIAL
         state->error = 0;
     #endif
@@ -482,29 +481,29 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
 // deconstructor
 template<class S>
 SimVolume<S>::~SimVolume() {
-~Volume();
+    delete this->cells;
 }
 
 // Checks to see if a bead can be added to the volume
 template<class S>
 bool SimVolume<S>::space_for_bead(const bead_t *in) {
     bead_t b = *in;
-    unit_pos_t x = floor(b.pos.x()/_unit_size);
-    unit_pos_t y = floor(b.pos.y()/_unit_size);
-    unit_pos_t z = floor(b.pos.z()/_unit_size);
+    cell_pos_t x = floor(b.pos.x()/this->cell_length);
+    cell_pos_t y = floor(b.pos.y()/this->cell_length);
+    cell_pos_t z = floor(b.pos.z()/this->cell_length);
 
     cell_t t = {x,y,z};
-    if (x >= _size || x < 0 || y >= _size || y < 0 || z >= _size || z < 0) {
+    if (x >= this->volume_length || x < 0 || y >= this->volume_length || y < 0 || z >= this->volume_length || z < 0) {
         return false;
     }
 
     // Find the device
-    PDeviceId b_su = _locToId[t];
+    PDeviceId b_su = this->locToId[t];
     // Get the device
   #ifdef SERIAL
-    uint32_t bslot = _cells.at(b_su)->bslot;
+    uint32_t bslot = cells.at(b_su)->bslot;
   #else
-    uint32_t bslot = _cells->devices[b_su]->state.bslot;
+    uint32_t bslot = this->cells->devices[b_su]->state.bslot;
   #endif
 
     // Check to make sure there is still enough room in the device
@@ -527,58 +526,58 @@ bool SimVolume<S>::space_for_bead(const bead_t *in) {
 // Checks to see if a pair of beads can be added to the volume
 template<class S>
 bool SimVolume<S>::space_for_bead_pair(const bead_t *pa, const bead_t *pb) {
-    unit_pos_t xa = floor(pa->pos.x() / _unit_size);
-    unit_pos_t ya = floor(pa->pos.y() / _unit_size);
-    unit_pos_t za = floor(pa->pos.z() / _unit_size);
+    cell_pos_t xa = floor(pa->pos.x() / this->cell_length);
+    cell_pos_t ya = floor(pa->pos.y() / this->cell_length);
+    cell_pos_t za = floor(pa->pos.z() / this->cell_length);
     cell_t ta = {xa,ya,za};
 
-    unit_pos_t xb = floor(pb->pos.x() / _unit_size);
-    unit_pos_t yb = floor(pb->pos.y() / _unit_size);
-    unit_pos_t zb = floor(pb->pos.z() / _unit_size);
+    cell_pos_t xb = floor(pb->pos.x() / this->cell_length);
+    cell_pos_t yb = floor(pb->pos.y() / this->cell_length);
+    cell_pos_t zb = floor(pb->pos.z() / this->cell_length);
     cell_t tb = {xb,yb,zb};
 
-    if (_locToId.find(ta) == _locToId.end()){
+    if (this->locToId.find(ta) == this->locToId.end()){
         return false;
     }
 
-    if (_locToId.find(tb) == _locToId.end()){
+    if (this->locToId.find(tb) == this->locToId.end()){
         return false;
     }
 
     // lookup the device
-   PDeviceId b_sua = _locToId[ta];
-   PDeviceId b_sub = _locToId[tb];
+   PDeviceId b_sua = this->locToId[ta];
+   PDeviceId b_sub = this->locToId[tb];
 
     if (b_sua == b_sub) {
       #ifdef SERIAL
-        return get_num_beads(_cells.at(b_sua)->bslot) + 1 < MAX_BEADS;
+        return get_num_beads(this->cells.at(b_sua)->bslot) + 1 < MAX_BEADS;
       #else
-        return get_num_beads(_cells->devices[b_sua]->state.bslot) + 1 < MAX_BEADS;
+        return get_num_beads(this->cells->devices[b_sua]->state.bslot) + 1 < MAX_BEADS;
       #endif
     } else {
       #ifdef SERIAL
-        return (get_num_beads(_cells.at(b_sua)->bslot) < MAX_BEADS) && (get_num_beads(_cells.getCell(b_sub)->bslot) < MAX_BEADS);
+        return (get_num_beads(this->cells.at(b_sua)->bslot) < MAX_BEADS) && (get_num_beads(this->cells.getCell(b_sub)->bslot) < MAX_BEADS);
       #else
-        return (get_num_beads(_cells->devices[b_sua]->state.bslot) < MAX_BEADS) && (get_num_beads(_volume->devices[b_sub]->state.bslot) < MAX_BEADS);
+        return (get_num_beads(this->cells->devices[b_sua]->state.bslot) < MAX_BEADS) && (get_num_beads(this->cells->devices[b_sub]->state.bslot) < MAX_BEADS);
       #endif
    }
 }
 
-// Writes the volume into the simulator memory
-template<class S>
-void SimVolume<S>::write() {
-#ifdef SERIAL
-    // The x86 serial simulator can move some things out of the DPDState
-    _volume.setTimestep(_start_timestep);
-    _volume.setMaxTimestep(_max_timestep);
-    _volume.setCellLength(_cell_length);
-    _volume.setCellsPerDimension(_cells_per_dimension);
-    // Put the cells in the runnable
-#else
-    // Write the volume into the POETS system
-    _volume->write(_hostLink);
-#endif
-}
+// // Writes the volume into the simulator memory
+// template<class S>
+// void SimVolume<S>::write() {
+// #ifdef SERIAL
+//     // The x86 serial simulator can move some things out of the DPDState
+//     // this->cells.setTimestep(_start_timestep);
+//     // this->cells.setMaxTimestep(_max_timestep);
+//     // this->cells.setCellLength(_cell_length);
+//     // this->cells.setCellsPerDimension(cells_per_dimension);
+//     // Put the cells in the runnable
+// #else
+//     // Write the volume into the POETS system
+//     // this->cells->write(_hostLink);
+// #endif
+// }
 
 #ifdef MESSAGE_COUNTER
 template<class S>
@@ -587,7 +586,7 @@ void SimVolume<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_mess
     for (std::map<cell_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
         clearLinks(&_link_edges);
         cell_t loc = i->first;
-        uint32_t cellId = _locToId[loc];
+        uint32_t cellId = this->locToId[loc];
         PDeviceAddr cellAddr = _volume->toDeviceAddr[cellId];
         PThreadId cellThread = getThreadId(cellAddr);
         uint32_t messages = i->second;
@@ -648,309 +647,309 @@ void SimVolume<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_mess
 }
 #endif
 
-template<class S>
-void SimVolume<S>::calculate_runtime() {
-    // Hours to minutes
-    _runtime_minutes += _runtime_hours * 60; // Hours * 60 minutes per hour
-    // Minutes to seconds
-    _runtime_seconds += _runtime_minutes * 60; // Minutes * 60 seconds per minute;
-}
+// template<class S>
+// void SimVolume<S>::calculate_runtime() {
+//     // Hours to minutes
+//     _runtime_minutes += _runtime_hours * 60; // Hours * 60 minutes per hour
+//     // Minutes to seconds
+//     _runtime_seconds += _runtime_minutes * 60; // Minutes * 60 seconds per minute;
+// }
 
-// Run the simulation
-template<class S>
-void SimVolume<S>::run() {
-#ifdef VISUALISE
-    // Max runtime - currently only checked when a json file is closed
-    _runtime_hours = 45;
-    _runtime_minutes = 20;
-    _runtime_seconds = 0;
+// // Run the simulation
+// template<class S>
+// void SimVolume<S>::run() {
+// #ifdef VISUALISE
+//     // Max runtime - currently only checked when a json file is closed
+//     _runtime_hours = 45;
+//     _runtime_minutes = 20;
+//     _runtime_seconds = 0;
 
-    std::cout << "Will run for a maximum time of ";
-    if (_runtime_hours > 0) {
-        std::cout << _runtime_hours << " hours ";
-    }
-    if (_runtime_minutes > 0) {
-        std::cout << _runtime_minutes << " minutes ";
-    }
-    if (_runtime_seconds > 0) {
-        std::cout << _runtime_minutes << " seconds";
-    }
-    std::cout << "\n";
+//     std::cout << "Will run for a maximum time of ";
+//     if (_runtime_hours > 0) {
+//         std::cout << _runtime_hours << " hours ";
+//     }
+//     if (_runtime_minutes > 0) {
+//         std::cout << _runtime_minutes << " minutes ";
+//     }
+//     if (_runtime_seconds > 0) {
+//         std::cout << _runtime_minutes << " seconds";
+//     }
+//     std::cout << "\n";
 
-    calculate_runtime();
+//     calculate_runtime();
 
-    std::cout << "This totals " << _runtime_seconds << " seconds.\n";
-#endif
+//     std::cout << "This totals " << _runtime_seconds << " seconds.\n";
+// #endif
 
-#ifdef SERIAL
-    moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _volume.setQueue(&queue);
-    std::thread thread(&SerialSim::run, _volume);
-#else // We dont need host link if we're running serial sim on x86
-    _hostLink->boot("code.v", "data.v");
-    _hostLink->go();
-#endif
+// #ifdef SERIAL
+//     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
+//     _volume.setQueue(&queue);
+//     std::thread thread(&SerialSim::run, _volume);
+// #else // We dont need host link if we're running serial sim on x86
+//     _hostLink->boot("code.v", "data.v");
+//     _hostLink->go();
+// #endif
 
-    struct timeval start, finish, elapsedTime;
-    gettimeofday(&start, NULL);
+//     struct timeval start, finish, elapsedTime;
+//     gettimeofday(&start, NULL);
 
-#if defined(STATS)
-    politeSaveStats(_hostLink, "stats.txt");
-#endif
+// #if defined(STATS)
+//     politeSaveStats(_hostLink, "stats.txt");
+// #endif
 
-    uint32_t devices = 0;
-    uint32_t timestep = _start_timestep;
-#ifdef BEAD_COUNTER
-    uint32_t beads_out = 0;
-#endif
+//     uint32_t devices = 0;
+//     uint32_t timestep = _start_timestep;
+// #ifdef BEAD_COUNTER
+//     uint32_t beads_out = 0;
+// #endif
 
-#ifdef VISUALISE
-    std::map<uint32_t, uint32_t> bead_print_map;
-#endif
+// #ifdef VISUALISE
+//     std::map<uint32_t, uint32_t> bead_print_map;
+// #endif
 
-#ifdef MESSAGE_COUNTER
-    std::map<cell_t, uint32_t> cell_messages;
-#endif
-    std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
-    bool first = true;
-    // enter the main loop
-    while(1) {
-    #ifdef SERIAL
-        // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _volume.receiveMessage();
-    #else
-        PMessage<DPDMessage> pmsg;
-        _hostLink->recvMsg(&pmsg, sizeof(pmsg));
-        DPDMessage msg = pmsg.payload;
-    #endif
-        if (msg.type == 0xE0) {
-            std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
-            exit(1);
-        }
-    #ifdef TIMER
-      #ifdef BEAD_COUNTER
-        if (msg.type == 0xAA) {
-            devices++;
-            beads_out += msg.timestep;
-            if (devices >= _D*_D*_D) { // All devices reported
-                std::cerr << "Beads in  = " << _beads_added << "\n";
-                std::cerr << "Beads out = " << beads_out << "\n";
-                FILE *f = fopen("../bead_count.csv", "a+");
-                fprintf(f, "%u, %u, %u\n", _D, _beads_added, beads_out);
-                fclose(f);
-                return;
-            }
-        }
-      #else
-        std::cerr << "Msg type = " << (uint32_t) msg.type << "\n";
-        if (msg.type == 0xDD) {
-            if (msg.timestep > timestep) {
-                std::cerr << msg.from.x << ", "<< msg.from.y << ", " << msg.from.z;
-                std::cerr << " finished early. Timestep " << msg.timestep << "\n";
-                timestep = msg.timestep;
-            }
-        } else if (msg.type != 0xBB) {
-            if (msg.timestep >= _max_timestep) {
-                gettimeofday(&finish, NULL);
-                timersub(&finish, &start, &elapsedTime);
-                double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-                printf("Runtime = %1.10f\n", duration);
-                FILE* f = fopen("../mega_results.csv", "a+");
-                // FILE* f = fopen("../timing_results.csv", "a+");
-                fprintf(f, "%1.10f", duration);
-                fclose(f);
-            #ifdef SERIAL
-                thread.join();
-            #endif
-                return;
-            } else {
-                std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
-                return;
-            }
-        } else {
-            std::cerr << "ERROR: received message when not expected\n";
-            return;
-        }
-      #endif
-    #elif defined(STATS)
-        if (msg.type == 0xAA) {
-            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-            return;
-        }
-    #elif defined(MESSAGE_COUNTER)
-        if (msg.type != 0xBB) {
-            devices++;
-            cell_messages[msg.from] = msg.timestep;
-            if (devices >= (_D*_D*_D)) {
-                calculateMessagesPerLink(cell_messages);
-                return;
-            }
-        }
-    #elif defined(VISUALISE)
-        if (timestep < msg.timestep) {
-            timestep = msg.timestep;
-            bead_print_map[timestep] = 0;
-            // if (timestep > _start_timestep + emitperiod) {
-            // #ifndef VESICLE_SELF_ASSEMBLY
-            //     std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-            // #else
-            //     std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-            // #endif
-            //     FILE* old_file = fopen(path.c_str(), "a+");
-            //     fprintf(old_file, "\n]}\n");
-            //     fclose(old_file);
-            // }
+// #ifdef MESSAGE_COUNTER
+//     std::map<cell_t, uint32_t> cell_messages;
+// #endif
+//     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
+//     bool first = true;
+//     // enter the main loop
+//     while(1) {
+//     #ifdef SERIAL
+//         // Need some way of acquiring messages from the serial x86 simulator
+//         DPDMessage msg = _volume.receiveMessage();
+//     #else
+//         PMessage<DPDMessage> pmsg;
+//         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
+//         DPDMessage msg = pmsg.payload;
+//     #endif
+//         if (msg.type == 0xE0) {
+//             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+//             exit(1);
+//         }
+//     #ifdef TIMER
+//       #ifdef BEAD_COUNTER
+//         if (msg.type == 0xAA) {
+//             devices++;
+//             beads_out += msg.timestep;
+//             if (devices >= _D*_D*_D) { // All devices reported
+//                 std::cerr << "Beads in  = " << _beads_added << "\n";
+//                 std::cerr << "Beads out = " << beads_out << "\n";
+//                 FILE *f = fopen("../bead_count.csv", "a+");
+//                 fprintf(f, "%u, %u, %u\n", _D, _beads_added, beads_out);
+//                 fclose(f);
+//                 return;
+//             }
+//         }
+//       #else
+//         std::cerr << "Msg type = " << (uint32_t) msg.type << "\n";
+//         if (msg.type == 0xDD) {
+//             if (msg.timestep > timestep) {
+//                 std::cerr << msg.from.x << ", "<< msg.from.y << ", " << msg.from.z;
+//                 std::cerr << " finished early. Timestep " << msg.timestep << "\n";
+//                 timestep = msg.timestep;
+//             }
+//         } else if (msg.type != 0xBB) {
+//             if (msg.timestep >= _max_timestep) {
+//                 gettimeofday(&finish, NULL);
+//                 timersub(&finish, &start, &elapsedTime);
+//                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+//                 printf("Runtime = %1.10f\n", duration);
+//                 FILE* f = fopen("../mega_results.csv", "a+");
+//                 // FILE* f = fopen("../timing_results.csv", "a+");
+//                 fprintf(f, "%1.10f", duration);
+//                 fclose(f);
+//             #ifdef SERIAL
+//                 thread.join();
+//             #endif
+//                 return;
+//             } else {
+//                 std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
+//                 return;
+//             }
+//         } else {
+//             std::cerr << "ERROR: received message when not expected\n";
+//             return;
+//         }
+//       #endif
+//     #elif defined(STATS)
+//         if (msg.type == 0xAA) {
+//             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+//             return;
+//         }
+//     #elif defined(MESSAGE_COUNTER)
+//         if (msg.type != 0xBB) {
+//             devices++;
+//             cell_messages[msg.from] = msg.timestep;
+//             if (devices >= (_D*_D*_D)) {
+//                 calculateMessagesPerLink(cell_messages);
+//                 return;
+//             }
+//         }
+//     #elif defined(VISUALISE)
+//         if (timestep < msg.timestep) {
+//             timestep = msg.timestep;
+//             bead_print_map[timestep] = 0;
+//             // if (timestep > _start_timestep + emitperiod) {
+//             // #ifndef VESICLE_SELF_ASSEMBLY
+//             //     std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+//             // #else
+//             //     std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+//             // #endif
+//             //     FILE* old_file = fopen(path.c_str(), "a+");
+//             //     fprintf(old_file, "\n]}\n");
+//             //     fclose(old_file);
+//             // }
 
-        #ifndef VESICLE_SELF_ASSEMBLY
-            std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
-        #else
-            std::string fpath = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
-        #endif
-            FILE* f = fopen(fpath.c_str(), "w+");
-            fprintf(f, "{\n\t\"beads\":[\n");
-            fclose(f);
-            first = true;
-        }
-        // pts_to_extern_t eMsg;
-        // eMsg.timestep = msg.timestep;
-        // eMsg.from = msg.from;
-        // eMsg.bead = msg.beads[0];
-        // _extern->send(&eMsg);
+//         #ifndef VESICLE_SELF_ASSEMBLY
+//             std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
+//         #else
+//             std::string fpath = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
+//         #endif
+//             FILE* f = fopen(fpath.c_str(), "w+");
+//             fprintf(f, "{\n\t\"beads\":[\n");
+//             fclose(f);
+//             first = true;
+//         }
+//         // pts_to_extern_t eMsg;
+//         // eMsg.timestep = msg.timestep;
+//         // eMsg.from = msg.from;
+//         // eMsg.bead = msg.beads[0];
+//         // _extern->send(&eMsg);
 
 
-        // if (msg.timestep >= _max_timestep + 100) {
-        //     std::cout << "\n";
-        //     std::cout << "Finished, saving now\n";
-        //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
-        //         std::cout << "Timestep " << i->first << "\r";
-        //         fflush(stdout);
-        //         std::string path = "../100_bond_frames/state_" + std::to_string(i->first) + ".json";
-        //         FILE* f = fopen(path.c_str(), "w+");
-        //         fprintf(f, "{\n\t\"beads\":[\n");
-        //         bool first = true;
-        //         for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
-        //             if (first) {
-        //                 first = false;
-        //             } else {
-        //                 fprintf(f, ",\n");
-        //             }
-        //             fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
-        //         }
-        //         fprintf(f, "\n]}");
-        //         fclose(f);
-        //     }
-        //     std::cout << "\n";
-        // #ifdef SERIAL
-        //     thread.join();
-        // #endif
-        //     return;
-        // }
+//         // if (msg.timestep >= _max_timestep + 100) {
+//         //     std::cout << "\n";
+//         //     std::cout << "Finished, saving now\n";
+//         //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
+//         //         std::cout << "Timestep " << i->first << "\r";
+//         //         fflush(stdout);
+//         //         std::string path = "../100_bond_frames/state_" + std::to_string(i->first) + ".json";
+//         //         FILE* f = fopen(path.c_str(), "w+");
+//         //         fprintf(f, "{\n\t\"beads\":[\n");
+//         //         bool first = true;
+//         //         for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
+//         //             if (first) {
+//         //                 first = false;
+//         //             } else {
+//         //                 fprintf(f, ",\n");
+//         //             }
+//         //             fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
+//         //         }
+//         //         fprintf(f, "\n]}");
+//         //         fclose(f);
+//         //     }
+//         //     std::cout << "\n";
+//         // #ifdef SERIAL
+//         //     thread.join();
+//         // #endif
+//         //     return;
+//         // }
 
-        bead_t b = msg.beads[0];
-        b.pos.x(b.pos.x() + msg.from.x);
-        b.pos.y(b.pos.y() + msg.from.y);
-        b.pos.z(b.pos.z() + msg.from.z);
-        // bead_map[msg.timestep][msg.beads[0].id] = b;
-    #ifndef VESICLE_SELF_ASSEMBLY
-        std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
-    #else
-        std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
-    #endif
-        FILE* f = fopen(path.c_str(), "a+");
-        if (first) {
-            first = false;
-        } else {
-            fprintf(f, ",\n");
-        }
-        fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
-        fclose(f);
-        bead_print_map[msg.timestep]++;
-        if (bead_print_map[msg.timestep] >= _beads_added) {
-          #ifndef VESICLE_SELF_ASSEMBLY
-            std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
-          #else
-            std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
-          #endif
-            FILE* old_file = fopen(path.c_str(), "a+");
-            fprintf(old_file, "\n]}\n");
-            fclose(old_file);
+//         bead_t b = msg.beads[0];
+//         b.pos.x(b.pos.x() + msg.from.x);
+//         b.pos.y(b.pos.y() + msg.from.y);
+//         b.pos.z(b.pos.z() + msg.from.z);
+//         // bead_map[msg.timestep][msg.beads[0].id] = b;
+//     #ifndef VESICLE_SELF_ASSEMBLY
+//         std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+//     #else
+//         std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
+//     #endif
+//         FILE* f = fopen(path.c_str(), "a+");
+//         if (first) {
+//             first = false;
+//         } else {
+//             fprintf(f, ",\n");
+//         }
+//         fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
+//         fclose(f);
+//         bead_print_map[msg.timestep]++;
+//         if (bead_print_map[msg.timestep] >= _beads_added) {
+//           #ifndef VESICLE_SELF_ASSEMBLY
+//             std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+//           #else
+//             std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
+//           #endif
+//             FILE* old_file = fopen(path.c_str(), "a+");
+//             fprintf(old_file, "\n]}\n");
+//             fclose(old_file);
 
-            // Check if we've run for longer than the max time
-            gettimeofday(&finish, NULL);
-            timersub(&finish, &start, &elapsedTime);
-            double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-            printf("Timestep %u stored after %1.10f seconds                     \r", timestep,  duration);
-            fflush(stdout);
-            if (duration >= _runtime_seconds) {
-                std::cout << "\nMax runtime reached, exiting\n";
-            #ifdef VESICLE_SELF_ASSEMBLY
-                FILE* timeFile = fopen("../vesicle_total_run_time.csv", "a+");
-            #else
-                FILE* timeFile = fopen("../oil_water_total_run_time.csv", "a+");
-            #endif
-                fprintf(timeFile, "%u, %u, %f\n", _start_timestep, msg.timestep, duration);
-                return;
-            }
-        }
+//             // Check if we've run for longer than the max time
+//             gettimeofday(&finish, NULL);
+//             timersub(&finish, &start, &elapsedTime);
+//             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+//             printf("Timestep %u stored after %1.10f seconds                     \r", timestep,  duration);
+//             fflush(stdout);
+//             if (duration >= _runtime_seconds) {
+//                 std::cout << "\nMax runtime reached, exiting\n";
+//             #ifdef VESICLE_SELF_ASSEMBLY
+//                 FILE* timeFile = fopen("../vesicle_total_run_time.csv", "a+");
+//             #else
+//                 FILE* timeFile = fopen("../oil_water_total_run_time.csv", "a+");
+//             #endif
+//                 fprintf(timeFile, "%u, %u, %f\n", _start_timestep, msg.timestep, duration);
+//                 return;
+//             }
+//         }
 
-    #endif
-    }
-}
+//     #endif
+//     }
+// }
 
 // Runs a test, gets the bead outputs and returns this to the test file
+// template<class S>
+// std::map<uint32_t, DPDMessage> SimVolume<S>::test() {
+//     std::map<uint32_t, DPDMessage> result;
+//     // Finish counter
+//     uint32_t finish = 0;
+// #ifdef SERIAL
+//     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
+//     _volume.setQueue(&queue);
+//     std::thread thread(&SerialSim::run, _volume);
+// #else // We dont need host link if we're running serial sim on x86
+//     _hostLink->boot("code.v", "data.v");
+//     _hostLink->go();
+// #endif
+
+//     // enter the main loop
+//     while(1) {
+//     #ifdef SERIAL
+//         // Need some way of acquiring messages from the serial x86 simulator
+//         DPDMessage msg = _volume.receiveMessage();
+//     #else
+//         PMessage<DPDMessage> pmsg;
+//         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
+//         DPDMessage msg = pmsg.payload;
+//     #endif
+//         if (msg.type == 0xE0) {
+//             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+//             exit(1);
+//         }
+//         result[msg.beads[0].id] = msg;
+//         if (msg.type == 0xAA) {
+//             finish++;
+//             if (finish >= (_D*_D*_D) && result.size() >= _beads_added) {
+//             #ifdef SERIAL
+//                 thread.join();
+//             #endif
+//                 return result;
+//             }
+//         }
+//     }
+
+//     return result;
+// }
+
 template<class S>
-std::map<uint32_t, DPDMessage> SimVolume<S>::test() {
-    std::map<uint32_t, DPDMessage> result;
-    // Finish counter
-    uint32_t finish = 0;
-#ifdef SERIAL
-    moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _volume.setQueue(&queue);
-    std::thread thread(&SerialSim::run, _volume);
-#else // We dont need host link if we're running serial sim on x86
-    _hostLink->boot("code.v", "data.v");
-    _hostLink->go();
-#endif
-
-    // enter the main loop
-    while(1) {
-    #ifdef SERIAL
-        // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _volume.receiveMessage();
-    #else
-        PMessage<DPDMessage> pmsg;
-        _hostLink->recvMsg(&pmsg, sizeof(pmsg));
-        DPDMessage msg = pmsg.payload;
-    #endif
-        if (msg.type == 0xE0) {
-            std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
-            exit(1);
-        }
-        result[msg.beads[0].id] = msg;
-        if (msg.type == 0xAA) {
-            finish++;
-            if (finish >= (_D*_D*_D) && result.size() >= _beads_added) {
-            #ifdef SERIAL
-                thread.join();
-            #endif
-                return result;
-            }
-        }
-    }
-
-    return result;
-}
-
-template<class S>
-uint16_t SimVolume<S>::get_neighbour_cell_dimension(unit_pos_t c, int16_t n) {
+uint16_t SimVolume<S>::get_neighbour_cell_dimension(cell_pos_t c, int16_t n) {
     if (n == -1) {
         if (c == 0) {
-            return _D - 1;
+            return this->cells_per_dimension - 1;
         } else {
             return c - 1;
         }
     } else if (n == 1) {
-        if (c == _D - 1) {
+        if (c == this->cells_per_dimension - 1) {
             return 0;
         } else {
             return c + 1;
@@ -967,7 +966,7 @@ PDeviceId SimVolume<S>::get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d
         get_neighbour_cell_dimension(u_i.y, d_y),
         get_neighbour_cell_dimension(u_i.z, d_z)
     };
-    return _locToId[u_j];
+    return this->locToId[u_j];
 }
 
 template<class S>
@@ -978,9 +977,9 @@ float SimVolume<S>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
             for (int16_t d_z = -1; d_z <= 1; d_z++) {
                 PDeviceId n_id = get_neighbour_cell_id(u_i, d_x, d_y, d_z);
               #ifdef SERIAL
-                DPDState *state = _volume.getCell(n_id);
+                DPDState *state = this->cells.getCell(n_id);
               #else
-                DPDState *state = &_volume->devices[n_id]->state;
+                DPDState *state = &this->cells->devices[n_id]->state;
               #endif
                 // Get neighbour bead slot
                 uint32_t nslot = state->bslot;
@@ -1013,15 +1012,15 @@ void SimVolume<S>::store_initial_bead_distances() {
     FILE* f = fopen("../init_dist.json", "w+");
     fprintf(f, "{ \"min_dists\":[\n");
     bool first = true;
-    for (unit_pos_t u_x = 0; u_x < _D; u_x++) {
-        for (unit_pos_t u_y = 0; u_y < _D; u_y++) {
-            for (unit_pos_t u_z = 0; u_z < _D; u_z++) {
+    for (cell_pos_t u_x = 0; u_x < this->cells_per_dimension; u_x++) {
+        for (cell_pos_t u_y = 0; u_y < this->cells_per_dimension; u_y++) {
+            for (cell_pos_t u_z = 0; u_z < this->cells_per_dimension; u_z++) {
                 cell_t u = { u_x, u_y, u_z };
-                PDeviceId dev_id = _locToId[u];
+                PDeviceId dev_id = this->locToId[u];
               #ifdef SERIAL
-                DPDState* state = _volume.getCell(dev_id);
+                DPDState* state = cells.at(dev_id);
               #else
-                DPDState* state = &_volume->devices[dev_id]->state;
+                DPDState* state = &this->cells->devices[dev_id]->state;
               #endif
                 uint32_t bslot = state->bslot;
                 while (bslot) {
