@@ -80,8 +80,8 @@ struct DPDMessage {
 
 // the state of the DPD Device
 struct DPDState {
-    float unit_size; // the size of this spatial unit in one dimension
-    uint8_t N;
+    float cell_length; // the size of this spatial unit in one dimension
+    uint8_t cells_per_dimension;
     cell_t loc; // the location of this cube
     uint16_t bslot; // a bitmap of which bead slot is occupied
     uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
@@ -190,13 +190,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             #endif
 
             #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                if (migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci])) {
+                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci])) {
             #elif defined(SMALL_DT_EARLY)
-                if (migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], s->dt)) {
+                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt)) {
             #elif defined(BETTER_VERLET)
-                if (migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci])) {
+                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci])) {
             #else
-                if (migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], dt)) {
+                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt)) {
             #endif
                     *readyToSend = Pin(0);
                 }

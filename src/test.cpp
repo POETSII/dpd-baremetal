@@ -4,6 +4,11 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
+#ifndef SERIAL
+#include "POETSDPDSimulator.hpp"
+#else
+#include "SerialDPDSimulator.hpp"
+#endif
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
@@ -11,14 +16,16 @@
 #else
 #include "sync.h"
 #endif
-#include "universe.hpp"
+#include "SimVolume.hpp"
 #include <map>
 #include <math.h>
 #include <random>
 #include <boost/algorithm/string.hpp>
 #include <iomanip>
+#include <fstream>
+#include <sstream>
 
-void getParameters(std::string *bead_file, std::string *expected, float *problem_size, int *N, uint32_t *test_length) {
+void getParameters(std::string *bead_file, std::string *expected, float *volume_length, int *cells_per_dimension, uint32_t *test_length) {
   #ifdef GALS
     printf("Testing the GALS DPD application\n");
   #else
@@ -29,24 +36,24 @@ void getParameters(std::string *bead_file, std::string *expected, float *problem
     printf("Testing a system which includes bonded beads\n");
     *bead_file += "bonds_in_25";
     *expected += "bonds_out_25";
-    *problem_size = 25;
-    *N = 25;
+    *volume_length = 25;
+    *cells_per_dimension = 25;
     *test_length = 1000;
 
 #elif defined(LARGE_TEST)
     printf("Testing a system with a larger volume (no bonds)\n");
     *bead_file += "in_40";
     *expected += "out_40";
-    *problem_size = 40;
-    *N = 40;
+    *volume_length = 40;
+    *cells_per_dimension = 40;
     *test_length = 100;
 
 #else
     printf("Testing a smaller system without bonds\n");
     *bead_file += "in_18";
     *expected += "out_18";
-    *problem_size = 18;
-    *N = 18;
+    *volume_length = 18;
+    *cells_per_dimension = 18;
     *test_length = 1000;
 #endif
 
@@ -71,18 +78,18 @@ int main() {
 
     std::string bead_file = "../tests/beads_";
     std::string expected  = "../tests/beads_";
-    float problem_size = 0;
-    int N = 0;
+    float volume_length = 0;
+    int cells_per_dimension = 0;
     uint32_t test_length = 0;
 
-    getParameters(&bead_file, &expected, &problem_size, &N, &test_length);
+    getParameters(&bead_file, &expected, &volume_length, &cells_per_dimension, &test_length);
 
-    printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
+    printf("Volume dimensions: %f, %f, %f\n", volume_length, volume_length, volume_length);
 
     // Start at timestep 0, run until test_length timestep is reached
-    Universe<ptype> uni(problem_size, N, 0, test_length);
+    SimVolume<ptype> volume(volume_length, cells_per_dimension);
 
-    std::cerr << "Universe setup -- loading beads from " << bead_file << "\n";
+    std::cerr << "Volume setup -- loading beads from " << bead_file << "\n";
 
     // Get the input beads from the file
     // File holding beads
@@ -120,7 +127,7 @@ int main() {
         cell.y = std::stoi(lines.at(6));
         cell.z = std::stoi(lines.at(7));
         // Add it to the universe
-        uni.add(cell, b1);
+        volume.add_bead_to_cell(b1, cell);
         // Increment the number of beads
         num_beads_in++;
     }
@@ -166,11 +173,11 @@ int main() {
         expected_cell_map[b1.id] = cell;
     }
 
-#ifndef SERIAL
-    uni.write(); // write the universe into the POETS memory
-#endif
+    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, test_length);
 
-    // uni.print_occupancy();
+    simulator->write(); // write the universe into the POETS memory
+
+    // volume.print_occupancy();
 
     printf("running...\n");
 
@@ -180,7 +187,8 @@ int main() {
     gettimeofday(&start, NULL);
 
     // Run the test and get the result
-    std::map<uint32_t, DPDMessage> actual_out = uni.test();
+    std::map<uint32_t, DPDMessage> actual_out;
+    simulator->test(&actual_out);
 
     // Get the finish time
     gettimeofday(&finish, NULL);
@@ -190,7 +198,7 @@ int main() {
 
     bool fail = false;
 
-    FILE* newFile = fopen(expected.c_str(), "w+");
+    // FILE* newFile = fopen(expected.c_str(), "w+");
 
     // Ensure the number of input beads is the same as the number of output beads
     if (actual_out.size() != num_beads_in) {
@@ -218,7 +226,7 @@ int main() {
             expected_cell.y = expected_cell_map[i->first].y;
             expected_cell.z = expected_cell_map[i->first].z;
 
-            fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
+            // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
 
             if (expected_type != actual_type) {
                 std::cerr << "ID: " << actual_id << "\n";
@@ -242,7 +250,7 @@ int main() {
 
         }
     }
-    fclose(newFile);
+    // fclose(newFile);
 
     uint8_t exit_code = 0;
     printf("TESTING HAS ");

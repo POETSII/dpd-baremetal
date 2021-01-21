@@ -24,7 +24,7 @@ class POETSDPDSimulator : public DPDSimulator {
     // Simulation control
     void write() override;
     void run() override;
-    void test() override;
+    void test(std::map<uint32_t, DPDMessage> *result) override;
 
     protected:
 

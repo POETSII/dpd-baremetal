@@ -13,7 +13,7 @@ class SimVolume : public Volume<S> {
     public:
 
     // Constructors and destructors
-    SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t start_time, uint32_t max_time);
+    SimVolume(S volume_length, unsigned cells_per_dimension);
     ~SimVolume();
 
     // Setup

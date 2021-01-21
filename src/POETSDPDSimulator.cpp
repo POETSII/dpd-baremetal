@@ -55,8 +55,12 @@ void POETSDPDSimulator::write() {
                 DPDState *state = this->volume->get_state_of_cell(loc);
 
                 // Set the values
+                state->timestep = start_timestep;
+                state->max_timestep = max_timestep;
+            #ifdef SMALL_DT_EARLY
                 state->dt = dt;
                 state->inv_sqrt_dt = inv_sqrt_dt;
+            #endif
             }
         }
     }
@@ -321,8 +325,7 @@ void POETSDPDSimulator::run() {
 }
 
 //Runs a test, gets the bead outputs and returns this to the test file
-void POETSDPDSimulator::test() {
-    std::map<uint32_t, DPDMessage> result;
+void POETSDPDSimulator::test(std::map<uint32_t, DPDMessage> *result) {
     uint32_t total_cells = this->volume->get_number_of_cells();
     uint32_t total_beads_in = this->volume->get_number_of_beads();
     // Finish counter
@@ -350,19 +353,18 @@ void POETSDPDSimulator::test() {
             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
             exit(1);
         }
-        result[msg.beads[0].id] = msg;
+        (*result)[msg.beads[0].id] = msg;
         if (msg.type == 0xAA) {
             finish++;
-            if (finish >= total_cells && result.size() >= total_beads_in) {
+            if (finish >= total_cells && result->size() >= total_beads_in) {
             #ifdef SERIAL
                 thread.join();
             #endif
-                // return result;
+                return;
             }
         }
     }
 
-    // return result;
 }
 
 #endif /* __POETSDPDSIMULATOR_IMPL */

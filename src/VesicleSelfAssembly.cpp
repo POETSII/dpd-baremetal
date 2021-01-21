@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    SimVolume<ptype> volume(problem_size, N, 0, max_time);
+    SimVolume<ptype> volume(problem_size, N);
 
     printf("Universe setup -- adding beads\n");
 

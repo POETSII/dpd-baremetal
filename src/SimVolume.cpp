@@ -24,7 +24,7 @@ void SimVolume<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 
 // constructor
 template<class S>
-SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t start_time, uint32_t max_time) : Volume<S>(volume_length, cells_per_dimension) {
+SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<S>(volume_length, cells_per_dimension) {
 
 #ifdef GALS
     std::cout << "Building a GALS volume.\n";
@@ -275,7 +275,9 @@ void SimVolume<S>::init_cells() {
     #endif
         for (int s = 0; s < MAX_BEADS; s++) {
             state->force_slot[s].set(0.0, 0.0, 0.0);
+        #ifdef BETTER_VERLET
             state->old_velo[s].set(0.0, 0.0, 0.0);
+        #endif
         }
     }
 }

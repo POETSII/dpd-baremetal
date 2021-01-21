@@ -5,6 +5,7 @@
 
 #include "Volume.hpp"
 #include "dpd.hpp"
+#include <map>
 
 class Executor {
     public:
@@ -18,7 +19,7 @@ class Executor {
     virtual void run() = 0;
 
     // Executes and returns a vector of that received result for testing purposes
-    virtual void test() = 0;
+    virtual void test(std::map<uint32_t, DPDMessage> *result) = 0;
 
     protected:
 

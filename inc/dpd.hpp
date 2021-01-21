@@ -301,22 +301,22 @@ inline void velocity_Verlet(bead_t *bead, Vector3D<float> *f, const ptype dt) {
 }
 
 #ifdef BETTER_VERLET
-inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_size, const cell_t current_cell, const uint32_t vol_len, uint16_t *migrateslot, cell_t *migrate_loc, const ptype dt, Vector3D<ptype> *old_velo) {
+inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_length, const cell_t current_cell, const uint32_t vol_len, uint16_t *migrateslot, cell_t *migrate_loc, const ptype dt, Vector3D<ptype> *old_velo) {
 #else
-inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_size, const cell_t current_cell, const uint32_t vol_len, uint16_t *migrateslot, cell_t *migrate_loc, const ptype dt) {
+inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_length, const cell_t current_cell, const uint32_t vol_len, uint16_t *migrateslot, cell_t *migrate_loc, const ptype dt) {
 #endif
         // ----- migration code ------
     bool migrating = false; // flag that says whether this particle needs to migrate
     cell_t d_loc; // the potential destination for this bead
     //    migration in the x dim
-    if (bead->pos.x() >= cell_size){
+    if (bead->pos.x() >= cell_length){
         migrating = true;
         if(current_cell.x == (vol_len-1)){
             d_loc.x = 0;
         } else {
             d_loc.x = current_cell.x + 1;
         }
-        bead->pos.x(bead->pos.x() - cell_size); // make it relative to the dest
+        bead->pos.x(bead->pos.x() - cell_length); // make it relative to the dest
     } else if (bead->pos.x() < ptype(0.0)) {
         migrating = true;
         if(current_cell.x == 0) {
@@ -324,20 +324,20 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
         } else {
             d_loc.x = current_cell.x - 1;
         }
-       bead->pos.x(bead->pos.x() + cell_size); // make it relative to the dest
+       bead->pos.x(bead->pos.x() + cell_length); // make it relative to the dest
     } else {
         d_loc.x = current_cell.x;
     }
 
     //    migration in the y dim
-    if(bead->pos.y() >= cell_size){
+    if(bead->pos.y() >= cell_length){
         migrating = true;
         if(current_cell.y == (vol_len-1)){
             d_loc.y = 0;
         } else {
             d_loc.y = current_cell.y + 1;
         }
-        bead->pos.y(bead->pos.y() - cell_size); // make it relative to the dest
+        bead->pos.y(bead->pos.y() - cell_length); // make it relative to the dest
     } else if (bead->pos.y() < ptype(0.0)) {
         migrating = true;
         if(current_cell.y == 0) {
@@ -345,20 +345,20 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
         } else {
             d_loc.y = current_cell.y - 1;
         }
-        bead->pos.y(bead->pos.y() + cell_size); // make it relative to the dest
+        bead->pos.y(bead->pos.y() + cell_length); // make it relative to the dest
     } else {
         d_loc.y = current_cell.y;
     }
 
     //    migration in the z dim
-    if(bead->pos.z() >= cell_size){
+    if(bead->pos.z() >= cell_length){
         migrating = true;
         if(current_cell.z == (vol_len-1)){
             d_loc.z = 0;
         } else {
             d_loc.z = current_cell.z + 1;
         }
-        bead->pos.z(bead->pos.z() - cell_size); // make it relative to the dest
+        bead->pos.z(bead->pos.z() - cell_length); // make it relative to the dest
     } else if (bead->pos.z() < ptype(0.0)) {
         migrating = true;
         if(current_cell.z == 0) {
@@ -366,7 +366,7 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_si
         } else {
             d_loc.z = current_cell.z - 1;
         }
-        bead->pos.z(bead->pos.z() + cell_size); // make it relative to the dest
+        bead->pos.z(bead->pos.z() + cell_length); // make it relative to the dest
     } else {
         d_loc.z = current_cell.z;
     }
