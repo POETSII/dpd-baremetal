@@ -4,10 +4,14 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
+#ifndef SERIAL
+#include "POETSDPDSimulator.hpp"
+#endif
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
 #include "serial.hpp"
+#include "SerialDPDSimulator.hpp"
 #else
 #include "sync.h"
 #endif
@@ -141,12 +145,6 @@ int main(int argc, char *argv[]) {
 
     uint32_t water_total = water_fraction * total_beads / alphasum;
     uint32_t lipid_total = lipid_fraction * total_beads / alphasum;
-    // Each chain is a certain length, in this case, 9 beads.
-    // To ensure we have all chains at the same length, we decrease this number until we hit the next multiple of 10
-    // It is better to have fewer beads so we are less than the number density, than larger
-    // while ((lipid_total % lipid_size) != lipid_size) {
-    //     lipid_total--;
-    // }
 
     // May lose one or two bead in conversion from float to int, so let's get the real number
     total_beads = (lipid_total * lipid_size) + (water_total * water_size);
@@ -184,7 +182,6 @@ int main(int argc, char *argv[]) {
     vcm.z(vcm.z() / total_beads);
 
     // remove CM velocity from bead velocities
-
     float vtotal = 0.0;
 
     for(int i=0; i < total_beads; i++) {
@@ -203,9 +200,9 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    std::string filepath = "../" + std::to_string(N) + "_vesicle_frames/state_0.json";
-    FILE* f = fopen(filepath.c_str(), "w+");
-    fprintf(f, "{\n\t\"beads\":[\n");
+    // std::string filepath = "../" + std::to_string(N) + "_vesicle_frames/state_0.json";
+    // FILE* f = fopen(filepath.c_str(), "w+");
+    // fprintf(f, "{\n\t\"beads\":[\n");
 
     for(int i = 0; i < lipid_total; i++) {
         bool added = false;
@@ -222,7 +219,7 @@ int main(int argc, char *argv[]) {
         #endif
             if (volume.space_for_bead(prev_bead.get())) {
                 volume.add_bead(prev_bead.get());
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
+                // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
                 added = true;
                 beads_added++;
             }
@@ -271,7 +268,7 @@ int main(int argc, char *argv[]) {
             #endif
                 if(volume.space_for_bead(b1.get())) {
                     volume.add_bead(b1.get());
-                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                    // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                     added = true;
                     prev_bead = b1;
                     beads_added++;
@@ -299,23 +296,25 @@ int main(int argc, char *argv[]) {
         #endif
             if (volume.space_for_bead(b1)) {
                 volume.add_bead(b1);
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
             }
         }
     }
 
-    fprintf(f, "]}");
-    fclose(f);
+    // fprintf(f, "]}");
+    // fclose(f);
 
 #ifndef SERIAL
-    // volume.write(); // write the universe into the POETS memory
+    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, max_time);
+#else
+    SerialDPDSimulator *simulator = new SerialDPDSimulator();
 #endif
 
-    // volume.print_occupancy();
-    printf("running...\n");
-    // volume.run(); // start the simulation
+    simulator->write(); // Write the volume to the simulator memory
+
+    simulator->run(); // Start the simulation
 
     return 0;
 }

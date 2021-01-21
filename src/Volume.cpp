@@ -1,9 +1,78 @@
+
 // Implementation file for the host simulation volume class
 
 #include "Volume.hpp"
 
 #ifndef __VOLUME_IMPL
 #define __VOLUME_IMPL
+
+// Constructor
+template<class S>
+Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
+    this->volume_length = volume_length;
+    this->cells_per_dimension = cells_per_dimension;
+    this->cell_length = this->volume_length / S(this->cells_per_dimension);
+
+    this->boxes_x = 2;
+    this->boxes_y = 1;
+
+#ifndef SERIAL
+    cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
+#endif
+
+    // Create the cells
+    for(uint16_t x = 0; x < cells_per_dimension; x++) {
+        for(uint16_t y = 0; y < cells_per_dimension; y++) {
+            for(uint16_t z = 0; z < cells_per_dimension; z++) {
+                  #if defined(SERIAL) || defined(RDF)
+                    PDeviceId id = cells.newCell();
+                  #else
+                    PDeviceId id = cells->newDevice();
+                  #endif
+                    // Update the mapping
+                    cell_t loc = {x, y, z};
+                    idToLoc[id] = loc;
+                    locToId[loc] = id;
+            }
+        }
+    }
+
+}
+
+// Deconstructor
+template<class S>
+Volume<S>::~Volume() {
+// #ifndef SERIAL
+    delete cells;
+// #endif
+}
+
+template<class S>
+void Volume<S>::init_cells() {
+#ifndef SERIAL
+  #ifdef DRAM
+    // Larger runs will need cells mapped to DRAM instead of SRAM
+    this->cells->mapVerticesToDRAM = true;
+    std::cout << "Mapping vertices to DRAM\n";
+  #endif
+    // Map to the hardware
+    this->cells->map();
+#endif
+
+    // Place all cell locations in its state
+    for (std::map<PDeviceId, cell_t>::iterator i = idToLoc.begin(); i != idToLoc.end(); ++i) {
+        PDeviceId id = i->first;
+        cell_t loc = i->second;
+      #if defined(SERIAL) || defined(RDF)
+        DPDState *state = cells.at(id);
+      #else
+        DPDState *state = &cells->devices[id]->state;
+      #endif
+        state->loc.x = loc.x;
+        state->loc.y = loc.y;
+        state->loc.z = loc.z;
+    }
+}
 
 // Print out the occupancy of each device
 template<class S>
@@ -20,55 +89,6 @@ void Volume<S>::print_occupancy() {
         if(beads > 0)
             printf("%x\t\t\t%d\n", t, (uint32_t)beads);
     }
-}
-
-// Constructor
-template<class S>
-Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
-    this->volume_length = volume_length;
-    this->cells_per_dimension = cells_per_dimension;
-    this->cell_length = this->volume_length / S(this->cells_per_dimension);
-    std::cout << "Volume length in = " << volume_length << ". Volume length stored = " << this->volume_length << "\n";
-
-#ifndef SERIAL
-    // cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
-    cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>();
-#endif
-
-    // Create the cells
-    for(uint16_t x = 0; x < cells_per_dimension; x++) {
-        for(uint16_t y = 0; y < cells_per_dimension; y++) {
-            for(uint16_t z = 0; z < cells_per_dimension; z++) {
-                  #if defined(SERIAL) || defined(RDF)
-                    PDeviceId id = cells.newCell();
-                  #else
-                    PDeviceId id = cells->newDevice();
-                  #endif
-                    // Update the mapping
-                    cell_t loc = {x, y, z};
-                    idToLoc[id] = loc;
-                    locToId[loc] = id;
-
-                    // Include the cell's location in its state
-                  #if defined(SERIAL) || defined(RDF)
-                    DPDState *state = cells.at(id);
-                  #else
-                    DPDState *state = &cells->devices[id]->state;
-                  #endif
-                    state->loc.x = loc.x;
-                    state->loc.y = loc.y;
-                    state->loc.z = loc.z;
-            }
-        }
-    }
-}
-
-// Deconstructor
-template<class S>
-Volume<S>::~Volume() {
-// #ifndef SERIAL
-    delete cells;
-// #endif
 }
 
 // add a bead to the simulation volume
@@ -140,6 +160,47 @@ void Volume<S>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
     state->bead_slot[slot] = b;
     state->bslot = set_slot(state->bslot, slot);
     beads_added++;
+}
+
+template<class S>
+unsigned Volume<S>::get_cells_per_dimension() {
+    return this->cells_per_dimension;
+}
+
+template<class S>
+DPDState * Volume<S>::get_state_of_cell(cell_t loc) {
+    PDeviceId id = this->locToId[loc];
+    return &this->cells->devices[id]->state;
+}
+
+template<class S>
+uint32_t Volume<S>::get_boxes_x() {
+    return this->boxes_x;
+}
+
+template<class S>
+uint32_t Volume<S>::get_boxes_y() {
+    return this->boxes_y;
+}
+
+template<class S>
+#ifdef SERIAL
+std::vector<DPDState> * Volume<S>::get_cells()
+#else
+PGraph<DPDDevice, DPDState, None, DPDMessage> * Volume<S>::get_cells()
+#endif
+{
+    return cells;
+}
+
+template<class S>
+uint32_t Volume<S>::get_number_of_cells() {
+    return (cells_per_dimension * cells_per_dimension * cells_per_dimension);
+}
+
+template<class S>
+uint32_t Volume<S>::get_number_of_beads() {
+    return beads_added;
 }
 
 #endif /* __VOLUME_IMPL */

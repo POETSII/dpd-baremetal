@@ -3,11 +3,6 @@
 #ifndef _VOLUME_H
 #define _VOLUME_H
 
-#ifdef STATS
-#define POLITE_DUMP_STATS
-#define POLITE_COUNT_MSGS
-#endif
-
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
@@ -17,12 +12,14 @@
 #else
 #include "sync.h"
 #endif
+
 #ifndef SERIAL
 #include "POLite.h"
 #endif
 
 #include <vector>
 #include <map>
+#include <iostream>
 
 template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
 class Volume {
@@ -33,6 +30,7 @@ class Volume {
     ~Volume();
 
     // Setup
+    void init_cells();
     // Add a bead to the volume
     cell_t add_bead(const bead_t* in);
     // Adds a bead to the volume in given cell space. Value of all positions must be less than cell length
@@ -41,6 +39,19 @@ class Volume {
     // Debugging
     // Prints the number of beads assigned to each cell
     void print_occupancy();
+
+    // Getters
+    unsigned get_cells_per_dimension();
+    DPDState * get_state_of_cell(cell_t loc);
+    uint32_t get_boxes_x();
+    uint32_t get_boxes_y();
+  #ifdef SERIAL
+    std::vector<DPDState> * get_cells();
+  #else
+    PGraph<DPDDevice, DPDState, None, DPDMessage> * get_cells();
+  #endif
+    uint32_t get_number_of_cells();
+    uint32_t get_number_of_beads();
 
     protected:
 
@@ -67,6 +78,9 @@ class Volume {
     // Maintain maps of ID's to locations (and vice versa) in the volume
     std::map<PDeviceId, cell_t> idToLoc;
     std::map<cell_t, PDeviceId> locToId;
+
+    // Number and arrangement of boxes to use
+    uint32_t boxes_x, boxes_y;
 };
 
 #include "../src/Volume.cpp"

@@ -9,8 +9,7 @@
 
 #ifndef __SIM_VOLUME_IMPL
 #define __SIM_VOLUME_IMPL
-#include <boost/algorithm/string.hpp>
-#include <iomanip>
+
 
 // Make two devices neighbours
 template<class S>
@@ -23,223 +22,32 @@ void SimVolume<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 #endif
 }
 
-#if defined(OUTPUT_MAPPING) || defined(MESSAGE_COUNTER)
-template<class S>
-uint16_t SimVolume<S>::locOffset(const uint16_t current, const int16_t offset, const float vol_max) {
-    if (offset == -1 && current == 0) {
-        return vol_max - 1;
-    } else if (offset == 1 && current == vol_max - 1) {
-        return 0;
-    } else {
-        return current + offset;
-    }
-}
-
-template<class S> void SimVolume<S>::clearLinks(FPGALinks* links) {
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 8; j++) {
-            links->x.at(i).at(j) = 0;
-            links->y.at(i).at(j) = 0;
-            links->intra.at(i).at(j) = 0;
-        }
-    }
-}
-
-// Find the link and add an edge to it
-template<class S>
-void SimVolume<S>::followEdge(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, FPGALinks* links) {
-    if (x0 == x1 && y0 == y1) {
-        links->intra.at(x0).at(y0)++;
-        return;
-    }
-
-    while (x0 != x1) {
-        if (x0 > x1) {
-            links->x.at(x0 - 1).at(y0)++;
-            x0--;
-        } else if (x0 < x1) {
-            links->x.at(x0).at(y0)++;
-            x0++;
-        }
-    }
-    while (y0 != y1) {
-        if (y0 > y1) {
-            links->y.at(x0).at(y0 - 1)++;
-            y0--;
-        } else if (y0 < y1) {
-            links->y.at(x0).at(y0)++;
-            y0++;
-        }
-    }
-}
-
-// Find the number of edges which cross links
-template<class S>
-void SimVolume<S>::updateLinkInfo(PThreadId c_thread, cell_t c_loc, FPGALinks* links) {
-
-    uint32_t xmask = ((1<<TinselMeshXBits)-1);
-    // Get FPGA coordinates of origin cell
-    uint32_t c_FPGA_y = c_thread >> (TinselLogThreadsPerBoard + TinselMeshXBits);
-    uint32_t c_FPGA_x = (c_thread >> TinselLogThreadsPerBoard) & xmask;
-    //Loop through all neighbours
-    for (int16_t x_off = -1; x_off <= 1; x_off++) {
-        for (int16_t y_off = -1; y_off <= 1; y_off++) {
-            for (int16_t z_off = -1; z_off <= 1; z_off++) {
-                if (x_off == 0 && y_off == 0 && z_off == 0) {
-                    continue;
-                }
-                // Get neighbour location
-                cell_t n_loc;
-                n_loc.x = locOffset(c_loc.x, x_off, _D);
-                n_loc.y = locOffset(c_loc.y, y_off, _D);
-                n_loc.z = locOffset(c_loc.z, z_off, _D);
-
-                PDeviceId nId = this->locToId[n_loc];
-                PDeviceAddr n_addr = _volume->toDeviceAddr[nId];
-                PThreadId n_thread = getThreadId(n_addr);
-                uint32_t n_FPGA_y = n_thread >> (TinselLogThreadsPerBoard + TinselMeshXBits);
-                uint32_t n_FPGA_x = (n_thread >> TinselLogThreadsPerBoard) & xmask;
-
-                followEdge(c_FPGA_x, c_FPGA_y, n_FPGA_x, n_FPGA_y, links);
-            }
-        }
-    }
-}
-#endif
-
-#ifdef OUTPUT_MAPPING
-// Output mapping info as JSON
-template<class S>
-void SimVolume<S>::outputMapping() {
-    // Number of edges using the links in x and y direction for FPGAs
-    clearLinks(&_link_edges);
-    // JSON file
-    std::string fileName = "../mapping/DPD_mapping_" + std::to_string(_D) + "_" + std::to_string(_D) + "_" + std::to_string(_D) + ".json";
-    std::string output = "";
-    // Open JSON
-    output = "{\n";
-    output += "\t\"vertices\": {\n";
-    for(std::map<PDeviceId, cell_t>::iterator i = this->idToLoc.begin(); i != this->idToLoc.end(); ++i) {
-        PDeviceId cId = i->first;
-        cell_t loc = i->second;
-        std::string cellName = "\"cell_" + std::to_string(loc.x) + "_" + std::to_string(loc.y) + "_" + std::to_string(loc.z)+"\"";
-        PDeviceAddr cellAddr = cells->toDeviceAddr[cId];
-        PThreadId cellThread = getThreadId(cellAddr);
-        output += "\t\t" + cellName +": " + std::to_string(cellThread) + ", \n";
-        updateLinkInfo(cellThread, loc, &_link_edges);
-    }
-    // Remove trailing comma
-    output = output.substr(0, output.length() - 3);
-    // Close vertices section
-    output += "\n\t},\n";
-    // Open links section
-    output += "\t\"links\": [\n";
-    // For each FPGA print link information for it's x (east) and y (south) link.
-    for (int i = 0; i < 6; i++) {
-        output += "\t\t[ ";
-        for (int j = 0; j < 8; j++) {
-            uint64_t link_e = _link_edges.x.at(i).at(j);
-            uint64_t link_n = _link_edges.y.at(i).at(j);
-            output += "{\"x\": ";
-            output += std::to_string(link_e);
-            output += ", \"y\": ";
-            output += std::to_string(link_n);
-            output += "}, ";
-        }
-        output = output.substr(0, output.length() - 2);
-        output += " ],\n";
-    }
-    output = output.substr(0, output.length() - 2);
-    // Close links section
-    output += "\n\t]\n";
-    // Close JSON
-    output += "}\n";
-    // Write to file
-    FILE* f = fopen(fileName.c_str(), "w+");
-    fprintf(f, "%s", output.c_str());
-    fclose(f);
-    // File closed
-    exit(0);
-}
-#endif
-
 // constructor
 template<class S>
 SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t start_time, uint32_t max_time) : Volume<S>(volume_length, cells_per_dimension) {
 
-    // Store start and max timestep
-    // this->start_timestep = start_timestep;
-    // this->max_timestep = max_timestep;
-
-// Prepare variables for message counting and output mapping
-// #if defined(MESSAGE_COUNTER) || defined(OUTPUT_MAPPING)
-//     // Prep link 2D vectors
-//     _link_messages.x = std::vector<std::vector<uint64_t>>(6);
-//     _link_messages.y = std::vector<std::vector<uint64_t>>(6);
-//     _link_messages.intra = std::vector<std::vector<uint64_t>>(6);
-//     _link_edges.x = std::vector<std::vector<uint64_t>>(6);
-//     _link_edges.y = std::vector<std::vector<uint64_t>>(6);
-//     _link_edges.intra = std::vector<std::vector<uint64_t>>(6);
-//     for (int i = 0; i < 6; i++) {
-//         _link_messages.x.at(i).resize(8);
-//         _link_messages.y.at(i).resize(8);
-//         _link_messages.intra.at(i).resize(8);
-//         _link_edges.x.at(i).resize(8);
-//         _link_edges.y.at(i).resize(8);
-//         _link_edges.intra.at(i).resize(8);
-//     }
-// #endif
-
-#ifndef VISUALISE
-    std::cout << "Simulate to timestep    : " << max_timestep << "\n";
+#ifdef GALS
+    std::cout << "Building a GALS volume.\n";
+#elif defined(SERIAL)
+    std::cout << "Building a serial volume.\n";
+    std::cout << "The DPD algorithm will be run on this x86 machine in serial.\n";
+#else
+    std::cout << "Building a synchronous volume.\n";
 #endif
 
-// #ifdef VISUALISE
-//     _extern = new ExternalServer("_external.sock");
-// #endif
-
-#ifdef GALS
-    std::cout << "Running GALS implementation ";
-  #ifdef ONE_BY_ONE
-    std::cout << "using One by One";
-  #endif
-    std::cout << "\n";
-#elif defined(ONE_BY_ONE)
-    std::cout << "Running one by one version\n";
+#if defined(ONE_BY_ONE)
+    std::cout << "Local bead interactions will be performed one at a time (OneByOne).\n";
 #elif defined(SEND_TO_SELF)
-    std::cout << "Running send to self version\n";
-#elif defined(SERIAL)
-    std::cout << "Running an x86 serial simulation\n";
-#else
-    std::cout << "Running standard\n";
+    std::cout << "Cells will send beads to themselves to calculate bead interactions (SendToSelf).\n";
 #endif
 
 #ifdef MESSAGE_MANAGEMENT
-    std::cout << "Message management is enabled for this run\n";
+    std::cout << "Messages are sent at intervals determined by the number of messages sent by neighbours (MessageManagement).\n";
 #endif
 
 #ifdef DOUBLE_SQRT
-    std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing" << "\n";
+    std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing\n";
 #endif
-
-// Number of POETS boxes and Tinsel FPGAs to use
-#ifndef SERIAL
-    // _boxesX = 2; //TinselBoxMeshXLen;
-    // _boxesY = 4; //TinselBoxMeshYLen;
-    // _boardsX = _boxesX * TinselMeshXLenWithinBox;
-    // _boardsY = _boxesY * TinselMeshYLenWithinBox;
-
-    // std::cout << "Running on " << _boxesX * _boxesY << " box";
-    // if ((_boxesX * _boxesY) != 1) {
-    //     std::cout << "es";
-    // }
-    // std::cout << ".\n";
-#endif
-
-// Acquire Hostlink so we can communicate with the Tinsel FPGAs
-// #if !defined(OUTPUT_MAPPING) && !defined(SERIAL)
-//     _hostLink = new HostLink(_boxesX, _boxesY);
-// #endif
 
     // Connect the devices together appropriately.
     // A toroidal space (cube with periodic boundaries)
@@ -426,62 +234,50 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension, uint32_t 
     }
     // All the edges have been connected
 
-// #ifndef SERIAL
-//   #ifdef DRAM
-//     cells->mapVerticesToDRAM = true;
-//     std::cout << "Mapping vertices to DRAM\n";
-//   #endif
-//     Map the graph into hardware calling the POLite placer
-//     cells->map();
-
-//   #ifdef OUTPUT_MAPPING
-//     outputMapping();
-//   #endif
-// #endif
-
     // Initialise all the devices with as much as possible to reduce code in the cell
+    init_cells();
+}
+
+// deconstructor
+template<class S>
+SimVolume<S>::~SimVolume() {
+    Volume<S>::~Volume();
+}
+
+template<class S>
+void SimVolume<S>::init_cells() {
+    // Call parent
+    Volume<S>::init_cells();
+
+    // Add Simulation data
     for(std::map<PDeviceId, cell_t>::iterator i = this->idToLoc.begin(); i != this->idToLoc.end(); ++i) {
         PDeviceId cId = i->first;
+        // Get cell state
       #ifdef SERIAL
         DPDState *state = cells.at(cId);
       #else
         DPDState *state = &this->cells->devices[cId]->state;
       #endif
+
         // Location is set by Volume parent class
     #ifndef SERIAL
-        state->unit_size = this->cell_length;
+        // Set the volume information in the cell
+        state->cell_length = this->cell_length;
         state->cells_per_dimension = this->cells_per_dimension;
-        // state->timestep = _start_timestep;
-        // state->max_timestep = _max_timestep;
         state->mode = UPDATE;
     #endif
         state->rngstate = 1234; // start with a seed
     #if defined(VISUALISE) && !defined(SERIAL)
-        state->emitcnt = 1;
+        state->emitcnt = 1; // Don't emit until emitperiod has been reached
     #endif
-    // #ifdef SMALL_DT_EARLY
-    //     if (start_timestep < 1000) {
-    //         state->dt = early_dt;
-    //         state->inv_sqrt_dt = early_inv_sqrt_dt;
-    //     } else {
-    //         state->dt = normal_dt;
-    //         state->inv_sqrt_dt = normal_inv_sqrt_dt;
-    //     }
-    // #endif
     #ifndef SERIAL
-        state->error = 0;
+        state->error = 0; // Error returned if something goes wrong (!= 0)
     #endif
         for (int s = 0; s < MAX_BEADS; s++) {
             state->force_slot[s].set(0.0, 0.0, 0.0);
             state->old_velo[s].set(0.0, 0.0, 0.0);
         }
     }
-}
-
-// deconstructor
-template<class S>
-SimVolume<S>::~SimVolume() {
-    delete this->cells;
 }
 
 // Checks to see if a bead can be added to the volume
@@ -562,383 +358,6 @@ bool SimVolume<S>::space_for_bead_pair(const bead_t *pa, const bead_t *pb) {
       #endif
    }
 }
-
-// // Writes the volume into the simulator memory
-// template<class S>
-// void SimVolume<S>::write() {
-// #ifdef SERIAL
-//     // The x86 serial simulator can move some things out of the DPDState
-//     // this->cells.setTimestep(_start_timestep);
-//     // this->cells.setMaxTimestep(_max_timestep);
-//     // this->cells.setCellLength(_cell_length);
-//     // this->cells.setCellsPerDimension(cells_per_dimension);
-//     // Put the cells in the runnable
-// #else
-//     // Write the volume into the POETS system
-//     // this->cells->write(_hostLink);
-// #endif
-// }
-
-#ifdef MESSAGE_COUNTER
-template<class S>
-void SimVolume<S>::calculateMessagesPerLink(std::map<cell_t, uint32_t> cell_messages) {
-    clearLinks(&_link_messages);
-    for (std::map<cell_t, uint32_t>::iterator i = cell_messages.begin(); i != cell_messages.end(); ++i) {
-        clearLinks(&_link_edges);
-        cell_t loc = i->first;
-        uint32_t cellId = this->locToId[loc];
-        PDeviceAddr cellAddr = _volume->toDeviceAddr[cellId];
-        PThreadId cellThread = getThreadId(cellAddr);
-        uint32_t messages = i->second;
-        updateLinkInfo(cellThread, loc, &_link_edges);
-        for (int i = 0; i < 6; i++) {
-            for (int j = 0; j < 8; j++) {
-                if (_link_edges.x.at(i).at(j) > 0) {
-                    uint32_t messages_before_x = _link_messages.x.at(i).at(j);
-                    _link_messages.x.at(i).at(j) += (messages * _link_edges.x.at(i).at(j));
-                    // Overflow check - if messages_before is less, we've gone back to 0
-                    assert(messages_before_x <= _link_messages.x.at(i).at(j));
-                }
-                if (_link_edges.y.at(i).at(j) > 0) {
-                    uint32_t messages_before_y = _link_messages.y.at(i).at(j);
-                    _link_messages.y.at(i).at(j) += (messages * _link_edges.y.at(i).at(j));
-                    // Overflow check - if messages_before is less, we've gone back to 0
-                    assert(messages_before_y <= _link_messages.y.at(i).at(j));
-                }
-                if (_link_edges.intra.at(i).at(j) > 0) {
-                    uint32_t messages_before_intra = _link_messages.intra.at(i).at(j);
-                    _link_messages.intra.at(i).at(j) += (messages * _link_edges.intra.at(i).at(j));
-                    // Overflow check - if messages_before is less, we've gone back to 0
-                    assert(messages_before_intra <= _link_messages.intra.at(i).at(j));
-                }
-            }
-        }
-    }
-
-    // DEBUG: Print link message numbers to screen - link (0, 0) is bottom left corner of printed
-    for (int j = 7; j >= 0; j--) {
-        for (int i = 0; i < 6; i++) {
-            std::cout <<_link_messages.intra.at(i).at(j) << " (" << _link_messages.x.at(i).at(j) << ", " << _link_messages.y.at(i).at(j) << "), ";
-        }
-        std::cout << "\n";
-    }
-    std::string s = "../link_messages/link_messages_" + std::to_string(_D) + ".csv";
-    FILE* f = fopen(s.c_str(), "w+");
-
-    fprintf(f, "%u\n", _D);
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 8; j++) {
-            std::string intra_name = "intra (" + std::to_string(i) + " " + std::to_string(j) + ")";
-            std::string x_name = "(" + std::to_string(i) + " " + std::to_string(j) + ")E - W(" + std::to_string(i+1) + " " + std::to_string(j) + ")";
-            std::string y_name = "(" + std::to_string(i) + " " + std::to_string(j) + ")N - S(" + std::to_string(i) + " " + std::to_string(j+1) + ")";
-
-            fprintf(f, "%s, %lu\n", intra_name.c_str(), _link_messages.intra.at(i).at(j));
-
-            if (i < 5) {
-                fprintf(f, "%s, %lu\n", x_name.c_str(), _link_messages.x.at(i).at(j));
-            }
-            if (j < 7) {
-                fprintf(f, "%s, %lu\n", y_name.c_str(), _link_messages.y.at(i).at(j));
-            }
-        }
-    }
-
-    fclose(f);
-}
-#endif
-
-// template<class S>
-// void SimVolume<S>::calculate_runtime() {
-//     // Hours to minutes
-//     _runtime_minutes += _runtime_hours * 60; // Hours * 60 minutes per hour
-//     // Minutes to seconds
-//     _runtime_seconds += _runtime_minutes * 60; // Minutes * 60 seconds per minute;
-// }
-
-// // Run the simulation
-// template<class S>
-// void SimVolume<S>::run() {
-// #ifdef VISUALISE
-//     // Max runtime - currently only checked when a json file is closed
-//     _runtime_hours = 45;
-//     _runtime_minutes = 20;
-//     _runtime_seconds = 0;
-
-//     std::cout << "Will run for a maximum time of ";
-//     if (_runtime_hours > 0) {
-//         std::cout << _runtime_hours << " hours ";
-//     }
-//     if (_runtime_minutes > 0) {
-//         std::cout << _runtime_minutes << " minutes ";
-//     }
-//     if (_runtime_seconds > 0) {
-//         std::cout << _runtime_minutes << " seconds";
-//     }
-//     std::cout << "\n";
-
-//     calculate_runtime();
-
-//     std::cout << "This totals " << _runtime_seconds << " seconds.\n";
-// #endif
-
-// #ifdef SERIAL
-//     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-//     _volume.setQueue(&queue);
-//     std::thread thread(&SerialSim::run, _volume);
-// #else // We dont need host link if we're running serial sim on x86
-//     _hostLink->boot("code.v", "data.v");
-//     _hostLink->go();
-// #endif
-
-//     struct timeval start, finish, elapsedTime;
-//     gettimeofday(&start, NULL);
-
-// #if defined(STATS)
-//     politeSaveStats(_hostLink, "stats.txt");
-// #endif
-
-//     uint32_t devices = 0;
-//     uint32_t timestep = _start_timestep;
-// #ifdef BEAD_COUNTER
-//     uint32_t beads_out = 0;
-// #endif
-
-// #ifdef VISUALISE
-//     std::map<uint32_t, uint32_t> bead_print_map;
-// #endif
-
-// #ifdef MESSAGE_COUNTER
-//     std::map<cell_t, uint32_t> cell_messages;
-// #endif
-//     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
-//     bool first = true;
-//     // enter the main loop
-//     while(1) {
-//     #ifdef SERIAL
-//         // Need some way of acquiring messages from the serial x86 simulator
-//         DPDMessage msg = _volume.receiveMessage();
-//     #else
-//         PMessage<DPDMessage> pmsg;
-//         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
-//         DPDMessage msg = pmsg.payload;
-//     #endif
-//         if (msg.type == 0xE0) {
-//             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
-//             exit(1);
-//         }
-//     #ifdef TIMER
-//       #ifdef BEAD_COUNTER
-//         if (msg.type == 0xAA) {
-//             devices++;
-//             beads_out += msg.timestep;
-//             if (devices >= _D*_D*_D) { // All devices reported
-//                 std::cerr << "Beads in  = " << _beads_added << "\n";
-//                 std::cerr << "Beads out = " << beads_out << "\n";
-//                 FILE *f = fopen("../bead_count.csv", "a+");
-//                 fprintf(f, "%u, %u, %u\n", _D, _beads_added, beads_out);
-//                 fclose(f);
-//                 return;
-//             }
-//         }
-//       #else
-//         std::cerr << "Msg type = " << (uint32_t) msg.type << "\n";
-//         if (msg.type == 0xDD) {
-//             if (msg.timestep > timestep) {
-//                 std::cerr << msg.from.x << ", "<< msg.from.y << ", " << msg.from.z;
-//                 std::cerr << " finished early. Timestep " << msg.timestep << "\n";
-//                 timestep = msg.timestep;
-//             }
-//         } else if (msg.type != 0xBB) {
-//             if (msg.timestep >= _max_timestep) {
-//                 gettimeofday(&finish, NULL);
-//                 timersub(&finish, &start, &elapsedTime);
-//                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-//                 printf("Runtime = %1.10f\n", duration);
-//                 FILE* f = fopen("../mega_results.csv", "a+");
-//                 // FILE* f = fopen("../timing_results.csv", "a+");
-//                 fprintf(f, "%1.10f", duration);
-//                 fclose(f);
-//             #ifdef SERIAL
-//                 thread.join();
-//             #endif
-//                 return;
-//             } else {
-//                 std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
-//                 return;
-//             }
-//         } else {
-//             std::cerr << "ERROR: received message when not expected\n";
-//             return;
-//         }
-//       #endif
-//     #elif defined(STATS)
-//         if (msg.type == 0xAA) {
-//             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-//             return;
-//         }
-//     #elif defined(MESSAGE_COUNTER)
-//         if (msg.type != 0xBB) {
-//             devices++;
-//             cell_messages[msg.from] = msg.timestep;
-//             if (devices >= (_D*_D*_D)) {
-//                 calculateMessagesPerLink(cell_messages);
-//                 return;
-//             }
-//         }
-//     #elif defined(VISUALISE)
-//         if (timestep < msg.timestep) {
-//             timestep = msg.timestep;
-//             bead_print_map[timestep] = 0;
-//             // if (timestep > _start_timestep + emitperiod) {
-//             // #ifndef VESICLE_SELF_ASSEMBLY
-//             //     std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-//             // #else
-//             //     std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-//             // #endif
-//             //     FILE* old_file = fopen(path.c_str(), "a+");
-//             //     fprintf(old_file, "\n]}\n");
-//             //     fclose(old_file);
-//             // }
-
-//         #ifndef VESICLE_SELF_ASSEMBLY
-//             std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
-//         #else
-//             std::string fpath = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
-//         #endif
-//             FILE* f = fopen(fpath.c_str(), "w+");
-//             fprintf(f, "{\n\t\"beads\":[\n");
-//             fclose(f);
-//             first = true;
-//         }
-//         // pts_to_extern_t eMsg;
-//         // eMsg.timestep = msg.timestep;
-//         // eMsg.from = msg.from;
-//         // eMsg.bead = msg.beads[0];
-//         // _extern->send(&eMsg);
-
-
-//         // if (msg.timestep >= _max_timestep + 100) {
-//         //     std::cout << "\n";
-//         //     std::cout << "Finished, saving now\n";
-//         //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
-//         //         std::cout << "Timestep " << i->first << "\r";
-//         //         fflush(stdout);
-//         //         std::string path = "../100_bond_frames/state_" + std::to_string(i->first) + ".json";
-//         //         FILE* f = fopen(path.c_str(), "w+");
-//         //         fprintf(f, "{\n\t\"beads\":[\n");
-//         //         bool first = true;
-//         //         for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
-//         //             if (first) {
-//         //                 first = false;
-//         //             } else {
-//         //                 fprintf(f, ",\n");
-//         //             }
-//         //             fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
-//         //         }
-//         //         fprintf(f, "\n]}");
-//         //         fclose(f);
-//         //     }
-//         //     std::cout << "\n";
-//         // #ifdef SERIAL
-//         //     thread.join();
-//         // #endif
-//         //     return;
-//         // }
-
-//         bead_t b = msg.beads[0];
-//         b.pos.x(b.pos.x() + msg.from.x);
-//         b.pos.y(b.pos.y() + msg.from.y);
-//         b.pos.z(b.pos.z() + msg.from.z);
-//         // bead_map[msg.timestep][msg.beads[0].id] = b;
-//     #ifndef VESICLE_SELF_ASSEMBLY
-//         std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
-//     #else
-//         std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
-//     #endif
-//         FILE* f = fopen(path.c_str(), "a+");
-//         if (first) {
-//             first = false;
-//         } else {
-//             fprintf(f, ",\n");
-//         }
-//         fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
-//         fclose(f);
-//         bead_print_map[msg.timestep]++;
-//         if (bead_print_map[msg.timestep] >= _beads_added) {
-//           #ifndef VESICLE_SELF_ASSEMBLY
-//             std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
-//           #else
-//             std::string path = "../" + std::to_string(_D) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
-//           #endif
-//             FILE* old_file = fopen(path.c_str(), "a+");
-//             fprintf(old_file, "\n]}\n");
-//             fclose(old_file);
-
-//             // Check if we've run for longer than the max time
-//             gettimeofday(&finish, NULL);
-//             timersub(&finish, &start, &elapsedTime);
-//             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-//             printf("Timestep %u stored after %1.10f seconds                     \r", timestep,  duration);
-//             fflush(stdout);
-//             if (duration >= _runtime_seconds) {
-//                 std::cout << "\nMax runtime reached, exiting\n";
-//             #ifdef VESICLE_SELF_ASSEMBLY
-//                 FILE* timeFile = fopen("../vesicle_total_run_time.csv", "a+");
-//             #else
-//                 FILE* timeFile = fopen("../oil_water_total_run_time.csv", "a+");
-//             #endif
-//                 fprintf(timeFile, "%u, %u, %f\n", _start_timestep, msg.timestep, duration);
-//                 return;
-//             }
-//         }
-
-//     #endif
-//     }
-// }
-
-// Runs a test, gets the bead outputs and returns this to the test file
-// template<class S>
-// std::map<uint32_t, DPDMessage> SimVolume<S>::test() {
-//     std::map<uint32_t, DPDMessage> result;
-//     // Finish counter
-//     uint32_t finish = 0;
-// #ifdef SERIAL
-//     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-//     _volume.setQueue(&queue);
-//     std::thread thread(&SerialSim::run, _volume);
-// #else // We dont need host link if we're running serial sim on x86
-//     _hostLink->boot("code.v", "data.v");
-//     _hostLink->go();
-// #endif
-
-//     // enter the main loop
-//     while(1) {
-//     #ifdef SERIAL
-//         // Need some way of acquiring messages from the serial x86 simulator
-//         DPDMessage msg = _volume.receiveMessage();
-//     #else
-//         PMessage<DPDMessage> pmsg;
-//         _hostLink->recvMsg(&pmsg, sizeof(pmsg));
-//         DPDMessage msg = pmsg.payload;
-//     #endif
-//         if (msg.type == 0xE0) {
-//             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
-//             exit(1);
-//         }
-//         result[msg.beads[0].id] = msg;
-//         if (msg.type == 0xAA) {
-//             finish++;
-//             if (finish >= (_D*_D*_D) && result.size() >= _beads_added) {
-//             #ifdef SERIAL
-//                 thread.join();
-//             #endif
-//                 return result;
-//             }
-//         }
-//     }
-
-//     return result;
-// }
 
 template<class S>
 uint16_t SimVolume<S>::get_neighbour_cell_dimension(cell_pos_t c, int16_t n) {
