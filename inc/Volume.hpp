@@ -3,17 +3,18 @@
 #ifndef _VOLUME_H
 #define _VOLUME_H
 
+#include "dpd.hpp"
+
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
 #include "serial.hpp"
 #elif defined(RDF)
-#include "RDF.hpp"
 #else
 #include "sync.h"
 #endif
 
-#ifndef SERIAL
+#if !defined(SERIAL) && !defined(RDF)
 #include "POLite.h"
 #endif
 

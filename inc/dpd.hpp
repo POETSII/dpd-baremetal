@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-#include "Vector3D.hpp"
+#include "DPDStructs.hpp"
 #include "BeadMap.hpp"
 #ifdef SERIAL
 #include <iostream>
@@ -19,52 +19,6 @@
 /********************* DEFINITIONS **************************/
 
 #define DT10_RAND_MAX 4294967295
-
-/********************* TYPEDEFS **************************/
-
-typedef float ptype;
-
-typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
-
-typedef uint32_t bead_id_t; // the ID for the bead
-
-typedef struct _bead_t {
-    bead_id_t id; // 4 bytes
-    bead_class_t type; // 1 byte
-    Vector3D<ptype> pos; // 12 bytes
-    Vector3D<ptype> velo; // 12 bytes
-#ifdef BETTER_VERLET
-    Vector3D<ptype> acc; // 12 bytes
-#endif
-} bead_t; // 29 bytes - 41 with BETTER_VERLET
-
-typedef uint16_t cell_pos_t;
-
-// defines the cell location
-struct cell_t {
-    cell_pos_t x;
-    cell_pos_t y;
-    cell_pos_t z;
-
-    #ifndef TINSEL // below is only needed for the host code
-
-    // So that we can use the co-ordinate of the cell as a key
-    bool operator<(const cell_t& coord) const {
-        if(x < coord.x) return true;
-        if(x > coord.x) return false;
-        //x == coord.x
-        if(y < coord.y) return true;
-        if(y > coord.y) return false;
-        //x == coord.x && y == coord.y
-        if(z < coord.z) return true;
-        if(z > coord.z) return false;
-        //*this == coord
-        return false;
-    }
-
-    #endif /* TINSEL */
-
-}; // 6 bytes
 
 /********************* DPD CONSTANTS **************************/
 

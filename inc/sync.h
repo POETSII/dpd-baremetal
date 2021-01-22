@@ -70,58 +70,6 @@ const uint32_t emitperiod = 1;
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
 typedef uint32_t bead_id_t; // the ID for the bead
 
-// Format of message
-struct DPDMessage {
-    uint8_t type;
-    uint32_t timestep; // the timestep this message is from
-    cell_t from; // the unit that this message is from
-    bead_t beads[1]; // the beads payload from this unit
-}; // 50 Bytes
-
-// the state of the DPD Device
-struct DPDState {
-    float cell_length; // the size of this spatial unit in one dimension
-    uint8_t cells_per_dimension;
-    cell_t loc; // the location of this cube
-    uint16_t bslot; // a bitmap of which bead slot is occupied
-    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-#ifdef FLOAT_ONLY
-    Vector3D<float> force_slot[MAX_BEADS];
-#else
-    Vector3D<int32_t> force_slot[MAX_BEADS]; // force for each bead
-#endif
-#ifdef BETTER_VERLET
-    Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
-#endif
-    uint16_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
-    cell_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
-    uint8_t mode; // the mode that this device is in 0 = update; 1 = migration
-#ifdef VISUALISE
-    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
-#endif
-    uint32_t timestep; // the current timestep that we are on
-    uint32_t grand; // the global random number at this timestep
-    uint64_t rngstate; // the state of the random number generator
-    uint32_t max_timestep; // Maximum timestep for this run
-
-#ifdef SMALL_DT_EARLY
-    ptype dt;
-    ptype inv_sqrt_dt;
-#endif
-
-#ifdef MESSAGE_MANAGEMENT
-    int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
-    uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
-#endif
-
-#ifdef MESSAGE_COUNTER
-    uint32_t message_counter;
-#endif
-
-    uint8_t error;
-};
-
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
