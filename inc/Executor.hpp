@@ -1,17 +1,20 @@
 // A class that executes something on a given volume
 
-#ifndef _EXECUTOR_H
-#define _EXECUTOR_H
+// #ifndef _EXECUTOR_H
+// #define _EXECUTOR_H
 
 #include "Volume.hpp"
 #include "dpd.hpp"
 #include <map>
 
+template<class T>
 class Executor {
     public:
 
     // Constructors and destructors
-    Executor(Volume<ptype> *volume);
+    Executor(Volume<ptype> *volume) {
+        this->volume = volume;
+    }
 
     ~Executor() {}
 
@@ -19,7 +22,7 @@ class Executor {
     virtual void run() = 0;
 
     // Executes and returns a vector of that received result for testing purposes
-    virtual void test(std::map<uint32_t, DPDMessage> *result) = 0;
+    virtual void test(std::map<uint32_t, T> *result) = 0;
 
     protected:
 
@@ -28,4 +31,4 @@ class Executor {
 
 };
 
-#endif /*_EXECUTOR_H */
+// #endif /*_EXECUTOR_H */

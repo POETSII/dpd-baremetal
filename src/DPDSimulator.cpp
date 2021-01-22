@@ -5,7 +5,7 @@
 #ifndef __DPDSIMULATOR_IMPL
 #define __DPDSIMULATOR_IMPL
 
-DPDSimulator::DPDSimulator(Volume<ptype> *volume, uint32_t start_timestep, uint32_t max_timestep) : Executor(volume) {
+DPDSimulator::DPDSimulator(Volume<ptype> *volume, uint32_t start_timestep, uint32_t max_timestep) : Executor<DPDMessage>(volume) {
     this->start_timestep = start_timestep;
     this->max_timestep = max_timestep;
 

@@ -16,6 +16,8 @@
 
 #if !defined(SERIAL) && !defined(RDF)
 #include "POLite.h"
+#else
+typedef uint32_t PDeviceId;
 #endif
 
 #include <vector>
@@ -35,7 +37,7 @@ class Volume {
     // Add a bead to the volume
     cell_t add_bead(const bead_t* in);
     // Adds a bead to the volume in given cell space. Value of all positions must be less than cell length
-    void add_bead_to_cell(const bead_t* in, const cell_t bead);
+    void add_bead_to_cell(const bead_t* bead, const cell_t in);
 
     // Debugging
     // Prints the number of beads assigned to each cell
@@ -46,7 +48,7 @@ class Volume {
     DPDState * get_state_of_cell(cell_t loc);
     uint32_t get_boxes_x();
     uint32_t get_boxes_y();
-  #ifdef SERIAL
+  #if defined(SERIAL) || defined(RDF)
     std::vector<DPDState> * get_cells();
   #else
     PGraph<DPDDevice, DPDState, None, DPDMessage> * get_cells();
@@ -70,6 +72,7 @@ class Volume {
   #if defined(SERIAL) || defined(RDF)
     // A vector where PDeviceId represents its index in the vector
     std::vector<DPDState> *cells;
+    uint32_t num_cells;
   #else
 	// POLite graph containing the cells
     // PDeviceId represents its device ID in the graph

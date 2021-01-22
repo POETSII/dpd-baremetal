@@ -6,9 +6,10 @@
 #define _EXECUTOR_IMPL
 
     // Constructors and destructors
-    Executor::Executor(Volume<ptype> *volume) {
+    template<class T>
+    Executor<T>::Executor(Volume<ptype> *volume) {
         this->volume = volume;
     };
 
 
-#endif /*_EXECUTOR_IMPLE */
+#endif /*_EXECUTOR_IMPL */

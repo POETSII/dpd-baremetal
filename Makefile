@@ -20,7 +20,7 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POETS_OBJS = $(DPD_BIN)/SimVolume.o $(DPD_BIN)/Executor.o $(DPD_BIN)/DPDSimulator.o $(DPD_BIN)/POETSDPDSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POETS_OBJS = $(DPD_BIN)/SimVolume.o $(DPD_BIN)/DPDSimulator.o $(DPD_BIN)/POETSDPDSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -115,7 +115,7 @@ $(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 
 # One by one is the best form
 $(DPD_BIN)/dpd.elf: DFLAGS+=-DONE_BY_ONE
-$(DPD_BIN)/dpd.elf: $(DPD_HEADERS) $(DPD_SRC)/sync.cpp $(DPD_INC)/sync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+$(DPD_BIN)/dpd.elf: $(DPD_SRC)/sync.cpp $(DPD_INC)/sync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS) $(DPD_HEADERS)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/sync.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/sync.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
@@ -128,7 +128,7 @@ $(DPD_BIN)/galsData.v: $(DPD_BIN)/gals.elf $(DPD_BIN)
 	$(RV_OBJCOPY) -O verilog --remove-section=.text \
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/gals.elf $@
 
-$(DPD_BIN)/gals.elf: $(DPD_HEADERS) $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+$(DPD_BIN)/gals.elf: $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS) $(DPD_HEADERS)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/gals.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/gals.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
@@ -594,7 +594,7 @@ $(DPD_BIN)/parsedData.v: $(DPD_BIN)/parsedDPD.elf $(DPD_BIN)
 	$(RV_OBJCOPY) -O verilog --remove-section=.text \
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/parsedDPD.elf $@
 
-$(DPD_BIN)/parsedDPD.elf: $(DPD_SRC)/parsedsync.cpp $(DPD_INC)/parsedsync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS)
+$(DPD_BIN)/parsedDPD.elf: $(DPD_SRC)/parsedsync.cpp $(DPD_INC)/parsedsync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS) $(DPD_HEADERS)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/parsedsync.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/parsedsync.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
@@ -754,19 +754,18 @@ test-serial-large: DFLAGS+=-DLARGE_TEST
 test-serial-large: test-serial
 
 # ---------------------------- x86 RDF Calculator --------------------------------
-rdf_objs: $(DPD_BIN)/Volume.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+RDF_OBJS = $(DPD_BIN)/Volume.o
 
 rdf-calculator: DFLAGS+=-DRDF
-rdf-calculator: rdf_objs $(DPD_SRC)/RDF.cpp
+rdf-calculator: $(RDF_OBJS) $(DPD_SRC)/RDF.cpp
 rdf-calculator:
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/RDF.o $(DPD_SRC)/RDF.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/rdf $(POETS_OBJS) $(HL)/*.o $(DPD_BIN)/RDF.o \
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/RDF.o $(DPD_SRC)/RDF.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/rdf $(RDF_OBJS) $(HL)/*.o $(DPD_BIN)/RDF.o \
 	  -static-libgcc -static-libstdc++ \
-      -ljtag_atlantic -ljtag_client \ -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -ljtag_atlantic -ljtag_client \
+      -L$(QUARTUS_ROOTDIR)/linux64 \
 	  -L$(QUARTUS_ROOTDIR)/linux64 \
       -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
-
-
 
 .PHONY: clean
 clean:

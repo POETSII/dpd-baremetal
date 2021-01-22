@@ -16,8 +16,11 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
     this->boxes_x = 2;
     this->boxes_y = 1;
 
-#ifndef SERIAL
+#if !defined(SERIAL) && !defined(RDF)
     cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
+#else
+    cells = new std::vector<DPDState>();
+    num_cells = 0;
 #endif
 
     // Create the cells
@@ -25,7 +28,9 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
         for(uint16_t y = 0; y < cells_per_dimension; y++) {
             for(uint16_t z = 0; z < cells_per_dimension; z++) {
                   #if defined(SERIAL) || defined(RDF)
-                    PDeviceId id = cells.newCell();
+                    DPDState new_state;
+                    cells->push_back(new_state);
+                    PDeviceId id = num_cells++;
                   #else
                     PDeviceId id = cells->newDevice();
                   #endif
@@ -49,7 +54,7 @@ Volume<S>::~Volume() {
 
 template<class S>
 void Volume<S>::init_cells() {
-#ifndef SERIAL
+#if !defined(SERIAL) && !defined(RDF)
   #ifdef DRAM
     // Larger runs will need cells mapped to DRAM instead of SRAM
     this->cells->mapVerticesToDRAM = true;
@@ -64,7 +69,7 @@ void Volume<S>::init_cells() {
         PDeviceId id = i->first;
         cell_t loc = i->second;
       #if defined(SERIAL) || defined(RDF)
-        DPDState *state = cells.at(id);
+        DPDState *state = cells->at(id);
       #else
         DPDState *state = &cells->devices[id]->state;
       #endif
@@ -82,7 +87,7 @@ void Volume<S>::print_occupancy() {
     for(auto const& x : idToLoc) {
         PDeviceId t = x.first;
       #if defined(SERIAL) || defined(RDF)
-        uint8_t beads = get_num_beads(cells.at(t)->bslot);
+        uint8_t beads = get_num_beads(cells->at(t).bslot);
       #else
         uint8_t beads = get_num_beads(cells->devices[t]->state.bslot);
       #endif
@@ -104,8 +109,8 @@ cell_t Volume<S>::add_bead(const bead_t *in) {
     PDeviceId b_su = locToId[t];
 
     // Get the devices state
-#ifdef SERIAL
-    DPDState *state = cells.at(b_su);
+#if defined(SERIAL) || defined(RDF)
+    DPDState *state = &cells->at(b_su);
 #else
     DPDState *state = &cells->devices[b_su]->state;
 #endif
@@ -149,8 +154,8 @@ void Volume<S>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
     PDeviceId b_su = locToId[cell];
 
     // Get the device state
-#ifdef SERIAL
-    DPDState *state = cells.getCell(b_su);
+#if defined(SERIAL) || defined(RDF)
+    DPDState *state = cells->at(b_su);
 #else
     DPDState *state = &cells->devices[b_su]->state;
 #endif
@@ -169,8 +174,13 @@ unsigned Volume<S>::get_cells_per_dimension() {
 
 template<class S>
 DPDState * Volume<S>::get_state_of_cell(cell_t loc) {
+  #if defined(SERIAL) || defined(RDF)
     PDeviceId id = this->locToId[loc];
-    return &this->cells->devices[id]->state;
+    return cells->at(id);
+  #else
+    PDeviceId id = this->locToId[loc];
+    return &cells->devices[id]->state;
+  #endif
 }
 
 template<class S>
@@ -184,7 +194,7 @@ uint32_t Volume<S>::get_boxes_y() {
 }
 
 template<class S>
-#ifdef SERIAL
+#if defined(SERIAL) || defined(RDF)
 std::vector<DPDState> * Volume<S>::get_cells()
 #else
 PGraph<DPDDevice, DPDState, None, DPDMessage> * Volume<S>::get_cells()

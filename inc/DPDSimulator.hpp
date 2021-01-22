@@ -5,7 +5,7 @@
 #ifndef _DPDSIMULATOR_H
 #define _DPDSIMULATOR_H
 
-class DPDSimulator : public Executor {
+class DPDSimulator : public Executor<DPDMessage> {
     public:
 
     // Constructors and destructors
