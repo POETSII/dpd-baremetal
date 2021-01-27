@@ -1,22 +1,19 @@
 // A class that executes something on a given volume
 
-// #ifndef _EXECUTOR_H
-// #define _EXECUTOR_H
+#ifndef _EXECUTOR_H
+#define _EXECUTOR_H
 
 #include "Volume.hpp"
 #include "dpd.hpp"
-#include <map>
 
 template<class T>
 class Executor {
     public:
 
     // Constructors and destructors
-    Executor(Volume<ptype> *volume) {
-        this->volume = volume;
-    }
+    Executor(T volume_length, unsigned cells_per_dimension);
 
-    ~Executor() {}
+    ~Executor() { };
 
     // The function which carries out the execution
     virtual void run() = 0;
@@ -27,8 +24,10 @@ class Executor {
     protected:
 
     // The volume this executor works on
-    Volume<ptype> *volume;
+    Volume<T> volume;
 
 };
 
-// #endif /*_EXECUTOR_H */
+#include "../src/Executor.cpp"
+
+#endif /*_EXECUTOR_H */

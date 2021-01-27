@@ -19,7 +19,7 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
 #if !defined(SERIAL) && !defined(RDF)
     cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
 #else
-    cells = new std::vector<DPDState>();
+    // cells = new std::vector<DPDState>();
     num_cells = 0;
 #endif
 
@@ -29,7 +29,7 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
             for(uint16_t z = 0; z < cells_per_dimension; z++) {
                   #if defined(SERIAL) || defined(RDF)
                     DPDState new_state;
-                    cells->push_back(new_state);
+                    cells.push_back(new_state);
                     PDeviceId id = num_cells++;
                   #else
                     PDeviceId id = cells->newDevice();
@@ -47,9 +47,9 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
 // Deconstructor
 template<class S>
 Volume<S>::~Volume() {
-// #ifndef SERIAL
+#if !defined(SERIAL) && !defined(RDF)
     delete cells;
-// #endif
+#endif
 }
 
 template<class S>
@@ -69,7 +69,7 @@ void Volume<S>::init_cells() {
         PDeviceId id = i->first;
         cell_t loc = i->second;
       #if defined(SERIAL) || defined(RDF)
-        DPDState *state = cells->at(id);
+        DPDState *state = cells.at(id);
       #else
         DPDState *state = &cells->devices[id]->state;
       #endif
@@ -87,7 +87,7 @@ void Volume<S>::print_occupancy() {
     for(auto const& x : idToLoc) {
         PDeviceId t = x.first;
       #if defined(SERIAL) || defined(RDF)
-        uint8_t beads = get_num_beads(cells->at(t).bslot);
+        uint8_t beads = get_num_beads(cells.at(t).bslot);
       #else
         uint8_t beads = get_num_beads(cells->devices[t]->state.bslot);
       #endif
@@ -110,7 +110,7 @@ cell_t Volume<S>::add_bead(const bead_t *in) {
 
     // Get the devices state
 #if defined(SERIAL) || defined(RDF)
-    DPDState *state = &cells->at(b_su);
+    DPDState *state = &cells.at(b_su);
 #else
     DPDState *state = &cells->devices[b_su]->state;
 #endif
@@ -155,7 +155,7 @@ void Volume<S>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
 
     // Get the device state
 #if defined(SERIAL) || defined(RDF)
-    DPDState *state = cells->at(b_su);
+    DPDState *state = cells.at(b_su);
 #else
     DPDState *state = &cells->devices[b_su]->state;
 #endif
@@ -175,8 +175,8 @@ unsigned Volume<S>::get_cells_per_dimension() {
 template<class S>
 DPDState * Volume<S>::get_state_of_cell(cell_t loc) {
   #if defined(SERIAL) || defined(RDF)
-    PDeviceId id = this->locToId[loc];
-    return cells->at(id);
+    PDeviceId id = locToId[loc];
+    return &cells.at(id);
   #else
     PDeviceId id = this->locToId[loc];
     return &cells->devices[id]->state;
@@ -195,13 +195,15 @@ uint32_t Volume<S>::get_boxes_y() {
 
 template<class S>
 #if defined(SERIAL) || defined(RDF)
-std::vector<DPDState> * Volume<S>::get_cells()
+std::vector<DPDState> * Volume<S>::get_cells() {
+    return &cells;
+}
 #else
 PGraph<DPDDevice, DPDState, None, DPDMessage> * Volume<S>::get_cells()
-#endif
 {
     return cells;
 }
+#endif
 
 template<class S>
 uint32_t Volume<S>::get_number_of_cells() {
@@ -211,6 +213,11 @@ uint32_t Volume<S>::get_number_of_cells() {
 template<class S>
 uint32_t Volume<S>::get_number_of_beads() {
     return beads_added;
+}
+
+template<class S>
+S Volume<S>::get_volume_length() {
+    return volume_length;
 }
 
 #endif /* __VOLUME_IMPL */

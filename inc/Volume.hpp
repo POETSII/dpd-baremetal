@@ -55,6 +55,7 @@ class Volume {
   #endif
     uint32_t get_number_of_cells();
     uint32_t get_number_of_beads();
+    S get_volume_length();
 
     protected:
 
@@ -71,7 +72,7 @@ class Volume {
     // The cells
   #if defined(SERIAL) || defined(RDF)
     // A vector where PDeviceId represents its index in the vector
-    std::vector<DPDState> *cells;
+    std::vector<DPDState> cells;
     uint32_t num_cells;
   #else
 	// POLite graph containing the cells

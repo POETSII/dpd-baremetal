@@ -7,9 +7,7 @@
 
     // Constructors and destructors
     template<class T>
-    Executor<T>::Executor(Volume<ptype> *volume) {
-        this->volume = volume;
-    };
-
+    Executor<T>::Executor(const T volume_length, const unsigned cells_per_dimension) : volume(Volume<T>(volume_length, cells_per_dimension)) {
+    }
 
 #endif /*_EXECUTOR_IMPL */

@@ -20,7 +20,7 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POETS_OBJS = $(DPD_BIN)/SimVolume.o $(DPD_BIN)/DPDSimulator.o $(DPD_BIN)/POETSDPDSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POETS_OBJS = $(DPD_BIN)/SimVolume.o $(DPD_BIN)/DPDSimulator.o $(DPD_BIN)/POETSDPDSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o $(DPD_BIN)/Executor.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -754,12 +754,16 @@ test-serial-large: DFLAGS+=-DLARGE_TEST
 test-serial-large: test-serial
 
 # ---------------------------- x86 RDF Calculator --------------------------------
-RDF_OBJS = $(DPD_BIN)/Volume.o
+RDF_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/Executor.o $(DPD_BIN)/RDFCalculator.o
+
+$(DPD_BIN)/RDFCalculator.o: $(DPD_SRC)/RDFCalculator.cpp $(DPD_INC)/RDFCalculator.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/RDFCalculator.o $(DPD_SRC)/RDFCalculator.cpp
 
 rdf-calculator: DFLAGS+=-DRDF
 rdf-calculator: $(RDF_OBJS) $(DPD_SRC)/RDF.cpp
 rdf-calculator:
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/RDF.o $(DPD_SRC)/RDF.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/RDF.o $(DPD_SRC)/RDF.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/rdf $(RDF_OBJS) $(HL)/*.o $(DPD_BIN)/RDF.o \
 	  -static-libgcc -static-libstdc++ \
       -ljtag_atlantic -ljtag_client \

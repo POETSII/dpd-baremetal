@@ -144,7 +144,7 @@ void POETSDPDSimulator::run() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _volume.receiveMessage();
+        DPDMessage msg = volume.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         hostLink->recvMsg(&pmsg, sizeof(pmsg));

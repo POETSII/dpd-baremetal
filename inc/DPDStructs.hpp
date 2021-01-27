@@ -152,6 +152,7 @@ struct DPDState {
     cell_t loc = {0, 0, 0}; // the location of this cube
     uint16_t bslot = 0; // a bitmap of which bead slot is occupied
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
+    bool done = false;
 };
 
 #else // SYNC
