@@ -3,31 +3,35 @@
 #include <tinsel.h>
 #include "dpd.h"
 
-inline uint32_t get_next_free_slot(uint32_t slotlist) {
-    uint32_t mask = 0x1;
-    for(int i=0; i<31; i++){
+inline uint8_t get_next_free_slot(uint16_t slotlist) {
+    uint16_t mask = 0x1;
+    for(uint8_t i = 0; i < MAX_BEADS; i++){
         if(!(slotlist & mask)) {
            return i;
         }
         mask = mask << 1;
     }
-    return 0xFFFFFFFF; // error there are no free slots!
+    return 0xFF; // error there are no free slots!
 }
 
-inline uint32_t set_slot(uint32_t slotlist, uint32_t pos){ return slotlist | (1 << pos); }
+inline uint16_t set_slot(uint16_t slotlist, uint8_t pos) {
+    return slotlist | (1 << pos);
+}
 
-inline uint32_t get_next_slot(uint32_t slotlist) {
-    uint32_t mask = 0x1;
-    for(int i=0; i<31; i++) {
+inline uint8_t get_next_slot(uint16_t slotlist) {
+    uint16_t mask = 0x1;
+    for(uint8_t i = 0; i < MAX_BEADS; i++) {
         if(slotlist & mask) {
             return i;
         }
         mask = mask << 1; // shift to the next pos
     }
-    return 0xFFFFFFFF; // we are empty
+    return 0xFF; // we are empty
 }
 
-inline uint32_t clear_slot(uint32_t slotlist, uint32_t pos){  return slotlist & ~(1 << pos); }
+inline uint16_t clear_slot(uint16_t slotlist, uint8_t pos){
+    return slotlist & ~(1 << pos);
+}
 
 inline unit_t get_neighbour_unit(unit_t current_cell, int16_t n_x, int16_t n_y, int16_t n_z) {
     unit_t neighbour;
@@ -150,11 +154,11 @@ int main()
 
     cell_t cells[VOL_SIZE][VOL_SIZE][VOL_SIZE];
     tinselSetLen(3);
-// INIT
-    // Get message slot
-    volatile HostMsg* msg = (HostMsg*) tinselSlot(15);
+
+    // INIT
     // Send to host to end
     uint32_t hostId = tinselHostId();
+
     // Initialise cell locations
     for (uint16_t x = 0; x < VOL_SIZE; x++) {
         for (uint16_t y = 0; y < VOL_SIZE; y++) {
@@ -186,25 +190,20 @@ int main()
     }
 
     // Recv beads from host
-
-    // Get pointers to mailbox message slots
-    volatile int* msgIn = (int*) tinselSlot(0);
-
     uint32_t beads_added = 0;
     while (true) {
-        tinselAlloc(msgIn);
         tinselWaitUntil(TINSEL_CAN_RECV);
-        volatile HostMsg* msg = (HostMsg*) tinselRecv();
-        if (msg->type == 0xAA) {
+        volatile HostMsg* bead_msg = (HostMsg*) tinselRecv();
+        if (bead_msg->type == 0xAA) {
             break;
-        } else if (msg->type == 0x0A) {
+        } else if (bead_msg->type == 0x0A) {
 
             // Add bead to cells state
             // Get location (for array addressing)
             unit_t loc;
-            loc.x = msg->from.x;
-            loc.y = msg->from.y;
-            loc.z = msg->from.z;
+            loc.x = bead_msg->from.x;
+            loc.y = bead_msg->from.y;
+            loc.z = bead_msg->from.z;
 
             // Get current bitmap
             uint32_t bslot = cells[loc.x][loc.y][loc.z].bslot;
@@ -216,14 +215,14 @@ int main()
             }
 
             bead_t b;
-            b.id = msg->beads[0].id;
-            b.type = msg->beads[0].type;
-            b.pos.x(msg->beads[0].pos.x());
-            b.pos.y(msg->beads[0].pos.y());
-            b.pos.z(msg->beads[0].pos.z());
-            b.velo.x(msg->beads[0].velo.x());
-            b.velo.y(msg->beads[0].velo.y());
-            b.velo.z(msg->beads[0].velo.z());
+            b.id = bead_msg->beads[0].id;
+            b.type = bead_msg->beads[0].type;
+            b.pos.x(bead_msg->beads[0].pos.x());
+            b.pos.y(bead_msg->beads[0].pos.y());
+            b.pos.z(bead_msg->beads[0].pos.z());
+            b.velo.x(bead_msg->beads[0].velo.x());
+            b.velo.y(bead_msg->beads[0].velo.y());
+            b.velo.z(bead_msg->beads[0].velo.z());
 
             // Add it to this slot
             bslot = set_slot(bslot, new_slot);
@@ -283,7 +282,8 @@ int main()
                 }
             }
         }
-// VELOCITY VERLET
+
+        // VELOCITY VERLET
         // Increment timestep
         timestep++;
         // Timed run has ended
@@ -390,7 +390,7 @@ int main()
                 }
             }
         }
-// MIGRATE
+        // MIGRATE
         // For each cell
         for (uint16_t x = 0; x < VOL_SIZE; x++) {
             for (uint16_t y = 0; y < VOL_SIZE; y++) {
@@ -424,13 +424,19 @@ int main()
         }
     }
 
-// EMIT
-// Pass beads to host
+    // EMIT
+    // Pass beads to host
     for (uint16_t x = 0; x < VOL_SIZE; x++) {
         for (uint16_t y = 0; y < VOL_SIZE; y++) {
             for (uint16_t z = 0; z < VOL_SIZE; z++) {
                 uint32_t bslot = cells[x][y][z].bslot;
                 while (bslot) {
+                    // Wait until we can send
+                    tinselWaitUntil(TINSEL_CAN_SEND);
+
+                    // Get the message slot
+                    volatile HostMsg* msg = (HostMsg*) tinselSendSlot();
+
                     msg->type = 0x0B;
                     msg->from.x = cells[x][y][z].loc.x;
                     msg->from.y = cells[x][y][z].loc.y;
@@ -449,8 +455,6 @@ int main()
 
                     bslot = clear_slot(bslot, ci);
 
-                    // Wait until we can send
-                    tinselWaitUntil(TINSEL_CAN_SEND);
                     // Send to host
                     tinselSend(hostId, msg);
                 }
@@ -458,8 +462,13 @@ int main()
         }
     }
 
-// FINISH
+
+    // FINISH
     // Message to be sent to the host
+    tinselWaitUntil(TINSEL_CAN_SEND);
+
+    // Get the message slot
+    volatile HostMsg* msg = (HostMsg*) tinselSendSlot();
     msg->type = 0xBB;
 
     // Wait until we can send

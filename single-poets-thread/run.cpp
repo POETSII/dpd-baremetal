@@ -13,11 +13,8 @@
 #include <map>
 
 const uint8_t max_beads_per_dev = 7;
-
-const int total_beads = VOL_SIZE * VOL_SIZE * VOL_SIZE * BEAD_DENSITY;
-const int w = 0.6 * total_beads;
-const int r = 0.3 * total_beads;
-const int o = 0.1 * total_beads;
+const uint32_t total_beads = 1; // If you want to put a certain number of beads in
+//const uint32_t total_beads = VOL_SIZE * VOL_SIZE * VOL_SIZE * BEAD_DENSITY; // If you want to fill the volume up to the bead density
 
 int beads_added = 0;
 
@@ -103,9 +100,19 @@ unit_t add(const bead_t *in, std::map<unit_t, cell_t>* cells) {
 }
 
 void generateBeads(std::map<unit_t, cell_t>* cells) {
+    double w = 0.6 * total_beads;
+    double r = 0.3 * total_beads;
+    double o = 0.1 * total_beads;
+
+    // If there is a small number of beads just make them all water, we're doing a simple test
+    if (w < 10) {
+        w = total_beads;
+        r = 0;
+        o = 0;
+    }
 
     uint32_t b_uid = 0;
-    for(int i=0; i<w; i++) {
+    for(int i = 0; i < w; i++) {
         bool added = false;
         while(!added) {
             bead_t *b1 = new bead_t;
@@ -273,65 +280,65 @@ int main()
     generateBeads(&cells);
     std::cerr << beads_added << " beads generated\n";
 
-  // Acquire hostlink
-  HostLink hostLink;
-  std::cerr << "Host link acquired\n";
+    // Acquire hostlink
+    HostLink hostLink;
+    std::cerr << "Host link acquired\n";
 
-  // Load application
-  hostLink.boot("code.v", "data.v");
-  std::cerr << "Host link booted\n";
+    // Load application
+    hostLink.boot("code.v", "data.v");
+    std::cerr << "Host link booted\n";
 
-  // Start timer
-  struct timeval start, finish, diff;
-  gettimeofday(&start, NULL);
+    // Start timer
+    struct timeval start, finish, diff;
+    gettimeofday(&start, NULL);
 
-  // Start application
-  hostLink.go();
-  std::cerr << "App started\n";
+    // Start application
+    hostLink.go();
+    std::cerr << "App started\n";
 
-  // Message variable
-  HostMsg msg;
+    // Message variable
+    HostMsg msg;
 
     std::cerr << "Sending beads to thread\n";
-  // Send beads to thread
-  for (uint16_t x = 0; x < VOL_SIZE; x++) {
-    for (uint16_t y = 0; y < VOL_SIZE; y++) {
-        for (uint16_t z = 0; z < VOL_SIZE; z++) {
-            unit_t t = {x, y, z};
-            cell_t c = cells[t];
-            uint32_t slots = c.bslot;
+    // Send beads to thread
+    for (uint16_t x = 0; x < VOL_SIZE; x++) {
+        for (uint16_t y = 0; y < VOL_SIZE; y++) {
+            for (uint16_t z = 0; z < VOL_SIZE; z++) {
+                unit_t t = {x, y, z};
+                cell_t c = cells[t];
+                uint32_t slots = c.bslot;
 
-            while (slots) {
-                msg.type = 0x0A;
+                while (slots) {
+                    msg.type = 0x0A;
 
-                msg.from.x = x;
-                msg.from.y = y;
-                msg.from.z = z;
+                    msg.from.x = x;
+                    msg.from.y = y;
+                    msg.from.z = z;
 
-                uint32_t ci = get_next_slot(slots);
+                    uint32_t ci = get_next_slot(slots);
 
-                bead_t b = c.bead_slot[ci];
-                msg.beads[0].id = b.id;
-                msg.beads[0].type = b.type;
-                msg.beads[0].pos.x(b.pos.x());
-                msg.beads[0].pos.y(b.pos.y());
-                msg.beads[0].pos.z(b.pos.z());
-                msg.beads[0].velo.x(0.0);
-                msg.beads[0].velo.y(0.0);
-                msg.beads[0].velo.z(0.0);
+                    bead_t b = c.bead_slot[ci];
+                    msg.beads[0].id = b.id;
+                    msg.beads[0].type = b.type;
+                    msg.beads[0].pos.x(b.pos.x());
+                    msg.beads[0].pos.y(b.pos.y());
+                    msg.beads[0].pos.z(b.pos.z());
+                    msg.beads[0].velo.x(0.0);
+                    msg.beads[0].velo.y(0.0);
+                    msg.beads[0].velo.z(0.0);
 
-                slots = clear_slot(slots, ci);
+                    slots = clear_slot(slots, ci);
 
-                hostLink.send(0, 3, &msg);
+                    hostLink.send(0, 3, &msg);
+                }
             }
         }
     }
-  }
 
-  // Indicate end of beads being sent
-  msg.type = 0xAA;
-  hostLink.send(0, 3, &msg);
-  std::cerr << "Sent end of transfer message\n";
+    // Indicate end of beads being sent
+    msg.type = 0xAA;
+    hostLink.send(0, 3, &msg);
+    std::cerr << "Sent end of transfer message\n";
 
     std::map<unit_t, std::map<uint32_t, bead_t>> bead_map;
 
