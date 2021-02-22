@@ -8,7 +8,7 @@ DPD_SRC=../src
 include $(TINSEL_ROOT)/globals.mk
 
 # Local compiler flags
-CFLAGS = $(RV_CFLAGS) -O2 -I $(INC)
+CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 
 .PHONY: all
@@ -45,10 +45,10 @@ $(HL)/%.o:
 	make -C $(HL)
 
 run: run.cpp dpd.h $(HL)/*.o
-	g++ -O2 -I $(INC) -I $(HL) -I $(DPD_INC) -o run run.cpp $(HL)/*.o
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -I $(DPD_INC) -o run run.cpp $(HL)/*.o
 
 sim: run.cpp dpd.h $(HL)/sim/*.o
-	g++ -O2 -I $(INC) -I $(HL) -o sim run.cpp $(HL)/sim/*.o
+	g++ -O2 -std=c++11 -I $(INC) -I $(HL) -o sim run.cpp $(HL)/sim/*.o
 
 .PHONY: clean
 clean:
