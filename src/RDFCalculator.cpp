@@ -10,7 +10,7 @@
 
 #include <unistd.h>
 
-RDFCalculator::RDFCalculator(ptype volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue) : Executor<double>(volume_length, cells_per_dimension) {
+RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue) : Executor(volume_length, cells_per_dimension) {
     for (uint8_t x = 0; x < this->volume.get_volume_length(); x++) {
         for (uint8_t y = 0; y < this->volume.get_volume_length(); y++) {
             for (uint8_t z = 0; z < this->volume.get_volume_length(); z++) {
@@ -221,7 +221,7 @@ void RDFCalculator::run() {
 }
 
 // Runs a test, returns the RDF values for comparison
-void RDFCalculator::test(std::map<uint32_t, double> *result) {
+void RDFCalculator::test(void *result) {
 
 }
 
@@ -231,10 +231,6 @@ void RDFCalculator::send_message(RDFMessage msg) {
 
 uint32_t RDFCalculator::get_timestep() {
     return timestep;
-}
-
-Volume<double> * RDFCalculator::get_volume() {
-    return &volume;
 }
 
 #endif /* __RDFCalculator_IMPL */

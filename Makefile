@@ -191,6 +191,14 @@ bonds-only: $(DPD_EXAMPLES)/bondsOnly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
+corner-tests: DFLAGS+=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
+corner-tests: $(DPD_BIN) base-gals $(POETS_OBJS) $(DPD_EXAMPLES)/corner-tests.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/corner-tests.o $(DPD_EXAMPLES)/corner-tests.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POETS_OBJS) $(HL)/*.o $(DPD_BIN)/corner-tests.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
 # RESTART SIMULATION - Used to restart a simulation from a saved state
 restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POETS_OBJS)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp

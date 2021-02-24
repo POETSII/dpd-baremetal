@@ -18,13 +18,13 @@ class POETSDPDSimulator : public DPDSimulator {
     public:
 
     // Constructors and destructors
-    POETSDPDSimulator(Volume<ptype> *volume, uint32_t start_timestep, uint32_t max_timestep);
+    POETSDPDSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep);
     ~POETSDPDSimulator();
 
     // Simulation control
     void write() override;
     void run() override;
-    void test(std::map<uint32_t, DPDMessage> *result) override;
+    void test(void *result);
 
     protected:
 

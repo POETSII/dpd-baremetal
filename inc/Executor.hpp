@@ -11,15 +11,18 @@ class Executor {
     public:
 
     // Constructors and destructors
-    Executor(T volume_length, unsigned cells_per_dimension);
+    Executor<T>(T volume_length, unsigned cells_per_dimension);
 
-    ~Executor() { };
+    ~Executor<T>() { };
 
     // The function which carries out the execution
     virtual void run() = 0;
 
     // Executes and returns a vector of that received result for testing purposes
-    virtual void test(std::map<uint32_t, T> *result) = 0;
+    virtual void test(void *result) = 0;
+
+    // Returns the volume
+    Volume<T> * get_volume();
 
     protected:
 
