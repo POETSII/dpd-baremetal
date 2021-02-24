@@ -92,8 +92,8 @@ int16_t RDFCalculator::period_bound_adj(int16_t dim) {
 
 // Run the RDF calculations
 void RDFCalculator::run() {
-    uint32_t reference_beads[5] = {0, 0, 0, 0, 0};
-    uint32_t type_nums[5][5][500];
+    uint64_t reference_beads[5] = {0, 0, 0, 0, 0};
+    uint64_t type_nums[5][5][500];
     for (uint8_t i = 0; i < 5; i++) {
         for (uint8_t j = 0; j < 5; j++) {
             for (uint16_t k = 0; k < 500; k++) {
@@ -184,9 +184,9 @@ void RDFCalculator::run() {
     uint16_t index = 0;
     while (r <= rmax) {
         // r is inner radius, r_dr is outer radius
-        double r_dr = r + dr;
+        const double r_dr = r + dr;
         // Volume of shell: Volume of outer sphere - volume of inner sphere
-        double volume = (4 / 3) * M_PI * (pow(r_dr, 3) - pow(r, 3));
+        const double volume = (4 / 3) * M_PI * (pow(r_dr, 3) - pow(r, 3));
         // Average over reference beads
         uint8_t i = 0;
         for (std::vector<std::vector<std::vector<double>>>::iterator outer = results->begin(); outer != results->end(); ++outer) {
@@ -203,7 +203,7 @@ void RDFCalculator::run() {
                 // Divide average by volume - Accounts for volumes being larger the further out you look
                 double g1 = average / volume;
                 // Divide by number density
-                double g2 = average / number_density;
+                double g2 = g1 / number_density;
                 // Store this in the relevant array
                 inner->push_back(g2);
                 j++;
