@@ -19,7 +19,7 @@ struct RDFMessage {
     int core;
 };
 
-class RDFCalculator : public Executor<double> {
+class RDFCalculator : public Executor<Volume<double>> {
     public:
 
     // Constructors and destructors

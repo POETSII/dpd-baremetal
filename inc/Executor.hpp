@@ -3,17 +3,16 @@
 #ifndef _EXECUTOR_H
 #define _EXECUTOR_H
 
-#include "Volume.hpp"
 #include "dpd.hpp"
 
-template<class T>
+template<class V>
 class Executor {
     public:
 
     // Constructors and destructors
-    Executor<T>(T volume_length, unsigned cells_per_dimension);
+    Executor<V>(float volume_length, unsigned cells_per_dimension) : volume(volume_length, cells_per_dimension) { };
 
-    ~Executor<T>() { };
+    ~Executor<V>() { };
 
     // The function which carries out the execution
     virtual void run() = 0;
@@ -22,15 +21,15 @@ class Executor {
     virtual void test(void *result) = 0;
 
     // Returns the volume
-    Volume<T> * get_volume();
+    V * get_volume() { return &volume; };
 
     protected:
 
     // The volume this executor works on
-    Volume<T> volume;
+    V volume;
 
 };
 
-#include "../src/Executor.cpp"
+// #include "../src/Executor.cpp"
 
 #endif /*_EXECUTOR_H */

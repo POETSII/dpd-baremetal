@@ -5,14 +5,9 @@
 #ifndef _EXECUTOR_IMPL
 #define _EXECUTOR_IMPL
 
-    // Constructors and destructors
-    template<class T>
-    Executor<T>::Executor(const T volume_length, const unsigned cells_per_dimension) : volume(Volume<T>(volume_length, cells_per_dimension)) {
-    }
-
-    template<class T>
-    Volume<T> * Executor<T>::get_volume() {
-        return &volume;
+    template<class V>
+    V * Executor<V>::get_volume() {
+        // return &volume;
     }
 
 #endif /*_EXECUTOR_IMPL */

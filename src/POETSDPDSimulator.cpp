@@ -8,8 +8,8 @@
 #include "SimVolume.cpp"
 
 POETSDPDSimulator::POETSDPDSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : DPDSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
-    uint32_t boxesX = volume.get_boxes_x(); //TinselBoxMeshXLen;
-    uint32_t boxesY = volume.get_boxes_y(); //TinselBoxMeshYLen;
+    uint32_t boxesX = 1; //volume.get_boxes_x(); //TinselBoxMeshXLen;
+    uint32_t boxesY = 1; //volume.get_boxes_y(); //TinselBoxMeshYLen;
 
     std::cout << "Acquiring Hostlink...\r";
     // Acquire Hostlink so can communicate with POETS hardware
@@ -24,9 +24,9 @@ POETSDPDSimulator::POETSDPDSimulator(const ptype volume_length, const unsigned c
     std::cout << ".\n";
 
 #ifdef VISUALISE
-    std::cout << "Preparing server for external connections...\r";
-    _extern = new ExternalServer("_external.sock");
-    std::cout << "External server ready.\n";
+    // std::cout << "Preparing server for external connections...\r";
+    // _extern = new ExternalServer("_external.sock");
+    // std::cout << "External server ready.\n";
 #endif
 
 }
@@ -147,6 +147,7 @@ void POETSDPDSimulator::run() {
         DPDMessage msg = volume.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
+        std::cout << "Awaiting message\n";
         hostLink->recvMsg(&pmsg, sizeof(pmsg));
         DPDMessage msg = pmsg.payload;
     #endif
@@ -229,7 +230,8 @@ void POETSDPDSimulator::run() {
             // }
 
         #ifndef VESICLE_SELF_ASSEMBLY
-            std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
+            // std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
+            std::string fpath = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(timestep) + ".json";
         #else
             std::string fpath = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
         #endif
@@ -279,7 +281,8 @@ void POETSDPDSimulator::run() {
         b.pos.z(b.pos.z() + msg.from.z);
         // bead_map[msg.timestep][msg.beads[0].id] = b;
     #ifndef VESICLE_SELF_ASSEMBLY
-        std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+        // std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+        std::string path = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(msg.timestep) + ".json";
     #else
         std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
     #endif
@@ -294,7 +297,8 @@ void POETSDPDSimulator::run() {
         bead_print_map[msg.timestep]++;
         if (bead_print_map[msg.timestep] >= total_beads_in) {
           #ifndef VESICLE_SELF_ASSEMBLY
-            std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+            // std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+            std::string path = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(msg.timestep) + ".json";
           #else
             std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
           #endif

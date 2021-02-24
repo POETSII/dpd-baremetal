@@ -1,11 +1,12 @@
 // A class that contains a DPD volume
 
 #include "Executor.hpp"
+#include "SimVolume.hpp"
 
 #ifndef _DPDSIMULATOR_H
 #define _DPDSIMULATOR_H
 
-class DPDSimulator : public Executor<ptype> {
+class DPDSimulator : public Executor<SimVolume<float>> {
     public:
 
     // Constructors and destructors

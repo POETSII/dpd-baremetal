@@ -10,7 +10,10 @@
 
 #include <unistd.h>
 
-RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue) : Executor(volume_length, cells_per_dimension) {
+RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue) : Executor<Volume<double>>(volume_length, cells_per_dimension) {
+    // Create volume
+    Executor::volume = Volume<double>(volume_length, cells_per_dimension);
+
     for (uint8_t x = 0; x < this->volume.get_volume_length(); x++) {
         for (uint8_t y = 0; y < this->volume.get_volume_length(); y++) {
             for (uint8_t z = 0; z < this->volume.get_volume_length(); z++) {

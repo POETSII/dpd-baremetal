@@ -20,7 +20,7 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POETS_OBJS = $(DPD_BIN)/SimVolume.o $(DPD_BIN)/DPDSimulator.o $(DPD_BIN)/POETSDPDSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o $(DPD_BIN)/Executor.o
+POETS_OBJS = $(DPD_BIN)/SimVolume.o $(DPD_BIN)/DPDSimulator.o $(DPD_BIN)/POETSDPDSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -141,7 +141,7 @@ $(DPD_BIN)/serial.o: $(DPD_SRC)/serial.cpp $(DPD_INC)/serial.hpp
 # Base GALS recipe which is used by all GALS recipes
 # Improved gals and one by one make the best version of GALS
 base-gals: DFLAGS+=-DGALS -DIMPROVED_GALS -DONE_BY_ONE
-base-gals: $(DPD_BIN) $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
+base-gals: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 	mv $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
 	mv $(DPD_BIN)/galsData.v $(DPD_BIN)/data.v
 	mv $(DPD_BIN)/gals.elf $(DPD_BIN)/dpd.elf
@@ -192,7 +192,7 @@ bonds-only: $(DPD_EXAMPLES)/bondsOnly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 corner-tests: DFLAGS+=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
-corner-tests: $(DPD_BIN) base-gals $(POETS_OBJS) $(DPD_EXAMPLES)/corner-tests.cpp
+corner-tests: $(DPD_BIN) base-gals $(HL)/*.o $(POETS_OBJS) $(DPD_EXAMPLES)/corner-tests.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/corner-tests.o $(DPD_EXAMPLES)/corner-tests.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POETS_OBJS) $(HL)/*.o $(DPD_BIN)/corner-tests.o \
 	  -static-libgcc -static-libstdc++ \
@@ -702,7 +702,7 @@ visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-vesicle: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DFLOAT_ONLY -DDRAM
-visual-vesicle: $(DPD_BIN) base-gals $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+visual-vesicle: $(POETS_OBJS) $(DPD_BIN) base-gals $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
 visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
@@ -762,7 +762,7 @@ test-serial-large: DFLAGS+=-DLARGE_TEST
 test-serial-large: test-serial
 
 # ---------------------------- x86 RDF Calculator --------------------------------
-RDF_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/Executor.o $(DPD_BIN)/RDFCalculator.o
+RDF_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/RDFCalculator.o
 
 $(DPD_BIN)/RDFCalculator.o: $(DPD_SRC)/RDFCalculator.cpp $(DPD_INC)/RDFCalculator.hpp
 	mkdir -p $(DPD_BIN)
