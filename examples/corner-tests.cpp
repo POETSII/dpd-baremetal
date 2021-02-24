@@ -73,15 +73,12 @@ int main(int argc, char *argv[]) {
     FILE* f = fopen("/home/jrbeaumont/polite-dpd-states/state_0.json", "w+");
     fprintf(f, "{\n\t\"beads\":[\n");
 
-    std::cout << typeid(*volume).name() << "\n";
     cell_t u0 = volume->add_bead(b0);
     printf("Bead 0 in cell (%u, %u, %u)\n", u0.x, u0.y, u0.z);
     fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":0, \"vy\":0, \"vz\":0, \"type\":%u},\n", b0->id, b0->pos.x(), b0->pos.y(), b0->pos.z(), b0->type);
     cell_t u1 = volume->add_bead(b1);
     printf("Bead 1 in cell (%u, %u, %u)\n", u1.x, u1.y, u1.z);
     fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":0, \"vy\":0, \"vz\":0, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->type);
-    double dist1 = b0->pos.dist(b1->pos);
-    printf("Dist = %f\n\n", dist1);
 
     // Close the file
     fprintf(f, "]}");
@@ -89,8 +86,6 @@ int main(int argc, char *argv[]) {
 
     simulator.write(); // write the universe into the POETS memory
 
-
-    printf("running...\n");
     simulator.run(); // start the simulation
 
     return 0;

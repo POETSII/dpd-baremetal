@@ -702,7 +702,7 @@ visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-vesicle: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DFLOAT_ONLY -DDRAM
-visual-vesicle: $(POETS_OBJS) $(DPD_BIN) base-gals $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+visual-vesicle: base-gals $(POETS_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
 visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
