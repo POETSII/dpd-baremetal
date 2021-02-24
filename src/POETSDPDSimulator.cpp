@@ -7,9 +7,9 @@
 
 #include "SimVolume.cpp"
 
-POETSDPDSimulator::POETSDPDSimulator(Volume<ptype> *volume, uint32_t start_timestep, uint32_t max_timestep) : DPDSimulator(volume, start_timestep, max_timestep) {
-    uint32_t boxesX = volume->get_boxes_x(); //TinselBoxMeshXLen;
-    uint32_t boxesY = volume->get_boxes_y(); //TinselBoxMeshYLen;
+POETSDPDSimulator::POETSDPDSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : DPDSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+    uint32_t boxesX = volume.get_boxes_x(); //TinselBoxMeshXLen;
+    uint32_t boxesY = volume.get_boxes_y(); //TinselBoxMeshYLen;
 
     std::cout << "Acquiring Hostlink...\r";
     // Acquire Hostlink so can communicate with POETS hardware
@@ -45,14 +45,14 @@ void POETSDPDSimulator::write() {
     #endif
 
     // Set first and last timestep and dt value in each cell
-    unsigned cells_per_dimension = this->volume->get_cells_per_dimension();
+    unsigned cells_per_dimension = volume.get_cells_per_dimension();
     for (uint16_t x = 0; x < cells_per_dimension; x++) {
         for (uint16_t y = 0; y < cells_per_dimension; y++) {
             for (uint16_t z = 0; z < cells_per_dimension; z++) {
                 // Generate location
                 cell_t loc = {x, y, z};
                 // Get the state of this cell
-                DPDState *state = this->volume->get_state_of_cell(loc);
+                DPDState *state = volume.get_state_of_cell(loc);
 
                 // Set the values
                 state->timestep = start_timestep;
@@ -75,7 +75,7 @@ void POETSDPDSimulator::write() {
 //     this->cells.setCellsPerDimension(cells_per_dimension);
 // #else
     // Write the volume into the POETS system
-    this->volume->get_cells()->write(hostLink);
+    volume.get_cells()->write(hostLink);
 }
 
 // Run the simulation
@@ -86,9 +86,9 @@ void POETSDPDSimulator::run() {
     runtime_minutes = 5;
     runtime_seconds = 0;
 
-    uint16_t cells_per_dimension = this->volume->get_cells_per_dimension();
-    uint32_t total_cells = this->volume->get_number_of_cells();
-    uint32_t total_beads_in = this->volume->get_number_of_beads();
+    uint16_t cells_per_dimension = volume.get_cells_per_dimension();
+    uint32_t total_cells = volume.get_number_of_cells();
+    uint32_t total_beads_in = volume.get_number_of_beads();
 
     std::cout << "Simulation run for a maximum time of ";
     if (runtime_hours > 0) {
@@ -325,9 +325,10 @@ void POETSDPDSimulator::run() {
 }
 
 //Runs a test, gets the bead outputs and returns this to the test file
-void POETSDPDSimulator::test(std::map<uint32_t, DPDMessage> *result) {
-    uint32_t total_cells = this->volume->get_number_of_cells();
-    uint32_t total_beads_in = this->volume->get_number_of_beads();
+void POETSDPDSimulator::test(void *result) {
+    std::map<uint32_t, DPDMessage> *res = (std::map<uint32_t, DPDMessage> *)result;
+    uint32_t total_cells = volume.get_number_of_cells();
+    uint32_t total_beads_in = volume.get_number_of_beads();
     // Finish counter
     uint32_t finish = 0;
 #ifdef SERIAL
@@ -353,10 +354,10 @@ void POETSDPDSimulator::test(std::map<uint32_t, DPDMessage> *result) {
             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
             exit(1);
         }
-        (*result)[msg.beads[0].id] = msg;
+        (*res)[msg.beads[0].id] = msg;
         if (msg.type == 0xAA) {
             finish++;
-            if (finish >= total_cells && result->size() >= total_beads_in) {
+            if (finish >= total_cells && res->size() >= total_beads_in) {
             #ifdef SERIAL
                 thread.join();
             #endif

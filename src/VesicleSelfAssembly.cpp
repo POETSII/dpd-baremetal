@@ -38,9 +38,6 @@ void print_help() {
     std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
     std::cerr << "\n";
-    std::cerr << "print-number-of-beads=p - Optional boolean. Used in testing.\n";
-    std::cerr << "                          Print the number of beads in the simulation to the results file.\n";
-    std::cerr << "\n";
     std::cerr << "help                    - Optional. Print this help information\n";
 }
 
@@ -84,7 +81,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    bool printBeadNum = false;
     float problem_size = 0;
     int N = 0;
     uint32_t max_time = 10000;
@@ -98,8 +94,6 @@ int main(int argc, char *argv[]) {
             } else if (boost::contains(arg, "--time")) {
                 max_time = std::stoi(argv[i+1]);
                 i++;
-            } else if (boost::contains(arg, "--print-number-of-beads")) {
-                printBeadNum = true;
             } else {
                 std::cerr << "Unrecognised argument: " << arg << "\n";
                 return 1;
@@ -120,7 +114,8 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    SimVolume<ptype> volume(problem_size, N);
+    POETSDPDSimulator simulator(problem_size, N, 0, max_time);
+    SimVolume<ptype> *volume = (SimVolume<ptype> *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
 
@@ -217,8 +212,8 @@ int main(int argc, char *argv[]) {
         #elif defined(BETTER_VERLET)
             prev_bead->acc.set(0.0, 0.0, 0.0);
         #endif
-            if (volume.space_for_bead(prev_bead.get())) {
-                volume.add_bead(prev_bead.get());
+            if (volume->space_for_bead(prev_bead.get())) {
+                volume->add_bead(prev_bead.get());
                 // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
                 added = true;
                 beads_added++;
@@ -266,8 +261,8 @@ int main(int argc, char *argv[]) {
             #elif defined(BETTER_VERLET)
                 b1->acc.set(0.0, 0.0, 0.0);
             #endif
-                if(volume.space_for_bead(b1.get())) {
-                    volume.add_bead(b1.get());
+                if(volume->space_for_bead(b1.get())) {
+                    volume->add_bead(b1.get());
                     // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                     added = true;
                     prev_bead = b1;
@@ -294,8 +289,8 @@ int main(int argc, char *argv[]) {
         #elif defined(BETTER_VERLET)
             b1->acc.set(0.0, 0.0, 0.0);
         #endif
-            if (volume.space_for_bead(b1)) {
-                volume.add_bead(b1);
+            if (volume->space_for_bead(b1)) {
+                volume->add_bead(b1);
                 // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
@@ -307,14 +302,14 @@ int main(int argc, char *argv[]) {
     // fclose(f);
 
 #ifndef SERIAL
-    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, max_time);
+//    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, max_time);
 #else
     SerialDPDSimulator *simulator = new SerialDPDSimulator();
 #endif
 
-    simulator->write(); // Write the volume to the simulator memory
+    simulator.write(); // Write the volume to the simulator memory
 
-    simulator->run(); // Start the simulation
+    simulator.run(); // Start the simulation
 
     return 0;
 }

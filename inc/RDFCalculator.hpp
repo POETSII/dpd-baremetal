@@ -23,19 +23,18 @@ class RDFCalculator : public Executor<double> {
     public:
 
     // Constructors and destructors
-    RDFCalculator(ptype volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue);
+    RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue);
     ~RDFCalculator() { };
 
     // Simulation control
     void run() override;
-    void test(std::map<uint32_t, double> *result) override;
+    void test(void *result) override;
 
     // Communication with main thread
     void send_message(RDFMessage msg);
 
     // Getters and setters
     uint32_t get_timestep();
-    Volume<double> * get_volume();
 
     protected:
 

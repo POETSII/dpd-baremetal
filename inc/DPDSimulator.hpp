@@ -5,11 +5,11 @@
 #ifndef _DPDSIMULATOR_H
 #define _DPDSIMULATOR_H
 
-class DPDSimulator : public Executor<DPDMessage> {
+class DPDSimulator : public Executor<ptype> {
     public:
 
     // Constructors and destructors
-    DPDSimulator(Volume<ptype> *volume, uint32_t start_timestep, uint32_t max_timestep);
+    DPDSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep);
     ~DPDSimulator() {}
 
     // Write the volume into the simulator memory
