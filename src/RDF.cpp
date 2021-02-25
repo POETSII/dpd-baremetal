@@ -20,7 +20,7 @@
 #include "Volume.hpp"
 #include "RDFCalculator.hpp"
 
-#define MAX_THREADS 11
+#define MAX_THREADS 10
 
 enum CoreState { idle, busy };
 
