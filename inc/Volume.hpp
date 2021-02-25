@@ -74,7 +74,7 @@ class Volume {
 	// PGraph<DPDDevice, DPDState, None, DPDMessage> *cells;
  //  #endif
 
-    C *cells;
+    C cells;
 
     // Maintain maps of ID's to locations (and vice versa) in the volume
     std::map<PDeviceId, cell_t> idToLoc;

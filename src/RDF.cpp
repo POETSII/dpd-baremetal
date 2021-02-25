@@ -126,7 +126,7 @@ void prep_results(uint8_t number_bead_types) {
 }
 
 CoreInfo * get_core() {
-    for (uint8_t i = 1; i < MAX_THREADS; i++) {
+    for (uint8_t i = 0; i < MAX_THREADS; i++) {
         if (cores[i].state == idle) {
             return &cores[i];
         }
@@ -329,7 +329,7 @@ int main(int argc, char *argv[]) {
         int beads_added = 0;
         std::cout << "Building volume for timestep " << timestep << "                                       \n";
         y++;
-        // Volume<float> volume(volume_length, cells_per_dimension);
+
         RDFCalculator calculator(volume_length, cells_per_dimension, timestep, number_density, number_bead_types, &results[timestep], &message_queue);
         Volume<double, std::vector<DPDState>> *volume = calculator.get_volume();
         std::cout << "Volume built                                                                          \n";

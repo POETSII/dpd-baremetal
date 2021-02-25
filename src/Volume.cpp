@@ -17,9 +17,7 @@ Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
     this->boxes_y = 1;
 
 #if !defined(SERIAL) && !defined(RDF)
-    cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
-#else
-    cells = new std::vector<DPDState>();
+    cells = PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
 #endif
 
     // Create the cells
@@ -28,10 +26,10 @@ Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
             for(uint16_t z = 0; z < cells_per_dimension; z++) {
                   #if defined(SERIAL) || defined(RDF)
                     DPDState new_state;
-                    PDeviceId id = cells->size();
-                    cells->push_back(new_state);
+                    PDeviceId id = cells.size();
+                    cells.push_back(new_state);
                   #else
-                    PDeviceId id = cells->newDevice();
+                    PDeviceId id = cells.newDevice();
                   #endif
                     // Update the mapping
                     cell_t loc = {x, y, z};
@@ -46,7 +44,7 @@ Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
 // Deconstructor
 template<class S, class C>
 Volume<S, C>::~Volume() {
-    delete cells;
+
 }
 
 // Print out the occupancy of each device
@@ -59,7 +57,7 @@ void Volume<S, C>::print_occupancy() {
       #if defined(SERIAL) || defined(RDF)
         uint8_t beads = get_num_beads(cells.at(t).bslot);
       #else
-        uint8_t beads = get_num_beads(cells->devices[t]->state.bslot);
+        uint8_t beads = get_num_beads(cells.devices[t]->state.bslot);
       #endif
         if(beads > 0)
             printf("%x\t\t\t%d\n", t, (uint32_t)beads);
@@ -80,9 +78,9 @@ cell_t Volume<S, C>::add_bead(const bead_t *in) {
 
     // Get the devices state
 #if defined(SERIAL) || defined(RDF)
-    DPDState *state = &cells->at(b_su);
+    DPDState *state = &cells.at(b_su);
 #else
-    DPDState *state = &cells->devices[b_su]->state;
+    DPDState *state = &cells.devices[b_su]->state;
 #endif
 
     // Check to make sure there is still enough room in the device
@@ -127,7 +125,7 @@ void Volume<S, C>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
 #if defined(SERIAL) || defined(RDF)
     DPDState *state = cells.at(b_su);
 #else
-    DPDState *state = &cells->devices[b_su]->state;
+    DPDState *state = &cells.devices[b_su]->state;
 #endif
 
     // Get the next free slot in this device
@@ -146,10 +144,10 @@ template<class S, class C>
 DPDState * Volume<S, C>::get_state_of_cell(cell_t loc) {
   #if defined(SERIAL) || defined(RDF)
     PDeviceId id = locToId[loc];
-    return &cells->at(id);
+    return &cells.at(id);
   #else
     PDeviceId id = this->locToId[loc];
-    return &cells->devices[id]->state;
+    return &cells.devices[id]->state;
   #endif
 }
 
@@ -165,7 +163,7 @@ uint32_t Volume<S, C>::get_boxes_y() {
 
 template<class S, class C>
 C * Volume<S, C>::get_cells() {
-    return cells;
+    return &cells;
 }
 
 template<class S, class C>
