@@ -59,71 +59,8 @@ const ptype early_inv_sqrt_dt = 22.360679775;
 #endif
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 1000;
+const uint32_t emitperiod = 1;
 #endif
-
-// Format of message
-struct DPDMessage {
-    uint8_t mode;
-    uint8_t type;
-    uint32_t timestep; // The timestep this message is from
-    uint8_t total_beads; // Used for sending cycle counts
-    cell_t from; // The cell that this message is from
-    bead_t beads[1]; // The beads payload from this unit
-}; // 48 bytes - 60 bytes with BETTER_VERLET
-
-// the state of the DPD Device
-struct DPDState {
-    float unit_size; // the size of this spatial unit in one dimension
-    uint8_t N;
-    cell_t loc; // the location of this cube
-    uint16_t bslot; // a bitmap of which bead slot is occupied
-    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
-    uint16_t newBeadMap;
-    bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-#ifdef FLOAT_ONLY
-    Vector3D<float> force_slot[MAX_BEADS];
-#else
-    Vector3D<int32_t> force_slot[MAX_BEADS]; // force for each bead
-#endif
-#ifdef BETTER_VERLET
-    Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
-#endif
-    uint16_t migrateslot; // a bitmask of which bead slot is being migrated in the next phase
-    cell_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
-    uint8_t mode; // the mode that this device is in.
-#ifdef VISUALISE
-    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
-#endif
-    uint32_t timestep; // the current timestep that we are on
-    uint32_t grand; // the global random number at this timestep
-    uint64_t rngstate; // the state of the random number generator
-
-    // uint32_t lost_beads;
-    uint32_t max_timestep;
-
-    uint8_t updates_received;
-    uint8_t update_completes_received;
-    uint8_t migrations_received;
-    uint8_t migration_completes_received;
-    uint8_t emit_complete_sent;
-    uint8_t emit_completes_received;
-    uint8_t updates_sent;
-    uint8_t migrates_sent;
-    int32_t total_update_beads;
-    int32_t total_migration_beads;
-
-#ifdef SMALL_DT_EARLY
-    ptype dt;
-    ptype inv_sqrt_dt;
-#endif
-
-#ifdef MESSAGE_MANAGEMENT
-    int8_t msgs_to_recv; // Number of messages expected from neighbours. Will only send when all neighbours have sent at least one message
-    uint8_t nbs_complete; // Neighbours which are not expected to send any more. Works in tandem with the above
-#endif
-    uint8_t error; // Error code to be returned to the host
-};
 
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
@@ -177,13 +114,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #endif
 
         #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-            migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci]);
+            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci]);
         #elif defined(SMALL_DT_EARLY)
-            migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], s->dt);
+            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt);
         #elif defined(BETTER_VERLET)
-            migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci]);
+            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci]);
         #else
-            migration(ci, &s->bead_slot[ci], s->unit_size, s->loc, s->N, &s->migrateslot, &s->migrate_loc[ci], dt);
+            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt);
         #endif
 
             i = clear_slot(i, ci);

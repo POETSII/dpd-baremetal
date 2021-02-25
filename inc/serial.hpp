@@ -51,47 +51,6 @@ const ptype early_inv_sqrt_dt = 14.142135624;
 const uint32_t emitperiod = 1;
 #endif
 
-/********************* STRUCTS ***************************/
-
-// Format of message
-struct DPDMessage {
-    uint8_t type;
-    uint32_t timestep; // the timestep this message is from
-    cell_t from; // the unit that this message is from
-    bead_t beads[1]; // the beads payload from this unit
-}; // 50 Bytes
-
-// the state of the DPD Device
-struct DPDState {
-    PDeviceId neighbours[NEIGHBOURS]; // Holds a list of the neighbours of this cell
-    uint8_t num_neighbours = 0; // Holds how many neighbours this cell currently has
-    cell_t loc; // the location of this cube
-    uint16_t bslot = 0; // a bitmap of which bead slot is occupied
-    uint16_t sentslot = 0; // a bitmap of which bead slot has not been sent from yet
-    bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
-#ifdef FLOAT_ONLY
-    Vector3D<float> force_slot[MAX_BEADS];
-#else
-    Vector3D<int32_t> force_slot[MAX_BEADS]; // force for each bead
-#endif
-#ifdef BETTER_VERLET
-    Vector3D<ptype> old_velo[MAX_BEADS]; // Store old velocites for verlet
-#endif
-    uint16_t migrateslot = 0; // a bitmask of which bead slot is being migrated in the next phase
-    cell_t migrate_loc[MAX_BEADS]; // slots containing the destinations of where we want to send a bead to
-    uint8_t mode = 0; // the mode that this device is in 0 = update; 1 = migration
-
-    uint32_t grand = 0; // the global random number at this timestep
-    uint64_t rngstate = 0; // the state of the random number generator
-
-    uint32_t lost_beads = 0; // Beads lost due to the cell having a full bead_slot
-
-#ifdef SMALL_DT_EARLY
-    ptype dt = 0.0;
-    ptype inv_sqrt_dt = 0.0;
-#endif
-};
-
 /********************* CLASS DEFINITION **************************/
 
 class SerialSim {
@@ -115,8 +74,8 @@ class SerialSim {
     // Set max timestep
     void setMaxTimestep(uint32_t maxTimestep);
     // Set cell size
-    void setN(uint32_t N);
-    void setCellSize(ptype cell_size);
+    void setCellsPerDimension(uint32_t _cells_per_dimension);
+    void setCellLength(ptype cell_length);
     void setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage>* queue);
 
 /************** DPD Functions ***************/
@@ -139,7 +98,7 @@ class SerialSim {
     uint32_t _num_cells = 0;
     uint32_t _timestep = 0;
     uint32_t _max_timestep = 0;
-    uint32_t _N = 0;
+    uint32_t _cells_per_dimension = 0;
     ptype _cell_size = 0;
     #ifdef VISUALISE
     uint32_t _emitcnt = emitperiod;

@@ -4,14 +4,18 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
+#ifndef SERIAL
+#include "POETSDPDSimulator.hpp"
+#endif
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
 #include "serial.hpp"
+#include "SerialDPDSimulator.hpp"
 #else
 #include "sync.h"
 #endif
-#include "universe.hpp"
+#include "SimVolume.hpp"
 #include <map>
 #include <math.h>
 #include <random>
@@ -33,9 +37,6 @@ void print_help() {
     std::cerr << "\n";
     std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
-    std::cerr << "\n";
-    std::cerr << "print-number-of-beads=p - Optional boolean. Used in testing.\n";
-    std::cerr << "                          Print the number of beads in the simulation to the results file.\n";
     std::cerr << "\n";
     std::cerr << "help                    - Optional. Print this help information\n";
 }
@@ -80,7 +81,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    bool printBeadNum = false;
     float problem_size = 0;
     int N = 0;
     uint32_t max_time = 10000;
@@ -94,8 +94,6 @@ int main(int argc, char *argv[]) {
             } else if (boost::contains(arg, "--time")) {
                 max_time = std::stoi(argv[i+1]);
                 i++;
-            } else if (boost::contains(arg, "--print-number-of-beads")) {
-                printBeadNum = true;
             } else {
                 std::cerr << "Unrecognised argument: " << arg << "\n";
                 return 1;
@@ -116,7 +114,8 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, 0, max_time);
+    POETSDPDSimulator simulator(problem_size, N, 0, max_time);
+    SimVolume<ptype> *volume = (SimVolume<ptype> *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
 
@@ -141,12 +140,6 @@ int main(int argc, char *argv[]) {
 
     uint32_t water_total = water_fraction * total_beads / alphasum;
     uint32_t lipid_total = lipid_fraction * total_beads / alphasum;
-    // Each chain is a certain length, in this case, 9 beads.
-    // To ensure we have all chains at the same length, we decrease this number until we hit the next multiple of 10
-    // It is better to have fewer beads so we are less than the number density, than larger
-    // while ((lipid_total % lipid_size) != lipid_size) {
-    //     lipid_total--;
-    // }
 
     // May lose one or two bead in conversion from float to int, so let's get the real number
     total_beads = (lipid_total * lipid_size) + (water_total * water_size);
@@ -184,7 +177,6 @@ int main(int argc, char *argv[]) {
     vcm.z(vcm.z() / total_beads);
 
     // remove CM velocity from bead velocities
-
     float vtotal = 0.0;
 
     for(int i=0; i < total_beads; i++) {
@@ -203,9 +195,9 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    std::string filepath = "../" + std::to_string(N) + "_vesicle_frames/state_0.json";
-    FILE* f = fopen(filepath.c_str(), "w+");
-    fprintf(f, "{\n\t\"beads\":[\n");
+    // std::string filepath = "../" + std::to_string(N) + "_vesicle_frames/state_0.json";
+    // FILE* f = fopen(filepath.c_str(), "w+");
+    // fprintf(f, "{\n\t\"beads\":[\n");
 
     for(int i = 0; i < lipid_total; i++) {
         bool added = false;
@@ -220,9 +212,9 @@ int main(int argc, char *argv[]) {
         #elif defined(BETTER_VERLET)
             prev_bead->acc.set(0.0, 0.0, 0.0);
         #endif
-            if (uni.space(prev_bead.get())) {
-                uni.add(prev_bead.get());
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
+            if (volume->space_for_bead(prev_bead.get())) {
+                volume->add_bead(prev_bead.get());
+                // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
                 added = true;
                 beads_added++;
             }
@@ -269,9 +261,9 @@ int main(int argc, char *argv[]) {
             #elif defined(BETTER_VERLET)
                 b1->acc.set(0.0, 0.0, 0.0);
             #endif
-                if(uni.space(b1.get())) {
-                    uni.add(b1.get());
-                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                if(volume->space_for_bead(b1.get())) {
+                    volume->add_bead(b1.get());
+                    // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                     added = true;
                     prev_bead = b1;
                     beads_added++;
@@ -297,25 +289,27 @@ int main(int argc, char *argv[]) {
         #elif defined(BETTER_VERLET)
             b1->acc.set(0.0, 0.0, 0.0);
         #endif
-            if (uni.space(b1)) {
-                uni.add(b1);
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+            if (volume->space_for_bead(b1)) {
+                volume->add_bead(b1);
+                // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
             }
         }
     }
 
-    fprintf(f, "]}");
-    fclose(f);
+    // fprintf(f, "]}");
+    // fclose(f);
 
 #ifndef SERIAL
-    uni.write(); // write the universe into the POETS memory
+//    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, max_time);
+#else
+    SerialDPDSimulator *simulator = new SerialDPDSimulator();
 #endif
 
-    // uni.print_occupancy();
-    printf("running...\n");
-    uni.run(); // start the simulation
+    simulator.write(); // Write the volume to the simulator memory
+
+    simulator.run(); // Start the simulation
 
     return 0;
 }
