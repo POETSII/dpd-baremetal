@@ -17,7 +17,7 @@ Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
     this->boxes_y = 1;
 
 #if !defined(SERIAL) && !defined(RDF)
-    cells = PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
+    cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
 #endif
 
     // Create the cells
@@ -29,7 +29,7 @@ Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
                     PDeviceId id = cells.size();
                     cells.push_back(new_state);
                   #else
-                    PDeviceId id = cells.newDevice();
+                    PDeviceId id = cells->newDevice();
                   #endif
                     // Update the mapping
                     cell_t loc = {x, y, z};
@@ -80,7 +80,7 @@ cell_t Volume<S, C>::add_bead(const bead_t *in) {
 #if defined(SERIAL) || defined(RDF)
     DPDState *state = &cells.at(b_su);
 #else
-    DPDState *state = &cells.devices[b_su]->state;
+    DPDState *state = &cells->devices[b_su]->state;
 #endif
 
     // Check to make sure there is still enough room in the device
@@ -147,7 +147,7 @@ DPDState * Volume<S, C>::get_state_of_cell(cell_t loc) {
     return &cells.at(id);
   #else
     PDeviceId id = this->locToId[loc];
-    return &cells.devices[id]->state;
+    return &cells->devices[id]->state;
   #endif
 }
 

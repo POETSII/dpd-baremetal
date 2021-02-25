@@ -74,7 +74,7 @@ void POETSDPDSimulator::write() {
 //     this->cells.setCellsPerDimension(cells_per_dimension);
 // #else
     // Write the volume into the POETS system
-    volume.get_cells()->write(hostLink);
+    (*volume.get_cells())->write(hostLink);
 }
 
 // Run the simulation

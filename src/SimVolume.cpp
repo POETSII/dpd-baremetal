@@ -18,13 +18,13 @@ void SimVolume<S>::addNeighbour(PDeviceId a, PDeviceId b) {
     DPDState *a_state = &this->cells.at(a);
     a_state->neighbours[a_state->num_neighbours++] = b;
 #else
-    this->cells.addEdge(a,0,b);
+    this->cells->addEdge(a,0,b);
 #endif
 }
 
 // constructor
 template<class S>
-SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage>>(volume_length, cells_per_dimension) {
+SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *>(volume_length, cells_per_dimension) {
 
 #ifdef GALS
     std::cout << "Building a GALS volume.\n";
@@ -241,7 +241,7 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<
 // deconstructor
 template<class S>
 SimVolume<S>::~SimVolume() {
-    Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage>>::~Volume();
+    Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *>::~Volume();
 }
 
 template<class S>
@@ -250,11 +250,11 @@ void SimVolume<S>::init_cells() {
 #if !defined(SERIAL) && !defined(RDF)
   #ifdef DRAM
     // Larger runs will need cells mapped to DRAM instead of SRAM
-    this->cells.mapVerticesToDRAM = true;
+    this->cells->mapVerticesToDRAM = true;
     std::cout << "Mapping vertices to DRAM\n";
   #endif
     // Map to the hardware
-    this->cells.map();
+    this->cells->map();
 #endif
 
     // Place all cell locations in its state
@@ -264,7 +264,7 @@ void SimVolume<S>::init_cells() {
       #if defined(SERIAL) || defined(RDF)
         DPDState *state = cells.at(id);
       #else
-        DPDState *state = &this->cells.devices[id]->state;
+        DPDState *state = &this->cells->devices[id]->state;
       #endif
         state->loc.x = loc.x;
         state->loc.y = loc.y;
@@ -278,7 +278,7 @@ void SimVolume<S>::init_cells() {
       #ifdef SERIAL
         DPDState *state = cells.at(cId);
       #else
-        DPDState *state = &this->cells.devices[cId]->state;
+        DPDState *state = &this->cells->devices[cId]->state;
       #endif
 
         // Location is set by Volume parent class
@@ -323,7 +323,7 @@ bool SimVolume<S>::space_for_bead(const bead_t *in) {
   #ifdef SERIAL
     uint32_t bslot = cells.at(b_su)->bslot;
   #else
-    uint32_t bslot = this->cells.devices[b_su]->state.bslot;
+    uint32_t bslot = this->cells->devices[b_su]->state.bslot;
   #endif
 
     // Check to make sure there is still enough room in the device
@@ -422,7 +422,7 @@ float SimVolume<S>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
               #ifdef SERIAL
                 DPDState *state = this->cells.getCell(n_id);
               #else
-                DPDState *state = &this->cells.devices[n_id]->state;
+                DPDState *state = &this->cells->devices[n_id]->state;
               #endif
                 // Get neighbour bead slot
                 uint32_t nslot = state->bslot;
