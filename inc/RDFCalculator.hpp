@@ -9,6 +9,7 @@
 #define _RDFCALCULATOR_H
 
 #include "blockingconcurrentqueue.h"
+#include "Volume.hpp"
 
 enum Progress { waiting, running, finished };
 

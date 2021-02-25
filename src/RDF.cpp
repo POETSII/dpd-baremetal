@@ -20,7 +20,7 @@
 #include "Volume.hpp"
 #include "RDFCalculator.hpp"
 
-#define MAX_THREADS 10
+#define MAX_THREADS 11
 
 enum CoreState { idle, busy };
 
@@ -88,10 +88,10 @@ std::vector<std::vector<std::string>> prep_out_filepaths(std::vector<std::string
             FILE* f = fopen(path.c_str(), "w+");
             // A1 of the CSV should be clear
             // Add r values
-            float r = 0;
-            float rmax = volume_length / 2;
-            float dr = rmax / 100;
-            while (r <= rmax) {
+            double r = 0;
+            double rmax = volume_length / 10;
+            double dr = rmax / 100;
+            while (r < rmax) {
                 // Write r value as the top line of files
                 fprintf(f, ", %1.3f", r);
                 r += dr;
@@ -126,7 +126,7 @@ void prep_results(uint8_t number_bead_types) {
 }
 
 CoreInfo * get_core() {
-    for (uint8_t i = 0; i < MAX_THREADS; i++) {
+    for (uint8_t i = 1; i < MAX_THREADS; i++) {
         if (cores[i].state == idle) {
             return &cores[i];
         }

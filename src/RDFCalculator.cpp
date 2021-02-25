@@ -33,9 +33,9 @@ RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension,
     this->results = results;
     this->message_queue = message_queue;
 
-    this->rmax = this->volume.get_volume_length() / 2;
-    this->min_r = -(ceil(this->volume.get_volume_length() / 2));
-    this->max_r = ceil(this->volume.get_volume_length() / 2);
+    this->rmax = this->volume.get_volume_length() / 10;
+    this->min_r = -(ceil(this->volume.get_volume_length() / 10));
+    this->max_r = ceil(this->volume.get_volume_length() / 10);
     this->dr = rmax / 100;
 }
 
@@ -182,7 +182,7 @@ void RDFCalculator::run() {
     // Now lets calculate the values
     double r = 0;
     uint16_t index = 0;
-    while (r <= rmax) {
+    while (r < rmax) {
         // r is inner radius, r_dr is outer radius
         const double r_dr = r + dr;
         // Volume of shell: Volume of outer sphere - volume of inner sphere
