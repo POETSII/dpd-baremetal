@@ -24,7 +24,7 @@ typedef uint32_t PDeviceId;
 #include <map>
 #include <iostream>
 
-template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
+template<class S, class C>
 class Volume {
     public:
 
@@ -32,8 +32,6 @@ class Volume {
     Volume(S volume_length, unsigned cells_per_dimension);
     ~Volume();
 
-    // Setup
-    void init_cells();
     // Add a bead to the volume
     cell_t add_bead(const bead_t* in);
     // Adds a bead to the volume in given cell space. Value of all positions must be less than cell length
@@ -48,11 +46,7 @@ class Volume {
     DPDState * get_state_of_cell(cell_t loc);
     uint32_t get_boxes_x();
     uint32_t get_boxes_y();
-  #if defined(SERIAL) || defined(RDF)
-    std::vector<DPDState> * get_cells();
-  #else
-    PGraph<DPDDevice, DPDState, None, DPDMessage> * get_cells();
-  #endif
+    C * get_cells();
     uint32_t get_number_of_cells();
     uint32_t get_number_of_beads();
     S get_volume_length();
@@ -69,16 +63,18 @@ class Volume {
     // Total beads this volume contains
     uint32_t beads_added = 0;
 
-    // The cells
-  #if defined(SERIAL) || defined(RDF)
-    // A vector where PDeviceId represents its index in the vector
-    std::vector<DPDState> cells;
-    uint32_t num_cells;
-  #else
-	// POLite graph containing the cells
-    // PDeviceId represents its device ID in the graph
-	PGraph<DPDDevice, DPDState, None, DPDMessage> *cells;
-  #endif
+ //    // The cells
+ //  #if defined(SERIAL) || defined(RDF)
+ //    // A vector where PDeviceId represents its index in the vector
+ //    std::vector<DPDState> cells;
+ //    uint32_t num_cells;
+ //  #else
+	// // POLite graph containing the cells
+ //    // PDeviceId represents its device ID in the graph
+	// PGraph<DPDDevice, DPDState, None, DPDMessage> *cells;
+ //  #endif
+
+    C *cells;
 
     // Maintain maps of ID's to locations (and vice versa) in the volume
     std::map<PDeviceId, cell_t> idToLoc;

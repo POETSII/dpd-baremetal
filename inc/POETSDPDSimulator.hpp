@@ -8,6 +8,7 @@
 #include "HostLink.h"
 
 #include "ExternalServer.hpp"
+#include "SimVolume.hpp"
 
 #ifdef STATS
 #define POLITE_DUMP_STATS
@@ -24,7 +25,7 @@ class POETSDPDSimulator : public DPDSimulator {
     // Simulation control
     void write() override;
     void run() override;
-    void test(void *result);
+    void test(void *result) override;
 
     protected:
 

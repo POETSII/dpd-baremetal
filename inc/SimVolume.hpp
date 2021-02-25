@@ -9,7 +9,7 @@
 #include <boost/algorithm/string.hpp>
 
 template<class S> // S is the type for this simulation i.e. fixap<C,F> or float
-class SimVolume : public Volume<S> {
+class SimVolume : public Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage>> {
     public:
 
     // Constructors and destructors

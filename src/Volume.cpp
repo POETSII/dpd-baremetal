@@ -7,8 +7,8 @@
 #define __VOLUME_IMPL
 
 // Constructor
-template<class S>
-Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
+template<class S, class C>
+Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
     this->volume_length = volume_length;
     this->cells_per_dimension = cells_per_dimension;
     this->cell_length = this->volume_length / S(this->cells_per_dimension);
@@ -19,8 +19,7 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
 #if !defined(SERIAL) && !defined(RDF)
     cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(this->boxes_x, this->boxes_y);
 #else
-    // cells = new std::vector<DPDState>();
-    num_cells = 0;
+    cells = new std::vector<DPDState>();
 #endif
 
     // Create the cells
@@ -29,8 +28,8 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
             for(uint16_t z = 0; z < cells_per_dimension; z++) {
                   #if defined(SERIAL) || defined(RDF)
                     DPDState new_state;
-                    cells.push_back(new_state);
-                    PDeviceId id = num_cells++;
+                    PDeviceId id = cells->size();
+                    cells->push_back(new_state);
                   #else
                     PDeviceId id = cells->newDevice();
                   #endif
@@ -45,43 +44,14 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
 }
 
 // Deconstructor
-template<class S>
-Volume<S>::~Volume() {
-#if !defined(SERIAL) && !defined(RDF)
+template<class S, class C>
+Volume<S, C>::~Volume() {
     delete cells;
-#endif
-}
-
-template<class S>
-void Volume<S>::init_cells() {
-#if !defined(SERIAL) && !defined(RDF)
-  #ifdef DRAM
-    // Larger runs will need cells mapped to DRAM instead of SRAM
-    this->cells->mapVerticesToDRAM = true;
-    std::cout << "Mapping vertices to DRAM\n";
-  #endif
-    // Map to the hardware
-    this->cells->map();
-#endif
-
-    // Place all cell locations in its state
-    for (std::map<PDeviceId, cell_t>::iterator i = idToLoc.begin(); i != idToLoc.end(); ++i) {
-        PDeviceId id = i->first;
-        cell_t loc = i->second;
-      #if defined(SERIAL) || defined(RDF)
-        DPDState *state = cells.at(id);
-      #else
-        DPDState *state = &cells->devices[id]->state;
-      #endif
-        state->loc.x = loc.x;
-        state->loc.y = loc.y;
-        state->loc.z = loc.z;
-    }
 }
 
 // Print out the occupancy of each device
-template<class S>
-void Volume<S>::print_occupancy() {
+template<class S, class C>
+void Volume<S, C>::print_occupancy() {
     // Loop through all devices in the volume and print their number of particles assigned
     printf("DeviceId\t\tbeads\n--------------\n");
     for(auto const& x : idToLoc) {
@@ -97,8 +67,8 @@ void Volume<S>::print_occupancy() {
 }
 
 // add a bead to the simulation volume
-template<class S>
-cell_t Volume<S>::add_bead(const bead_t *in) {
+template<class S, class C>
+cell_t Volume<S, C>::add_bead(const bead_t *in) {
     bead_t b = *in;
     cell_pos_t x = floor(b.pos.x()/cell_length);
     cell_pos_t y = floor(b.pos.y()/cell_length);
@@ -110,7 +80,7 @@ cell_t Volume<S>::add_bead(const bead_t *in) {
 
     // Get the devices state
 #if defined(SERIAL) || defined(RDF)
-    DPDState *state = &cells.at(b_su);
+    DPDState *state = &cells->at(b_su);
 #else
     DPDState *state = &cells->devices[b_su]->state;
 #endif
@@ -140,8 +110,8 @@ cell_t Volume<S>::add_bead(const bead_t *in) {
     return t;
 }
 
-template<class S>
-void Volume<S>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
+template<class S, class C>
+void Volume<S, C>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
     bead_t b = *in;
 
     if (b.pos.x() > cell_length || b.pos.y() > cell_length || b.pos.z() > cell_length) {
@@ -167,56 +137,49 @@ void Volume<S>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
     beads_added++;
 }
 
-template<class S>
-unsigned Volume<S>::get_cells_per_dimension() {
+template<class S, class C>
+unsigned Volume<S, C>::get_cells_per_dimension() {
     return this->cells_per_dimension;
 }
 
-template<class S>
-DPDState * Volume<S>::get_state_of_cell(cell_t loc) {
+template<class S, class C>
+DPDState * Volume<S, C>::get_state_of_cell(cell_t loc) {
   #if defined(SERIAL) || defined(RDF)
     PDeviceId id = locToId[loc];
-    return &cells.at(id);
+    return &cells->at(id);
   #else
     PDeviceId id = this->locToId[loc];
     return &cells->devices[id]->state;
   #endif
 }
 
-template<class S>
-uint32_t Volume<S>::get_boxes_x() {
+template<class S, class C>
+uint32_t Volume<S, C>::get_boxes_x() {
     return this->boxes_x;
 }
 
-template<class S>
-uint32_t Volume<S>::get_boxes_y() {
+template<class S, class C>
+uint32_t Volume<S, C>::get_boxes_y() {
     return this->boxes_y;
 }
 
-template<class S>
-#if defined(SERIAL) || defined(RDF)
-std::vector<DPDState> * Volume<S>::get_cells() {
-    return &cells;
-}
-#else
-PGraph<DPDDevice, DPDState, None, DPDMessage> * Volume<S>::get_cells()
-{
+template<class S, class C>
+C * Volume<S, C>::get_cells() {
     return cells;
 }
-#endif
 
-template<class S>
-uint32_t Volume<S>::get_number_of_cells() {
+template<class S, class C>
+uint32_t Volume<S, C>::get_number_of_cells() {
     return (cells_per_dimension * cells_per_dimension * cells_per_dimension);
 }
 
-template<class S>
-uint32_t Volume<S>::get_number_of_beads() {
+template<class S, class C>
+uint32_t Volume<S, C>::get_number_of_beads() {
     return beads_added;
 }
 
-template<class S>
-S Volume<S>::get_volume_length() {
+template<class S, class C>
+S Volume<S, C>::get_volume_length() {
     return volume_length;
 }
 

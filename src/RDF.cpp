@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
         y++;
         // Volume<float> volume(volume_length, cells_per_dimension);
         RDFCalculator calculator(volume_length, cells_per_dimension, timestep, number_density, number_bead_types, &results[timestep], &message_queue);
-        Volume<double> *volume = calculator.get_volume();
+        Volume<double, std::vector<DPDState>> *volume = calculator.get_volume();
         std::cout << "Volume built                                                                          \n";
         y++;
 

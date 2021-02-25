@@ -3,13 +3,14 @@
 // This will take a volume at a certain state, and calculate the RDF for all
 // types.
 
+#include <unistd.h>
+
 #include "Executor.hpp"
+#include "blockingconcurrentqueue.h"
+#include "Volume.hpp"
 
 #ifndef _RDFCALCULATOR_H
 #define _RDFCALCULATOR_H
-
-#include "blockingconcurrentqueue.h"
-#include "Volume.hpp"
 
 enum Progress { waiting, running, finished };
 
@@ -20,7 +21,7 @@ struct RDFMessage {
     int core;
 };
 
-class RDFCalculator : public Executor<Volume<double>> {
+class RDFCalculator : public Executor<Volume<double, std::vector<DPDState>>> {
     public:
 
     // Constructors and destructors

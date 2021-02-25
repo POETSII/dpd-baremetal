@@ -5,8 +5,6 @@
 #ifndef __POETSDPDSIMULATOR_IMPL
 #define __POETSDPDSIMULATOR_IMPL
 
-#include "SimVolume.cpp"
-
 POETSDPDSimulator::POETSDPDSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : DPDSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
     // Get box arrangement from volume
     uint32_t boxesX = volume.get_boxes_x();

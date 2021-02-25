@@ -24,7 +24,7 @@ void SimVolume<S>::addNeighbour(PDeviceId a, PDeviceId b) {
 
 // constructor
 template<class S>
-SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<S>(volume_length, cells_per_dimension) {
+SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage>>(volume_length, cells_per_dimension) {
 
 #ifdef GALS
     std::cout << "Building a GALS volume.\n";
@@ -241,13 +241,35 @@ SimVolume<S>::SimVolume(S volume_length, unsigned cells_per_dimension) : Volume<
 // deconstructor
 template<class S>
 SimVolume<S>::~SimVolume() {
-    Volume<S>::~Volume();
+    Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage>>::~Volume();
 }
 
 template<class S>
 void SimVolume<S>::init_cells() {
-    // Call parent
-    Volume<S>::init_cells();
+
+#if !defined(SERIAL) && !defined(RDF)
+  #ifdef DRAM
+    // Larger runs will need cells mapped to DRAM instead of SRAM
+    this->cells->mapVerticesToDRAM = true;
+    std::cout << "Mapping vertices to DRAM\n";
+  #endif
+    // Map to the hardware
+    this->cells->map();
+#endif
+
+    // Place all cell locations in its state
+    for (std::map<PDeviceId, cell_t>::iterator i = this->idToLoc.begin(); i != this->idToLoc.end(); ++i) {
+        PDeviceId id = i->first;
+        cell_t loc = i->second;
+      #if defined(SERIAL) || defined(RDF)
+        DPDState *state = cells.at(id);
+      #else
+        DPDState *state = &this->cells->devices[id]->state;
+      #endif
+        state->loc.x = loc.x;
+        state->loc.y = loc.y;
+        state->loc.z = loc.z;
+    }
 
     // Add Simulation data
     for(std::map<PDeviceId, cell_t>::iterator i = this->idToLoc.begin(); i != this->idToLoc.end(); ++i) {
