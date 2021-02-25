@@ -13,7 +13,7 @@ Volume<S>::Volume(S volume_length, unsigned cells_per_dimension) {
     this->cells_per_dimension = cells_per_dimension;
     this->cell_length = this->volume_length / S(this->cells_per_dimension);
 
-    this->boxes_x = 2;
+    this->boxes_x = 1;
     this->boxes_y = 1;
 
 #if !defined(SERIAL) && !defined(RDF)

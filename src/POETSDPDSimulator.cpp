@@ -8,8 +8,9 @@
 #include "SimVolume.cpp"
 
 POETSDPDSimulator::POETSDPDSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : DPDSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
-    uint32_t boxesX = 1; //volume.get_boxes_x(); //TinselBoxMeshXLen;
-    uint32_t boxesY = 1; //volume.get_boxes_y(); //TinselBoxMeshYLen;
+    // Get box arrangement from volume
+    uint32_t boxesX = volume.get_boxes_x();
+    uint32_t boxesY = volume.get_boxes_y();
 
     std::cout << "Acquiring Hostlink...\r";
     // Acquire Hostlink so can communicate with POETS hardware
@@ -147,7 +148,6 @@ void POETSDPDSimulator::run() {
         DPDMessage msg = volume.receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
-        std::cout << "Awaiting message\n";
         hostLink->recvMsg(&pmsg, sizeof(pmsg));
         DPDMessage msg = pmsg.payload;
     #endif
