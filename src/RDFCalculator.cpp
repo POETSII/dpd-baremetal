@@ -105,7 +105,7 @@ void RDFCalculator::run() {
                     // Neighbour of current cell
                     cell_t n = getNeighbourLoc(loc, n_x, n_y, n_z);
                     // Check if the current cell has already been tested against the neighbouring cell
-                    if (cells->get_cell_done(n)) {
+                    if (!cells->get_cell_done(n)) {
                         // For each local bead
                         uint16_t i = cells->get_cell_bslot(loc);
                         while(i) {
