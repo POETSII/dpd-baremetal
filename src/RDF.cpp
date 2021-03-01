@@ -338,6 +338,7 @@ int main(int argc, char *argv[]) {
         std::string filepath = state_dir + "state_" + std::to_string(timestep) + ".json";
         std::cout << "Loading JSON file at " << filepath << "                                               \n";
         y++;
+
         std::string json = getFileAsString(filepath);
         rapidjson::Document state;
         state.Parse(json.c_str());

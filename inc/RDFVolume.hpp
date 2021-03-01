@@ -12,7 +12,7 @@ class RDFVolume : public Volume<double, std::vector<DPDState>> {
 public:
 
     // Constructors and destructors
-    RDFVolume(volume volume_length, unsigned cells_per_dimension);
+    RDFVolume(float volume_length, unsigned cells_per_dimension);
 
 };
 
