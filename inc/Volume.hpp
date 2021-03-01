@@ -9,13 +9,13 @@
 #include "dpd.hpp"
 #include "Cells.hpp"
 
-template<class S, class C>
+template<class C>
 class Volume {
 
     public:
 
     // Constructors and destructors
-    Volume(S volume_length, unsigned cells_per_dimension);
+    Volume(const float volume_length, const unsigned cells_per_dimension);
     ~Volume();
 
     // Add a bead to the volume
@@ -34,12 +34,12 @@ class Volume {
     Cells<C> * get_cells();
     uint32_t get_number_of_cells();
     uint32_t get_number_of_beads();
-    S get_volume_length();
+    float get_volume_length();
 
     protected:
 
     // Length of one side of cubic volume in generic
-    S volume_length;
+    float volume_length;
 
     // Total beads this volume contains
     uint32_t beads_added = 0;

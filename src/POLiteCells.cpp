@@ -50,8 +50,22 @@ void POLiteCells::write(void *dest) {
 }
 
 void POLiteCells::set_start_timestep(uint32_t start_timestep) {
+  #if SMALL_DT_EARLY
+    float dt, inv_sqrt_dt;
+    if (start_timestep >= 1000) {
+        dt = normal_dt;
+        inv_sqrt_dt = normal_inv_sqrt_dt;
+    } else {
+        dt = early_dt;
+        inv_sqrt_dt = early_inv_sqrt_dt;
+    }
+  #endif
     for (std::map<PDeviceId, cell_t>::iterator c = idToLoc.begin(); c != idToLoc.end(); ++c) {
         cells->devices[c->first]->state.timestep = start_timestep;
+      #if SMALL_DT_EARLY
+        cells->devices[c->first]->state.dt = dt;
+        cells->devices[c->first]->state.inv_sqrt_dt = inv_sqrt_dt;
+      #endif
     }
 }
 
@@ -61,13 +75,20 @@ void POLiteCells::set_end_timestep(uint32_t end_timestep) {
     }
 }
 
-DPDState * POLiteCells::get_cell_state(PDeviceId id) {
-    return &this->cells->devices[id]->state;
-};
+uint8_t POLiteCells::get_cell_bslot(cell_t loc) {
+    return cells->devices[locToId[loc]]->state.bslot;
+}
 
-DPDState * POLiteCells::get_cell_state(cell_t loc) {
-    return get_cell_state(locToId[loc]);
-};
+const bead_t * POLiteCells::get_bead_from_cell_slot(cell_t loc, uint8_t slot) {
+    return &cells->devices[locToId[loc]]->state.bead_slot[slot];
+}
+
+void POLiteCells::place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) {
+    DPDState *state = &cells->devices[locToId[loc]]->state;
+    state->bead_slot[slot] = *b; // Add the bead
+    state->bslot = set_slot(state->bslot, slot); // Set the slot in the bitmap
+    state->sentslot = state->bslot; // To make sure the bead is sent at timestep 0
+}
 
 void POLiteCells::addNeighbour(PDeviceId a, PDeviceId b) {
     this->cells->addEdge(a,0,b);

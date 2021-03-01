@@ -6,9 +6,10 @@
 #define __POLITESIMULATOR_IMPL
 
 POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+    this->volume = new POLiteVolume(volume_length, cells_per_dimension);
     // Get box arrangement from volume
-    uint32_t boxesX = volume.get_boxes_x();
-    uint32_t boxesY = volume.get_boxes_y();
+    uint32_t boxesX = volume->get_boxes_x();
+    uint32_t boxesY = volume->get_boxes_y();
 
     std::cout << "Acquiring Hostlink...\n";
     // Acquire Hostlink so can communicate with POETS hardware
@@ -38,9 +39,9 @@ void POLiteSimulator::run() {
     runtime_minutes = 5;
     runtime_seconds = 0;
 
-    uint16_t cells_per_dimension = volume.get_cells_per_dimension();
-    uint32_t total_cells = volume.get_number_of_cells();
-    uint32_t total_beads_in = volume.get_number_of_beads();
+    uint16_t cells_per_dimension = volume->get_cells_per_dimension();
+    uint32_t total_cells = volume->get_number_of_cells();
+    uint32_t total_beads_in = volume->get_number_of_beads();
 
     std::cout << "Simulation run for a maximum time of ";
     if (runtime_hours > 0) {
@@ -61,7 +62,7 @@ void POLiteSimulator::run() {
 
 #ifdef SERIAL
     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _volume.setQueue(&queue);
+    _volume->setQueue(&queue);
     std::thread thread(&SerialSim::run, _volume);
 #else // We dont need host link if we're running serial sim on x86
     hostLink->boot("code.v", "data.v");
@@ -96,7 +97,7 @@ void POLiteSimulator::run() {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = volume.receiveMessage();
+        DPDMessage msg = volume->receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -282,13 +283,13 @@ void POLiteSimulator::run() {
 //Runs a test, gets the bead outputs and returns this to the test file
 void POLiteSimulator::test(void *result) {
     std::map<uint32_t, DPDMessage> *res = (std::map<uint32_t, DPDMessage> *)result;
-    uint32_t total_cells = volume.get_number_of_cells();
-    uint32_t total_beads_in = volume.get_number_of_beads();
+    uint32_t total_cells = volume->get_number_of_cells();
+    uint32_t total_beads_in = volume->get_number_of_beads();
     // Finish counter
     uint32_t finish = 0;
 #ifdef SERIAL
     moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _volume.setQueue(&queue);
+    _volume->setQueue(&queue);
     std::thread thread(&SerialSim::run, _volume);
 #else // We dont need host link if we're running serial sim on x86
     hostLink->boot("code.v", "data.v");
@@ -299,7 +300,7 @@ void POLiteSimulator::test(void *result) {
     while(1) {
     #ifdef SERIAL
         // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _volume.receiveMessage();
+        DPDMessage msg = _volume->receiveMessage();
     #else
         PMessage<DPDMessage> pmsg;
         hostLink->recvMsg(&pmsg, sizeof(pmsg));
@@ -324,7 +325,7 @@ void POLiteSimulator::test(void *result) {
 }
 
 void POLiteSimulator::write() {
-    this->volume.write(hostLink);
+    this->volume->write(hostLink);
 }
 
 #endif /* __POLITESIMULATOR_IMPL */

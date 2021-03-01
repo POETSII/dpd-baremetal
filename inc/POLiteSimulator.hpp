@@ -15,7 +15,7 @@
 #define POLITE_COUNT_MSGS
 #endif
 
-class POLiteSimulator : public Simulator<POLiteVolume<float>> {
+class POLiteSimulator : public Simulator<POLiteVolume> {
     public:
 
     // Constructors and destructors

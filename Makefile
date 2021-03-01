@@ -20,7 +20,7 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POLITE_OBJS = $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/Simulator.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POLITE_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/Simulator.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -797,18 +797,22 @@ rdf-calculator:
 
 # ---------------------------- XML Generators --------------------------------
 XML_GEN=./xml-generators
-XML_OBJS = $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/XMLVolume.o $(DPD_BIN)/XMLGenerator.o
+XML_OBJS = $(DPD_BIN)/XMLCells.o $(DPD_BIN)/XMLVolume.o $(DPD_BIN)/XMLGenerator.o
+
+$(DPD_BIN)/XMLCells.o: $(DPD_SRC)/XMLCells.cpp $(DPD_INC)/XMLCells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 -DXML $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLCells.o $(DPD_SRC)/XMLCells.cpp
 
 $(DPD_BIN)/XMLVolume.o: $(DPD_SRC)/XMLVolume.cpp $(DPD_INC)/XMLVolume.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLVolume.o $(DPD_SRC)/XMLVolume.cpp
+	g++ -O2 -std=c++11 -DXML $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLVolume.o $(DPD_SRC)/XMLVolume.cpp
 
 $(DPD_BIN)/XMLGenerator.o: $(DPD_SRC)/XMLGenerator.cpp $(DPD_INC)/XMLGenerator.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLGenerator.o $(DPD_SRC)/XMLGenerator.cpp
+	g++ -O2 -std=c++11 -DXML $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLGenerator.o $(DPD_SRC)/XMLGenerator.cpp
 
 xml-oil-water: $(XML_GEN)/oilWater.cpp $(XML_OBJS)
-	g++ -O2 -std=c++11 $(EXTERNAL_FLAGS) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLoilWater.o $(DPD_SRC)/XMLoilWater.cpp
+	g++ -O2 -std=c++11 -DXML $(EXTERNAL_FLAGS) -I $(DPD_INC) -c -o $(DPD_BIN)/XMLoilWater.o $(XML_GEN)/oilWater.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/genXML $(XML_OBJS) $(DPD_BIN)/XMLoilWater.o \
 	  -static-libgcc -static-libstdc++ \
       -L$(QUARTUS_ROOTDIR)/linux64 \

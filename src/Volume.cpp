@@ -7,20 +7,20 @@
 #define __VOLUME_IMPL
 
 // Constructor
-template<class S, class C>
-Volume<S, C>::Volume(S volume_length, unsigned cells_per_dimension) {
+template<class C>
+Volume<C>::Volume(const float volume_length, const unsigned cells_per_dimension) {
     this->volume_length = volume_length;
 }
 
 // Deconstructor
-template<class S, class C>
-Volume<S, C>::~Volume() {
+template<class C>
+Volume<C>::~Volume() {
 
 }
 
 // Print out the occupancy of each device
-template<class S, class C>
-void Volume<S, C>::print_occupancy() {
+template<class C>
+void Volume<C>::print_occupancy() {
     // Loop through all devices in the volume and print their number of particles assigned
     printf("DeviceId\t\tbeads\n--------------\n");
     for(auto const& x : cells->get_idToLoc()) {
@@ -36,8 +36,8 @@ void Volume<S, C>::print_occupancy() {
 }
 
 // add a bead to the simulation volume
-template<class S, class C>
-cell_t Volume<S, C>::add_bead(const bead_t *in) {
+template<class C>
+cell_t Volume<C>::add_bead(const bead_t *in) {
     float cell_length = cells->get_cell_length();
 
     bead_t b = *in;
@@ -46,27 +46,27 @@ cell_t Volume<S, C>::add_bead(const bead_t *in) {
     cell_pos_t z = floor(b.pos.z()/cell_length);
     cell_t t = {x,y,z};
 
-    // Get the devices state
-    DPDState *state = cells->get_cell_state(t);
+    // Get the devices bslot
+    uint8_t bslot = cells->get_cell_bslot(t);
 
     // Check to make sure there is still enough room in the device
-    if (get_num_beads(state->bslot) > MAX_BEADS) {
+    if (get_num_beads(bslot) > MAX_BEADS) {
         std::cerr << "Error: there is not enough space in cell: " << t.x << ", " << t.y << ", " << t.z << " for bead: " << in->id << ".\n";
-        std::cerr << "There is already " << get_num_beads(state->bslot) << " beads in this cell for a max of\n";
+        std::cerr << "There is already " << get_num_beads(bslot) << " beads in this cell for a max of\n";
         fflush(stdout);
         exit(EXIT_FAILURE);
     } else {
         // We can add the bead
 
         // Make the position of the bead relative to the cell (0.0 - < 1.0)
-        b.pos.x(b.pos.x() - (S(float(t.x)) * cell_length));
-        b.pos.y(b.pos.y() - (S(float(t.y)) * cell_length));
-        b.pos.z(b.pos.z() - (S(float(t.z)) * cell_length));
+        b.pos.x(b.pos.x() - (float(t.x) * cell_length));
+        b.pos.y(b.pos.y() - (float(t.y) * cell_length));
+        b.pos.z(b.pos.z() - (float(t.z) * cell_length));
 
         // Get the next free slot in this device
-        uint8_t slot = get_next_free_slot(state->bslot);
-        state->bead_slot[slot] = b;
-        state->bslot = set_slot(state->bslot, slot);
+        uint8_t slot = get_next_free_slot(bslot);
+
+        cells->place_bead_in_cell_slot(&b, t, slot);
 
         beads_added++;
     }
@@ -74,8 +74,8 @@ cell_t Volume<S, C>::add_bead(const bead_t *in) {
     return t;
 }
 
-template<class S, class C>
-void Volume<S, C>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
+template<class C>
+void Volume<C>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
     float cell_length = cells->get_cell_length();
 
     if (in->pos.x() > cell_length || in->pos.y() > cell_length || in->pos.z() > cell_length) {
@@ -84,48 +84,49 @@ void Volume<S, C>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
         exit(EXIT_FAILURE);
     }
 
-    // Get the devices state
-    DPDState *state = cells->get_cell_state(cell);
+    // Get the devices bslot
+    uint8_t bslot = cells->get_cell_bslot(cell);
 
     // Get the next free slot in this device
-    uint8_t slot = get_next_free_slot(state->bslot);
-    state->bead_slot[slot] = *in;
-    state->bslot = set_slot(state->bslot, slot);
+    uint8_t slot = get_next_free_slot(bslot);
+
+    cells->place_bead_in_cell_slot(in, cell, slot);
+
     beads_added++;
 }
 
-template<class S, class C>
-unsigned Volume<S, C>::get_cells_per_dimension() {
+template<class C>
+unsigned Volume<C>::get_cells_per_dimension() {
     return cells->get_cells_per_dimension();
 }
 
-template<class S, class C>
-uint32_t Volume<S, C>::get_boxes_x() {
+template<class C>
+uint32_t Volume<C>::get_boxes_x() {
     return this->boxes_x;
 }
 
-template<class S, class C>
-uint32_t Volume<S, C>::get_boxes_y() {
+template<class C>
+uint32_t Volume<C>::get_boxes_y() {
     return this->boxes_y;
 }
 
-template<class S, class C>
-Cells<C> * Volume<S, C>::get_cells() {
+template<class C>
+Cells<C> * Volume<C>::get_cells() {
     return cells;
 }
 
-template<class S, class C>
-uint32_t Volume<S, C>::get_number_of_cells() {
+template<class C>
+uint32_t Volume<C>::get_number_of_cells() {
     return (cells->get_cells_per_dimension() * cells->get_cells_per_dimension() * cells->get_cells_per_dimension());
 }
 
-template<class S, class C>
-uint32_t Volume<S, C>::get_number_of_beads() {
+template<class C>
+uint32_t Volume<C>::get_number_of_beads() {
     return beads_added;
 }
 
-template<class S, class C>
-S Volume<S, C>::get_volume_length() {
+template<class C>
+float Volume<C>::get_volume_length() {
     return volume_length;
 }
 

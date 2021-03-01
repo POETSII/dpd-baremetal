@@ -6,8 +6,8 @@
 #define __SIM_VOLUME_IMPL
 
 // constructor
-template<class S, class V>
-SimulationVolume<S, V>::SimulationVolume(S volume_length, unsigned cells_per_dimension) : Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *>(volume_length, cells_per_dimension) {
+template<class V>
+SimulationVolume<V>::SimulationVolume(const float volume_length, const unsigned cells_per_dimension) : Volume<V>(volume_length, cells_per_dimension) {
 
 #ifdef GALS
     std::cout << "Building a GALS volume.\n";
@@ -35,14 +35,14 @@ SimulationVolume<S, V>::SimulationVolume(S volume_length, unsigned cells_per_dim
 }
 
 // deconstructor
-template<class S, class V>
-SimulationVolume<S, V>::~SimulationVolume() {
+template<class V>
+SimulationVolume<V>::~SimulationVolume() {
 //    Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *>::~Volume();
 }
 
 // Checks to see if a bead can be added to the volume
-template<class S, class V>
-bool SimulationVolume<S, V>::space_for_bead(const bead_t *in) {
+template<class V>
+bool SimulationVolume<V>::space_for_bead(const bead_t *in) {
     bead_t b = *in;
     float cell_length = this->cells->get_cell_length();
     cell_pos_t x = floor(b.pos.x()/cell_length);
@@ -54,11 +54,8 @@ bool SimulationVolume<S, V>::space_for_bead(const bead_t *in) {
         return false;
     }
 
-    // Get the devices state
-    DPDState *state = this->cells->get_cell_state(t);
-
     // Check to make sure there is still enough room in the device
-    if(get_num_beads(state->bslot) >= MAX_BEADS) {
+    if(get_num_beads(this->cells->get_cell_bslot(t)) >= MAX_BEADS) {
         return false;
     }
 
@@ -75,8 +72,8 @@ bool SimulationVolume<S, V>::space_for_bead(const bead_t *in) {
 }
 
 // Checks to see if a pair of beads can be added to the volume
-template<class S, class V>
-bool SimulationVolume<S, V>::space_for_bead_pair(const bead_t *pa, const bead_t *pb) {
+template<class V>
+bool SimulationVolume<V>::space_for_bead_pair(const bead_t *pa, const bead_t *pb) {
     cell_pos_t xa = floor(pa->pos.x() / this->cell_length);
     cell_pos_t ya = floor(pa->pos.y() / this->cell_length);
     cell_pos_t za = floor(pa->pos.z() / this->cell_length);
@@ -114,8 +111,8 @@ bool SimulationVolume<S, V>::space_for_bead_pair(const bead_t *pa, const bead_t 
    }
 }
 
-template<class S, class V>
-uint16_t SimulationVolume<S, V>::get_neighbour_cell_dimension(cell_pos_t c, int16_t n) {
+template<class V>
+uint16_t SimulationVolume<V>::get_neighbour_cell_dimension(cell_pos_t c, int16_t n) {
     if (n == -1) {
         if (c == 0) {
             return this->cells->get_cells_per_dimension() - 1;
@@ -133,40 +130,37 @@ uint16_t SimulationVolume<S, V>::get_neighbour_cell_dimension(cell_pos_t c, int1
     }
 }
 
-template<class S, class V>
-PDeviceId SimulationVolume<S, V>::get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
+template<class V>
+cell_t SimulationVolume<V>::get_neighbour_cell_loc(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z) {
     cell_t u_j = {
         get_neighbour_cell_dimension(u_i.x, d_x),
         get_neighbour_cell_dimension(u_i.y, d_y),
         get_neighbour_cell_dimension(u_i.z, d_z)
     };
-    return this->cells->get_device_id(u_j);
+    return u_j;
 }
 
-template<class S, class V>
-float SimulationVolume<S, V>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
+template<class V>
+float SimulationVolume<V>::find_nearest_bead_distance(const bead_t *i, cell_t u_i) {
     float min_dist = 100.0;
     for (int16_t d_x = -1; d_x <= 1; d_x++) {
         for (int16_t d_y = -1; d_y <= 1; d_y++) {
             for (int16_t d_z = -1; d_z <= 1; d_z++) {
-                PDeviceId n_id = get_neighbour_cell_id(u_i, d_x, d_y, d_z);
-
-                    // Get the neighbour's state
-                DPDState *state = this->cells->get_cell_state(n_id);
+                cell_t n_loc = get_neighbour_cell_loc(u_i, d_x, d_y, d_z);
 
                 // Get neighbour bead slot
-                uint32_t nslot = state->bslot;
+                uint8_t nslot = this->cells->get_cell_bslot(n_loc);
                 while (nslot) {
                     uint8_t cj = get_next_slot(nslot);
                     nslot = clear_slot(nslot, cj);
-                    bead_t j = state->bead_slot[cj];
-                    if (j.id == i->id) {
+                    const bead_t *j = this->cells->get_bead_from_cell_slot(n_loc, cj);
+                    if (j->id == i->id) {
                         continue;
                     }
                     Vector3D<float> j_adj; // Adjust the neighbour bead, j, relative to the given bead, i
-                    j_adj.x(j.pos.x() + d_x);
-                    j_adj.y(j.pos.y() + d_y);
-                    j_adj.z(j.pos.z() + d_z);
+                    j_adj.x(j->pos.x() + d_x);
+                    j_adj.y(j->pos.y() + d_y);
+                    j_adj.z(j->pos.z() + d_z);
                     // Get euclidean distance and store it if its smaller than the current min
                     float dist = j_adj.dist(i->pos);
                     if (dist < min_dist) {
@@ -179,8 +173,8 @@ float SimulationVolume<S, V>::find_nearest_bead_distance(const bead_t *i, cell_t
     return min_dist;
 }
 
-template<class S, class V>
-void SimulationVolume<S, V>::store_initial_bead_distances() {
+template<class V>
+void SimulationVolume<V>::store_initial_bead_distances() {
     std::cerr << "Outputting minimum distances between beads for initial placement to ../init_dist.json\n";
     FILE* f = fopen("../init_dist.json", "w+");
     fprintf(f, "{ \"min_dists\":[\n");
@@ -189,16 +183,11 @@ void SimulationVolume<S, V>::store_initial_bead_distances() {
         for (cell_pos_t u_y = 0; u_y < this->cells_per_dimension; u_y++) {
             for (cell_pos_t u_z = 0; u_z < this->cells_per_dimension; u_z++) {
                 cell_t u = { u_x, u_y, u_z };
-                PDeviceId dev_id = this->locToId[u];
-              #ifdef SERIAL
-                DPDState* state = cells.at(dev_id);
-              #else
-                DPDState* state = &this->cells.devices[dev_id]->state;
-              #endif
-                uint32_t bslot = state->bslot;
+
+                uint8_t bslot = this->cells->get_cell_bslot(u);
                 while (bslot) {
                     uint8_t i = get_next_slot(bslot);
-                    bead_t b = state->bead_slot[i];
+                    bead_t b = this->cells->get_bead_from_cell_slot(u, i);
                     if (first) {
                         first = false;
                     } else {

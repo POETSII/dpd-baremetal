@@ -8,6 +8,7 @@
 #include "dpd.hpp"
 
 // Include the correct POLite device code.
+#ifndef XML
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
@@ -16,12 +17,14 @@
 #else
 #include "sync.h"
 #endif
+#endif // XML
 
-#if !defined(SERIAL) && !defined(RDF)
+#if !defined(SERIAL) && !defined(RDF) && !defined(XML)
 #include "POLite.h"
 #else
 typedef uint32_t PDeviceId;
 #endif
+
 
 template<class C>
 class Cells {
@@ -43,11 +46,15 @@ public:
 
     ptype get_cell_length();
 
-    virtual DPDState * get_cell_state(PDeviceId id) = 0;
-    virtual DPDState * get_cell_state(cell_t loc) = 0;
-
     cell_t get_cell_loc(PDeviceId id);
     PDeviceId get_device_id(cell_t loc);
+
+    // Access to cell data
+    virtual uint8_t get_cell_bslot(cell_t loc) = 0;
+    virtual const bead_t * get_bead_from_cell_slot(cell_t loc, uint8_t slot) = 0;
+
+    // Adding a bead to the cell
+    virtual void place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) = 0;
 
 protected:
 

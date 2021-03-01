@@ -32,14 +32,26 @@ RDFCells::~RDFCells() {
 
 }
 
-// Get state of cell from its device ID
-DPDState * RDFCells::get_cell_state(PDeviceId id) {
-    return &cells.at(id);
+bool RDFCells::get_cell_done(cell_t loc) {
+    return cells.at(locToId[loc]).done;
 }
 
-// Get state of cell from its location
-DPDState * RDFCells::get_cell_state(cell_t loc) {
-    return get_cell_state(locToId[loc]);
+void RDFCells::set_cell_done(cell_t loc) {
+    cells.at(locToId[loc]).done = true;
+}
+
+uint8_t RDFCells::get_cell_bslot(cell_t loc) {
+    return cells.at(locToId[loc]).bslot;
+}
+
+const bead_t * RDFCells::get_bead_from_cell_slot(cell_t loc, uint8_t slot) {
+    return &cells.at(locToId[loc]).bead_slot[slot];
+}
+
+void RDFCells::place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) {
+    DPDState *state = &cells.at(locToId[loc]);
+    state->bead_slot[slot] = *b; // Add the bead
+    state->bslot = set_slot(state->bslot, slot); // Set the slot
 }
 
 void RDFCells::initialise_cells() {
@@ -47,7 +59,7 @@ void RDFCells::initialise_cells() {
         for (uint8_t y = 0; y < this->cells_per_dimension; y++) {
             for (uint8_t z = 0; z < this->cells_per_dimension; z++) {
                 cell_t loc = {x, y, z};
-                DPDState *state = get_cell_state(loc);
+                DPDState *state = &cells.at(locToId[loc]);
                 state->loc.x = loc.x;
                 state->loc.y = loc.y;
                 state->loc.z = loc.z;

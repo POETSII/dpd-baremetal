@@ -1,20 +1,22 @@
 // Holds cell information and provides access to cell states.
 // Provides an interface for PGraph
 
-#ifndef __POLITECELLS_H
-#define __POLITECELLS_H
+#ifndef __XML_CELLS_H
+#define __XML_CELLS_H
+
+#include <vector>
 
 #include "SimulationCells.hpp"
 
-class POLiteCells : public SimulationCells<PGraph<DPDDevice, DPDState, None, DPDMessage> *> {
+class XMLCells : public SimulationCells<std::vector<DPDState>> {
 
 public:
 
     // Constructor
-    POLiteCells(unsigned cells_per_dimension, ptype cell_length, uint32_t boxes_x, uint32_t boxes_y);
+    XMLCells(unsigned cells_per_dimension, ptype cell_length);
 
     // Destructor
-    ~POLiteCells();
+    ~XMLCells();
 
     // Simulation setup
     // Write the cell data to the POETS hardware
@@ -26,6 +28,10 @@ public:
 
     void set_end_timestep(uint32_t end_timestep) override;
 
+    DPDProperties * get_cell_properties(PDeviceId id);
+
+    DPDProperties * get_cell_properties(cell_t loc);
+
     // Access to cell data
     uint8_t get_cell_bslot(cell_t loc) override;
     const bead_t * get_bead_from_cell_slot(cell_t loc, uint8_t slot) override;
@@ -35,6 +41,11 @@ public:
 
 protected:
 
+    GraphProperties graph_properties;
+    std::vector<DPDProperties> cell_properties;
+
+    std::map<PDeviceId, std::vector<PDeviceId>> neighbours;
+
     // Make these two devices neighbours
     void addNeighbour(PDeviceId a, PDeviceId b) override;
 
@@ -43,4 +54,4 @@ protected:
 
 };
 
-#endif /* __POLITECELLS_H */
+#endif /* __XML_CELLS_H */

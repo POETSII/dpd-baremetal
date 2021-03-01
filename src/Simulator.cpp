@@ -6,7 +6,7 @@
 #define __SIMULATOR_IMPL
 
 template <class V>
-Simulator<V>::Simulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : Executor<V>(volume_length, cells_per_dimension) {
+Simulator<V>::Simulator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : Executor<V>() {
     this->start_timestep = start_timestep;
     this->max_timestep = max_timestep;
 

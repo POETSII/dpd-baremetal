@@ -7,13 +7,13 @@
 #include "Volume.hpp"
 #include "SimulationCells.hpp"
 
-template<class S, class C>
-class SimulationVolume : public Volume<S, C> {
+template<class C>
+class SimulationVolume : public Volume<C> {
 
 public:
 
     // Constructors and destructors
-    SimulationVolume(S volume_length, unsigned cells_per_dimension);
+    SimulationVolume(const float volume_length, const unsigned cells_per_dimension);
     ~SimulationVolume();
 
     // Simulation setup
@@ -28,7 +28,7 @@ public:
     // Gets single dimension neighbour based on n which is -1, 0 or 1
     uint16_t get_neighbour_cell_dimension(cell_pos_t c, int16_t n);
     // Gets device ID for neighbouring cell. d_x, d_y and d_z are between -1 and 1 and used for to find the 26 neighbours
-    PDeviceId get_neighbour_cell_id(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z);
+    cell_t get_neighbour_cell_loc(cell_t u_i, int16_t d_x, int16_t d_y, int16_t d_z);
     // Find the distance between the given bead and its nearest bead
     float find_nearest_bead_distance(const bead_t *i, cell_t u_i);
     // Store the nearest bead distances for each bead in a JSON file

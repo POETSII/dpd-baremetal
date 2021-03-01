@@ -7,12 +7,12 @@
 #include "Volume.hpp"
 #include "RDFCells.hpp"
 
-class RDFVolume : public Volume<double, std::vector<DPDState>> {
+class RDFVolume : public Volume<std::vector<DPDState>> {
 
 public:
 
     // Constructors and destructors
-    RDFVolume(float volume_length, unsigned cells_per_dimension);
+    RDFVolume(const float volume_length, const unsigned cells_per_dimension);
 
 };
 

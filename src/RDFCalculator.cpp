@@ -8,8 +8,8 @@
 #ifndef __RDFCALCULATOR_IMPL
 #define __RDFCALCULATOR_IMPL
 
-RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue)
-    : Executor<RDFVolume>(volume_length, cells_per_dimension) {
+RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue) {
+    this->volume = new RDFVolume(volume_length, cells_per_dimension);
 
     this->timestep = timestep;
     this->number_density = number_density;
@@ -17,9 +17,9 @@ RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension,
     this->results = results;
     this->message_queue = message_queue;
 
-    this->rmax = this->volume.get_volume_length() / 10;
-    this->min_r = -(ceil(this->volume.get_volume_length() / 10));
-    this->max_r = ceil(this->volume.get_volume_length() / 10);
+    this->rmax = this->volume->get_volume_length() / 10;
+    this->min_r = -(ceil(this->volume->get_volume_length() / 10));
+    this->max_r = ceil(this->volume->get_volume_length() / 10);
     this->dr = rmax / 100;
 }
 
@@ -30,33 +30,33 @@ cell_t RDFCalculator::getNeighbourLoc(cell_t c, uint16_t n_x, uint16_t n_y, uint
     r.z = c.z + n_z;
 
     if (r.x < 0) {
-        r.x = r.x + this->volume.get_volume_length();
+        r.x = r.x + this->volume->get_volume_length();
     } else
     if (r.x >= 0) {
-        if (r.x >= this->volume.get_volume_length()){
-            r.x = r.x - this->volume.get_volume_length();
+        if (r.x >= this->volume->get_volume_length()){
+            r.x = r.x - this->volume->get_volume_length();
         }
     } else {
         r.x = c.x + r.x;
     }
 
     if (r.y < 0) {
-        r.y = this->volume.get_volume_length() + r.y;
+        r.y = this->volume->get_volume_length() + r.y;
     } else
     if (r.y >= 0) {
-        if (r.y >= this->volume.get_volume_length()) {
-            r.y = r.y - this->volume.get_volume_length();
+        if (r.y >= this->volume->get_volume_length()) {
+            r.y = r.y - this->volume->get_volume_length();
         }
     } else {
         r.y = c.y + r.y;
     }
 
     if (r.z < 0) {
-        r.z = this->volume.get_volume_length() + r.z;
+        r.z = this->volume->get_volume_length() + r.z;
     } else
     if (r.z >= 0) {
-        if (r.z >= this->volume.get_volume_length()) {
-            r.z = r.z - this->volume.get_volume_length();
+        if (r.z >= this->volume->get_volume_length()) {
+            r.z = r.z - this->volume->get_volume_length();
         }
     } else {
         r.z = c.z + r.z;
@@ -67,9 +67,9 @@ cell_t RDFCalculator::getNeighbourLoc(cell_t c, uint16_t n_x, uint16_t n_y, uint
 
 int16_t RDFCalculator::period_bound_adj(int16_t dim) {
     if (dim > max_r) {
-        return -(volume.get_volume_length() - dim);
+        return -(volume->get_volume_length() - dim);
     } else if (dim < min_r) {
-        return volume.get_volume_length() + dim;
+        return volume->get_volume_length() + dim;
     }
     return dim;
 }
@@ -86,15 +86,16 @@ void RDFCalculator::run() {
         }
     }
     uint32_t done_cells = 0;
-    uint32_t total_cells = volume.get_number_of_cells();
+    uint32_t total_cells = volume->get_number_of_cells();
 
-    std::map<PDeviceId, cell_t> *idToLoc = volume.get_cells()->get_idToLoc();
+    RDFCells * cells = (RDFCells *)this->volume->get_cells();
+
+    std::map<PDeviceId, cell_t> *idToLoc = cells->get_idToLoc();
+
     // Iterate through each cell
     for (std::map<PDeviceId, cell_t>::iterator cell = idToLoc->begin(); cell != idToLoc->end(); ++cell) {
-        // Get cell state
-        DPDState * state = volume.get_cells()->get_cell_state(cell->first);
         // Current cell
-        cell_t loc = state->loc;
+        cell_t loc = cell->second;
 
         uint32_t done = 0;
         // Iterate through all neighbours of this cell
@@ -103,34 +104,33 @@ void RDFCalculator::run() {
                 for (uint n_z = 0; n_z < max_r + 1; n_z++) {
                     // Neighbour of current cell
                     cell_t n = getNeighbourLoc(loc, n_x, n_y, n_z);
-                    DPDState *n_state = volume.get_cells()->get_cell_state(n);
                     // Check if the current cell has already been tested against the neighbouring cell
-                    if (!n_state->done) {
+                    if (cells->get_cell_done(n)) {
                         // For each local bead
-                        uint16_t i = state->bslot;
+                        uint16_t i = cells->get_cell_bslot(loc);
                         while(i) {
                             uint8_t ci = get_next_slot(i);
-                            bead_t b_i = state->bead_slot[ci];
+                            const bead_t *b_i = cells->get_bead_from_cell_slot(loc, ci);
                             // For each bead in neighbour
-                            uint16_t j = n_state->bslot;
+                            uint16_t j = cells->get_cell_bslot(n);
                             while (j) {
                                 uint8_t cj = get_next_slot(j);
-                                bead_t b_j = n_state->bead_slot[cj];
+                                const bead_t *b_j = cells->get_bead_from_cell_slot(n, cj);
                                 // Neighbour can be the same as the cell so don't calculate distance between same bead
-                                if (b_i.id != b_j.id) {
+                                if (b_i->id != b_j->id) {
                                     // Adjust the position of the neighbour bead relative to the current cell bead
-                                    int16_t x_rel = period_bound_adj(n_state->loc.x - state->loc.x);
-                                    int16_t y_rel = period_bound_adj(n_state->loc.y - state->loc.y);
-                                    int16_t z_rel = period_bound_adj(n_state->loc.z - state->loc.z);
-                                    Vector3D<float> adj_j = Vector3D<float>(b_j.pos.x() + x_rel, b_j.pos.y() + y_rel, b_j.pos.z() + z_rel);
+                                    int16_t x_rel = period_bound_adj(n.x - loc.x);
+                                    int16_t y_rel = period_bound_adj(n.y - loc.y);
+                                    int16_t z_rel = period_bound_adj(n.z - loc.z);
+                                    Vector3D<float> adj_j = Vector3D<float>(b_j->pos.x() + x_rel, b_j->pos.y() + y_rel, b_j->pos.z() + z_rel);
                                     // Get the Euclidean distance to between beads
-                                    double dist = b_i.pos.dist(adj_j);
+                                    double dist = adj_j.dist(b_i->pos);
                                     if (dist < rmax) {
                                         // For each shell distance
                                         double r = 0;
                                         uint16_t index = floor(dist / dr);
-                                        uint8_t min_type = std::min(b_i.type, b_j.type);
-                                        uint8_t max_type = std::max(b_i.type, b_j.type);
+                                        uint8_t min_type = std::min(b_i->type, b_j->type);
+                                        uint8_t max_type = std::max(b_i->type, b_j->type);
                                         type_nums[min_type][max_type][index] += 2;
                                     }
                                 }
@@ -144,13 +144,13 @@ void RDFCalculator::run() {
                 }
             }
         }
-        state->done = true;
+        cells->set_cell_done(loc);
         // Add types of this cell to reference_beads
-        uint16_t i = state->bslot;
+        uint16_t i = cells->get_cell_bslot(loc);
         while (i) {
             uint8_t ci = get_next_slot(i);
-            bead_t b_i = state->bead_slot[ci];
-            reference_beads[b_i.type]++;
+            const bead_t *b_i = cells->get_bead_from_cell_slot(loc, ci);
+            reference_beads[b_i->type]++;
             i = clear_slot(i, ci);
         }
 
@@ -158,7 +158,7 @@ void RDFCalculator::run() {
         for (uint8_t type = 0; type < this->number_bead_types; type++) {
             total_ref_beads += reference_beads[type];
         }
-        double percent = (1000 * ((double)done_cells / volume.get_number_of_cells()));
+        double percent = (1000 * ((double)done_cells / volume->get_number_of_cells()));
         if (percent == floor(percent)) {
             RDFMessage msg = {timestep, running, percent / 10, sched_getcpu()};
             send_message(msg);

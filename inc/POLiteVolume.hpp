@@ -7,13 +7,12 @@
 #include "SimulationVolume.hpp"
 #include "POLiteCells.hpp"
 
-template<class S>
-class POLiteVolume : public SimulationVolume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *> {
+class POLiteVolume : public SimulationVolume<PGraph<DPDDevice, DPDState, None, DPDMessage> *> {
 
 public:
 
     // Constructors and destructors
-    POLiteVolume(S volume_length, unsigned cells_per_dimension);
+    POLiteVolume(float volume_length, unsigned cells_per_dimension);
 
     // Simulation setup
     // Write the volume data onto the POETS hardware
@@ -21,6 +20,6 @@ public:
 
 };
 
-#include "../src/POLiteVolume.cpp"
+// #include "../src/POLiteVolume.cpp"
 
 #endif /*_POLITEVOLUME_H */

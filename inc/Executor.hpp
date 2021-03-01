@@ -10,9 +10,9 @@ class Executor {
     public:
 
     // Constructors and destructors
-    Executor<V>(float volume_length, unsigned cells_per_dimension) : volume(volume_length, cells_per_dimension) { };
+    Executor<V>() {};
 
-    ~Executor<V>() { };
+    ~Executor<V>() {};
 
     // The function which carries out the execution
     virtual void run() = 0;
@@ -21,12 +21,12 @@ class Executor {
     virtual void test(void *result) = 0;
 
     // Returns the volume
-    V * get_volume() { return &volume; };
+    V * get_volume() { return volume; };
 
     protected:
 
     // The volume this executor works on
-    V volume;
+    V *volume;
 
 };
 

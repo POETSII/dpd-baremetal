@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
     POLiteSimulator simulator(problem_size, N, 0, max_time);
-    POLiteVolume<ptype> *volume = (POLiteVolume<ptype> *)simulator.get_volume();
+    POLiteVolume *volume = (POLiteVolume *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
 
