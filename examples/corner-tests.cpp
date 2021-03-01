@@ -11,8 +11,8 @@
 #else
 #include "sync.h"
 #endif
-#include "SimVolume.hpp"
-#include "POETSDPDSimulator.hpp"
+#include "POLiteVolume.hpp"
+#include "POLiteSimulator.hpp"
 #include <map>
 #include <math.h>
 #include <random>
@@ -42,8 +42,8 @@ int main(int argc, char *argv[]) {
     printf("test them migrating and interacting across corners of the volume.\n");
     printf("Options in the cpp file allow for different corners.\n");
 
-    POETSDPDSimulator simulator(problem_size, N, 0, max_time);
-    SimVolume<ptype> *volume = (SimVolume<ptype> *) simulator.get_volume();
+    POLiteSimulator simulator(problem_size, N, 0, max_time);
+    POLiteVolume<ptype> *volume = (POLiteVolume<ptype> *) simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
 

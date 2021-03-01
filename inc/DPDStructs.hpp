@@ -141,8 +141,8 @@ struct DPDState {
     uint32_t lost_beads = 0; // Beads lost due to the cell having a full bead_slot
 
 #ifdef SMALL_DT_EARLY
-    ptype dt = 0.0;
-    ptype inv_sqrt_dt = 0.0;
+    ptype dt;
+    ptype inv_sqrt_dt;
 #endif
 };
 

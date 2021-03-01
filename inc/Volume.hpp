@@ -3,29 +3,15 @@
 #ifndef _VOLUME_H
 #define _VOLUME_H
 
-#include "dpd.hpp"
-
-#ifdef GALS
-#include "gals.h"
-#elif defined(SERIAL)
-#include "serial.hpp"
-#elif defined(RDF)
-#else
-#include "sync.h"
-#endif
-
-#if !defined(SERIAL) && !defined(RDF)
-#include "POLite.h"
-#else
-typedef uint32_t PDeviceId;
-#endif
-
 #include <vector>
-#include <map>
 #include <iostream>
+
+#include "dpd.hpp"
+#include "Cells.hpp"
 
 template<class S, class C>
 class Volume {
+
     public:
 
     // Constructors and destructors
@@ -43,10 +29,9 @@ class Volume {
 
     // Getters
     unsigned get_cells_per_dimension();
-    DPDState * get_state_of_cell(cell_t loc);
     uint32_t get_boxes_x();
     uint32_t get_boxes_y();
-    C * get_cells();
+    Cells<C> * get_cells();
     uint32_t get_number_of_cells();
     uint32_t get_number_of_beads();
     S get_volume_length();
@@ -55,33 +40,17 @@ class Volume {
 
     // Length of one side of cubic volume in generic
     S volume_length;
-    // Length of one side of cubic volume in number of cells
-    unsigned cells_per_dimension;
-    // Length of one side of cubic cell in generic
-	S cell_length;
 
     // Total beads this volume contains
     uint32_t beads_added = 0;
 
- //    // The cells
- //  #if defined(SERIAL) || defined(RDF)
- //    // A vector where PDeviceId represents its index in the vector
- //    std::vector<DPDState> cells;
- //    uint32_t num_cells;
- //  #else
-	// // POLite graph containing the cells
- //    // PDeviceId represents its device ID in the graph
-	// PGraph<DPDDevice, DPDState, None, DPDMessage> *cells;
- //  #endif
-
-    C cells;
-
-    // Maintain maps of ID's to locations (and vice versa) in the volume
-    std::map<PDeviceId, cell_t> idToLoc;
-    std::map<cell_t, PDeviceId> locToId;
+    Cells<C> *cells;
 
     // Number and arrangement of boxes to use
     uint32_t boxes_x, boxes_y;
+
+    // Create the cells
+    virtual void create_cells() { };
 };
 
 #include "../src/Volume.cpp"

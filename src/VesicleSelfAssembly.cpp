@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <HostLink.h>
 #ifndef SERIAL
-#include "POETSDPDSimulator.hpp"
+#include "POLiteSimulator.hpp"
 #endif
 #ifdef GALS
 #include "gals.h"
@@ -15,10 +15,11 @@
 #else
 #include "sync.h"
 #endif
-#include "SimVolume.hpp"
 #include <map>
 #include <math.h>
 #include <random>
+
+#include <boost/algorithm/string.hpp>
 
 #ifndef BONDS
   float bond_r0 = 0.3;
@@ -114,8 +115,8 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    POETSDPDSimulator simulator(problem_size, N, 0, max_time);
-    SimVolume<ptype> *volume = (SimVolume<ptype> *)simulator.get_volume();
+    POLiteSimulator simulator(problem_size, N, 0, max_time);
+    POLiteVolume<ptype> *volume = (POLiteVolume<ptype> *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
 
