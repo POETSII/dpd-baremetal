@@ -17,7 +17,7 @@
 
 #include "rapidjson/document.h"
 
-#include "Volume.hpp"
+#include "RDFVolume.hpp"
 #include "RDFCalculator.hpp"
 
 #define MAX_THREADS 10
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
         y++;
 
         RDFCalculator calculator(volume_length, cells_per_dimension, timestep, number_density, number_bead_types, &results[timestep], &message_queue);
-        Volume<double, std::vector<DPDState>> *volume = calculator.get_volume();
+        RDFVolume *volume = calculator.get_volume();
         std::cout << "Volume built                                                                          \n";
         y++;
 

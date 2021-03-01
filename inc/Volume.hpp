@@ -48,9 +48,6 @@ class Volume {
 
     // Number and arrangement of boxes to use
     uint32_t boxes_x, boxes_y;
-
-    // Create the cells
-    virtual void create_cells() { };
 };
 
 #include "../src/Volume.cpp"

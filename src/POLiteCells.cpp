@@ -10,10 +10,6 @@
 
 // Constructor
 POLiteCells::POLiteCells(unsigned cells_per_dimension, ptype cell_length, uint32_t boxes_x, uint32_t boxes_y) : SimulationCells<PGraph<DPDDevice, DPDState, None, DPDMessage> *>(cells_per_dimension, cell_length) {
-    // Store the members
-    this->cells_per_dimension = cells_per_dimension;
-    this->cell_length = cell_length;
-
     // Create the PGraph
     this->cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(boxes_x, boxes_y);
 

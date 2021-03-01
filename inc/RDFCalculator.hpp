@@ -6,8 +6,8 @@
 #include <unistd.h>
 
 #include "Executor.hpp"
+#include "RDFVolume.hpp"
 #include "blockingconcurrentqueue.h"
-#include "Volume.hpp"
 
 #ifndef _RDFCALCULATOR_H
 #define _RDFCALCULATOR_H
@@ -21,7 +21,7 @@ struct RDFMessage {
     int core;
 };
 
-class RDFCalculator : public Executor<Volume<double, std::vector<DPDState>>> {
+class RDFCalculator : public Executor<RDFVolume> {
     public:
 
     // Constructors and destructors

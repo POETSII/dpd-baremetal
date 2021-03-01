@@ -770,7 +770,15 @@ test-serial-large: DFLAGS+=-DLARGE_TEST
 test-serial-large: test-serial
 
 # ---------------------------- x86 RDF Calculator --------------------------------
-RDF_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/RDFCalculator.o
+RDF_OBJS = $(DPD_BIN)/RDFCells.o $(DPD_BIN)/RDFVolume.o $(DPD_BIN)/RDFCalculator.o
+
+$(DPD_BIN)/RDFCells.o: $(DPD_SRC)/RDFCells.cpp $(DPD_INC)/RDFCells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/RDFCells.o $(DPD_SRC)/RDFCells.cpp
+
+$(DPD_BIN)/RDFVolume.o: $(DPD_SRC)/RDFVolume.cpp $(DPD_INC)/RDFVolume.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/RDFVolume.o $(DPD_SRC)/RDFVolume.cpp
 
 $(DPD_BIN)/RDFCalculator.o: $(DPD_SRC)/RDFCalculator.cpp $(DPD_INC)/RDFCalculator.hpp
 	mkdir -p $(DPD_BIN)

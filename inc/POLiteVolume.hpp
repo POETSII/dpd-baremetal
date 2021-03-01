@@ -9,6 +9,7 @@
 
 template<class S>
 class POLiteVolume : public SimulationVolume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *> {
+
 public:
 
     // Constructors and destructors

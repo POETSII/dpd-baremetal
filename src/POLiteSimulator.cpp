@@ -23,9 +23,9 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
     std::cout << ".\n";
 
 #ifdef VISUALISE
-    // std::cout << "Preparing server for external connections...\r";
-    // _extern = new ExternalServer("_external.sock");
-    // std::cout << "External server ready.\n";
+    std::cout << "Preparing server for external connections...\r";
+    _extern = new ExternalServer("_external.sock");
+    std::cout << "External server ready.\n";
 #endif
 
 }

@@ -9,20 +9,7 @@
 #define __RDFCALCULATOR_IMPL
 
 RDFCalculator::RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue)
-    : Executor<Volume<double, std::vector<DPDState>>>(volume_length, cells_per_dimension) {
-
-    for (uint8_t x = 0; x < this->volume.get_volume_length(); x++) {
-        for (uint8_t y = 0; y < this->volume.get_volume_length(); y++) {
-            for (uint8_t z = 0; z < this->volume.get_volume_length(); z++) {
-                cell_t loc = {x, y, z};
-                DPDState *state = this->volume.get_state_of_cell(loc);
-                state->loc.x = loc.x;
-                state->loc.y = loc.y;
-                state->loc.z = loc.z;
-                state->done = false;
-            }
-        }
-    }
+    : Executor<RDFVolume>(volume_length, cells_per_dimension) {
 
     this->timestep = timestep;
     this->number_density = number_density;
@@ -100,10 +87,15 @@ void RDFCalculator::run() {
     }
     uint32_t done_cells = 0;
     uint32_t total_cells = volume.get_number_of_cells();
+
+    std::map<PDeviceId, cell_t> *idToLoc = volume.get_cells()->get_idToLoc();
     // Iterate through each cell
-    for (std::vector<DPDState>::iterator state = volume.get_cells()->begin(); state != volume.get_cells()->end(); ++state) {
+    for (std::map<PDeviceId, cell_t>::iterator cell = idToLoc->begin(); cell != idToLoc->end(); ++cell) {
+        // Get cell state
+        DPDState * state = volume.get_cells()->get_cell_state(cell->first);
         // Current cell
         cell_t loc = state->loc;
+
         uint32_t done = 0;
         // Iterate through all neighbours of this cell
         for (uint n_x = 0; n_x < max_r + 1; n_x++) {
@@ -111,7 +103,7 @@ void RDFCalculator::run() {
                 for (uint n_z = 0; n_z < max_r + 1; n_z++) {
                     // Neighbour of current cell
                     cell_t n = getNeighbourLoc(loc, n_x, n_y, n_z);
-                    DPDState *n_state = volume.get_state_of_cell(n);
+                    DPDState *n_state = volume.get_cells()->get_cell_state(n);
                     // Check if the current cell has already been tested against the neighbouring cell
                     if (!n_state->done) {
                         // For each local bead
