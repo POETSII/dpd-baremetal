@@ -91,11 +91,13 @@ void RDFCalculator::run() {
     RDFCells * cells = (RDFCells *)this->volume->get_cells();
 
     std::map<PDeviceId, cell_t> *idToLoc = cells->get_idToLoc();
+    std::map<cell_t, PDeviceId> *locToId = cells->get_locToId();
 
     // Iterate through each cell
     for (std::map<PDeviceId, cell_t>::iterator cell = idToLoc->begin(); cell != idToLoc->end(); ++cell) {
         // Current cell
         cell_t loc = cell->second;
+        PDeviceId id = cell->first;
 
         uint32_t done = 0;
         // Iterate through all neighbours of this cell
@@ -104,18 +106,19 @@ void RDFCalculator::run() {
                 for (uint n_z = 0; n_z < max_r + 1; n_z++) {
                     // Neighbour of current cell
                     cell_t n = getNeighbourLoc(loc, n_x, n_y, n_z);
+                    PDeviceId n_id = (*locToId)[n];
                     // Check if the current cell has already been tested against the neighbouring cell
-                    if (!cells->get_cell_done(n)) {
+                    if (!cells->get_device_done(n_id)) {
                         // For each local bead
-                        uint16_t i = cells->get_cell_bslot(loc);
+                        uint16_t i = cells->get_device_bslot(id);
                         while(i) {
                             uint8_t ci = get_next_slot(i);
-                            const bead_t *b_i = cells->get_bead_from_cell_slot(loc, ci);
+                            const bead_t *b_i = cells->get_bead_from_device_slot(id, ci);
                             // For each bead in neighbour
-                            uint16_t j = cells->get_cell_bslot(n);
+                            uint16_t j = cells->get_device_bslot(n_id);
                             while (j) {
                                 uint8_t cj = get_next_slot(j);
-                                const bead_t *b_j = cells->get_bead_from_cell_slot(n, cj);
+                                const bead_t *b_j = cells->get_bead_from_device_slot(n_id, cj);
                                 // Neighbour can be the same as the cell so don't calculate distance between same bead
                                 if (b_i->id != b_j->id) {
                                     // Adjust the position of the neighbour bead relative to the current cell bead
@@ -144,12 +147,12 @@ void RDFCalculator::run() {
                 }
             }
         }
-        cells->set_cell_done(loc);
+        cells->set_device_done(id);
         // Add types of this cell to reference_beads
-        uint16_t i = cells->get_cell_bslot(loc);
+        uint16_t i = cells->get_device_bslot(id);
         while (i) {
             uint8_t ci = get_next_slot(i);
-            const bead_t *b_i = cells->get_bead_from_cell_slot(loc, ci);
+            const bead_t *b_i = cells->get_bead_from_device_slot(id, ci);
             reference_beads[b_i->type]++;
             i = clear_slot(i, ci);
         }
