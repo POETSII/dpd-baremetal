@@ -1,15 +1,15 @@
 import json
 import numpy as np
 
-volLength = 100
+volLength = 3
 min_timestep = 0
-max_timestep = 1000000
-emitperiod = 1000
-in_dir = "../100_vesicle_frames/"
-out_filepath = "../100-100-100-vesicle-1m-timesteps.pdb"
-bead_types = ["HHH", "TaT", "WWW", "Tb1"]
+max_timestep = 10000
+emitperiod = 1
+in_dir = "/home/jrbeaumont/xml-dpd-states/"
+out_filepath = "/home/jrbeaumont/xml-dpd-test.pdb"
+bead_types = ["WWW", "OOO", "AAA"]
 includeWater = False
-waterTypeNum = 2
+waterTypeNum = 0
 append = False
 
 volLength_str = "{:.3f}".format(volLength)

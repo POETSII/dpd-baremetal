@@ -79,12 +79,27 @@ uint8_t POLiteCells::get_cell_bslot(cell_t loc) {
     return cells->devices[locToId[loc]]->state.bslot;
 }
 
+uint8_t POLiteCells::get_device_bslot(PDeviceId id) {
+    return cells->devices[id]->state.bslot;
+}
+
 const bead_t * POLiteCells::get_bead_from_cell_slot(cell_t loc, uint8_t slot) {
     return &cells->devices[locToId[loc]]->state.bead_slot[slot];
 }
 
+const bead_t * POLiteCells::get_bead_from_device_slot(PDeviceId id, uint8_t slot) {
+    return &cells->devices[id]->state.bead_slot[slot];
+}
+
 void POLiteCells::place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) {
     DPDState *state = &cells->devices[locToId[loc]]->state;
+    state->bead_slot[slot] = *b; // Add the bead
+    state->bslot = set_slot(state->bslot, slot); // Set the slot in the bitmap
+    state->sentslot = state->bslot; // To make sure the bead is sent at timestep 0
+}
+
+void POLiteCells::place_bead_in_device_slot(bead_t *b, PDeviceId id, uint8_t slot) {
+    DPDState *state = &cells->devices[id]->state;
     state->bead_slot[slot] = *b; // Add the bead
     state->bslot = set_slot(state->bslot, slot); // Set the slot in the bitmap
     state->sentslot = state->bslot; // To make sure the bead is sent at timestep 0

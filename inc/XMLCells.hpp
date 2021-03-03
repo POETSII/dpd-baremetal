@@ -28,16 +28,23 @@ public:
 
     void set_end_timestep(uint32_t end_timestep) override;
 
-    DPDProperties * get_cell_properties(PDeviceId id);
+    DPDState * get_cell_state(cell_t loc);
 
     DPDProperties * get_cell_properties(cell_t loc);
 
+    GraphProperties * get_graph_properties();
+
+    std::vector<PDeviceId> * get_cell_neighbours(cell_t loc);
+
     // Access to cell data
     uint8_t get_cell_bslot(cell_t loc) override;
+    uint8_t get_device_bslot(PDeviceId id) override;
     const bead_t * get_bead_from_cell_slot(cell_t loc, uint8_t slot) override;
+    const bead_t * get_bead_from_device_slot(PDeviceId id, uint8_t slot) override;
 
     // Adding a bead to the cell
     void place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) override;
+    void place_bead_in_device_slot(bead_t *b, PDeviceId id, uint8_t slot) override;
 
 protected:
 

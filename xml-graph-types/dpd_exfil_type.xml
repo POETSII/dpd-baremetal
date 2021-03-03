@@ -1,0 +1,1181 @@
+<?xml version="1.0"?>
+<!-- DPD -->
+<Graphs xmlns="" appname="dpd_simulator">
+  <GraphType id="dpd_exfil_graph_type">
+
+    <Properties><![CDATA[
+float r_c;
+float sq_r_c;
+float A[3][3]; // Interaction Matrix
+float drag_coef; // Drag coefficient
+float sigma_ij; // Random coefficient. Related to drag_coef and temperature - simga = sqrt(2 * drag_coef * temp)
+float dt_normal; // Size of timestep after 1000 timesteps
+float dt_early; // Size of timestep for first 1000 timesteps
+float inv_sqrt_dt_normal; // Inverse sqrt of dt after 1000 timesteps
+float inv_sqrt_dt_early; // Inverse sqrt of dt for first 1000 timesteps
+float lambda; // Used in thermostat
+float cell_length; // Size of a cell in one dimension (All cells are cubes)
+uint32_t emitperiod; // Frequency of the state being output to the host
+uint32_t start_timestep;
+uint32_t max_timestep; // Number of timesteps to simulate
+uint32_t cells_per_dimension; // Size of the simulation box in terms of cells (It's a cube (Default 3))
+uint32_t total_beads;
+
+    ]]></Properties>
+
+    <MessageTypes>
+
+      <!-- Message sent during update mode.
+           Contains a bead, the sending cell's location, and encoded
+           information for synchronisation.
+           Receiving cell uses this to calculate forces acting on its beads.
+      -->
+      <MessageType id="update"><![CDATA[
+float bead_pos[3];
+float bead_vel[3];
+float bead_acc[3];
+// Cell location
+uint16_t from[3];
+uint32_t timestep;
+uint32_t bead_id;
+uint8_t bead_type;
+// Synchronisation
+int8_t sync; // > 0  - Number of beads this cell has to send
+             // == 0 - More beads expected but not finished
+             // < 0  - Last bead to send (update complete)
+// 52 bytes
+      ]]></MessageType>
+
+       <!-- Message sent only by cells containing no beads and have nothing to
+            update neighbours about.
+            If a cell has beads it will indicate it finishing in its message
+       -->
+      <MessageType id="update_complete"><![CDATA[
+uint16_t from[3];
+// 0 Bytes
+      ]]></MessageType>
+
+      <!-- Message sent during migrate mode.
+           Contains a bead, the target cell's location, and encoded
+           information for synchronisation.
+           Receiving cell (if it is the target) will add this to its state.
+           If not the target cell, it's discarded.
+      -->
+      <MessageType id="migrate"><![CDATA[
+float bead_pos[3];
+float bead_vel[3];
+float bead_acc[3];
+// Cell location
+uint16_t from[3];
+uint32_t timestep;
+uint32_t bead_id;
+uint8_t bead_type;
+// Synchronisation
+int8_t sync; // > 0  - Number of beads this cell has to send
+             // == 0 - More beads expected but not finished
+             // < 0  - Last bead to send (update complete)
+// 52 bytes
+      ]]></MessageType>
+
+       <!-- Message sent only by cells which are not migrating any beads.
+            If a cell has beads to migrate it will indicate it finishing in its
+            message
+       -->
+      <MessageType id="migrate_complete"><![CDATA[
+// 0 Bytes
+      ]]></MessageType>
+
+      <!-- Message sent from cell to supervisor (host) to emit data for
+           visualisation or analysis purposes.
+           Contains a bead and the sending cell's location.
+           Sync information is not needed, as soon as a cells emitted it'll get
+           going on the next state (update).
+      -->
+      <MessageType id="emit"><![CDATA[
+float bead_pos[3];
+float bead_vel[3];
+float bead_acc[3];
+uint16_t from[3];
+uint32_t timestep;
+uint32_t bead_id;
+uint8_t bead_type;
+// 51 bytes
+      ]]></MessageType>
+
+       <!-- Message sent by cells when they have finished emitting their state
+            regardless of whether it contains any beads or not.
+       -->
+      <MessageType id="emit_complete"><![CDATA[
+// 0 Bytes
+      ]]></MessageType>
+
+    </MessageTypes>
+
+    <DeviceTypes>
+      <DeviceType id="dpd_cell">
+
+        <Properties><![CDATA[
+uint16_t loc[3]; // The coordinates of this cell in the grid of cells
+          ]]>
+        </Properties>
+
+        <State><![CDATA[
+// Definitions
+// Max beads per cell (array sizes)
+// Is also declared in dpd_cell DeviceType SharedCode
+#define MAX_BEADS 16
+
+// Bitmaps
+uint16_t bslot; // a bitmap of which bead slot is occupied
+uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
+uint16_t newBeadMap; // A bitmap to share new and old beads during migration
+uint16_t migrateslot; // A bitmap of which bead slot is being migrated in the next phase
+
+// Arrays addressed by bitmaps
+uint32_t bead_slot_id[MAX_BEADS]; // Array of ids of beads this cell contains, bitmapped by bslot
+uint8_t bead_slot_type[MAX_BEADS]; // Array of types of beads this cell contains, bitmapped by bslot
+float bead_slot_pos[MAX_BEADS][3]; // Array of positions of beads this cell contains, bitmapped by bslot
+float bead_slot_vel[MAX_BEADS][3]; // Array of velocities of beads this cell contains, bitmapped by bslot
+float bead_slot_acc[MAX_BEADS][3]; // Array of accelerations of beads this cell contains, bitmapped by bslot
+
+float force_slot[MAX_BEADS][3]; // Array for force accumulators for beads contained in this cell
+float old_vel[MAX_BEADS][3]; // Store old velocites for velocity Verlet
+uint16_t migrate_loc[MAX_BEADS][3]; // Slots containing the destinations of where we want to send a bead to
+
+// State for knowing where we are and what we're doing
+uint8_t mode; // The mode that this device is in.
+uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+uint32_t timestep; // the current timestep that we are on
+
+// Variables for global random
+uint32_t grand; // the global random number at this timestep
+uint64_t rngstate; // the state of the random number generator
+
+// Changing DT variables
+float dt;
+float inv_sqrt_dt;
+
+// Sync state
+uint8_t updates_received; // All neighbours must send this in order to continue
+uint8_t update_completes_received; // All neighbours must send this in order to continue
+uint8_t updates_sent; // Used to keep track of what we've sent to neighbours already
+int32_t total_update_beads; // Total beads expected from neighbours - Must be 0 to progress
+
+uint8_t migrations_received; // All neighbours must send this in order to continue
+uint8_t migration_completes_received; // All neighbours must send this in order to continue
+uint8_t migrates_sent; // Used to keep track of what we've sent to neighbours already
+int32_t total_migration_beads; // Total beads expected from neighbours - Must be 0 to progress
+
+uint8_t emit_complete_sent; // All neighbours must send this in order to continue to migrate
+uint8_t emit_completes_received; // All neighbours must send this in order to continue to migrate
+
+      ]]></State>
+
+        <SharedCode><![CDATA[
+// Definitions
+// Used in RNG
+#define DT10_RAND_MAX 4294967295
+// Mode enum
+#define UPDATE 0
+#define UPDATE_COMPLETE 1
+#define MIGRATION 2
+#define MIGRATION_COMPLETE 3
+#define EMIT 4
+#define EMIT_COMPLETE 5
+#define START 6
+#define END 7
+// Number of neighbours
+#define NEIGHBOURS 26
+
+// Typedefs
+// Structure of a bead for easier passing around
+// Is also defined in dpd_cell State
+typedef struct _bead_t {
+    uint32_t id; // 4 bytes
+    uint8_t type; // 1 byte
+    float pos[3]; // 12 bytes
+    float vel[3]; // 12 bytes
+    float acc[3]; // 12 bytes
+} bead_t; // 41 bytes
+
+typedef struct device_state {
+    // Definitions
+    // Max beads per cell (array sizes)
+    #define MAX_BEADS 16
+
+    // Bitmaps
+    uint16_t bslot; // a bitmap of which bead slot is occupied
+    uint16_t sentslot; // a bitmap of which bead slot has not been sent from yet
+    uint16_t newBeadMap; // A bitmap to share new and old beads during migration
+    uint16_t migrateslot; // A bitmap of which bead slot is being migrated in the next phase
+
+    // Arrays addressed by bitmaps
+    uint32_t bead_slot_id[MAX_BEADS]; // Array of ids of beads this cell contains, bitmapped by bslot
+    uint8_t bead_slot_type[MAX_BEADS]; // Array of types of beads this cell contains, bitmapped by bslot
+    float bead_slot_pos[MAX_BEADS][3]; // Array of positions of beads this cell contains, bitmapped by bslot
+    float bead_slot_vel[MAX_BEADS][3]; // Array of velocities of beads this cell contains, bitmapped by bslot
+    float bead_slot_acc[MAX_BEADS][3]; // Array of accelerations of beads this cell contains, bitmapped by bslot
+
+    float force_slot[MAX_BEADS][3]; // Array for force accumulators for beads contained in this cell
+    float old_vel[MAX_BEADS][3]; // Store old velocites for velocity Verlet
+    uint16_t migrate_loc[MAX_BEADS][3]; // Slots containing the destinations of where we want to send a bead to
+
+    // State for knowing where we are and what we're doing
+    uint8_t mode; // The mode that this device is in.
+    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+    uint32_t timestep; // the current timestep that we are on
+
+    // Variables for global random
+    uint32_t grand; // the global random number at this timestep
+    uint64_t rngstate; // the state of the random number generator
+
+    // Changing DT variables
+    float dt;
+    float inv_sqrt_dt;
+
+    // Sync state
+    uint8_t updates_received; // All neighbours must send this in order to continue
+    uint8_t update_completes_received; // All neighbours must send this in order to continue
+    uint8_t updates_sent; // Used to keep track of what we've sent to neighbours already
+    int32_t total_update_beads; // Total beads expected from neighbours - Must be 0 to progress
+
+    uint8_t migrations_received; // All neighbours must send this in order to continue
+    uint8_t migration_completes_received; // All neighbours must send this in order to continue
+    uint8_t migrates_sent; // Used to keep track of what we've sent to neighbours already
+    int32_t total_migration_beads; // Total beads expected from neighbours - Must be 0 to progress
+
+    uint8_t emit_complete_sent; // All neighbours must send this in order to continue to migrate
+    uint8_t emit_completes_received; // All neighbours must send this in order to continue to migrate
+
+}  device_state_t;
+
+typedef struct device_properties {
+    uint16_t loc[3]; // The coordinates of this cell in the grid of cells
+}  device_properties_t;
+
+// DPD Functions
+float sq_dist(const float a[3], const float b[3]) {
+    float c[3] = { a[0] - b[0],
+                   a[1] - b[1],
+                   a[2] - b[2]
+                 };
+    return ((c[0] * c[0]) + (c[1] * c[1]) + (c[2] * c[2]));
+}
+
+// sqrt using the inverse square root function
+float newt_sqrt(float x) {
+   // https://www.codeproject.com/Articles/69941/Best-Square-Root-Method-Algorithm-Function-Precisi
+   // We have more integer than float isue bandwidth, plus fast divides (well, same speed as anything else),
+   // so might as well use this one.
+
+   union
+   {
+       int i;
+       float x;
+   } u;
+
+   u.x = x;
+   u.i = (1<<29) + (u.i >> 1) - (1<<22);
+
+   u.x = 0.5f * (u.x + x/u.x);
+   u.x = 0.5f * (u.x + x/u.x);
+   u.x = 0.5f * (u.x + x/u.x);
+
+   return u.x;
+}
+
+float dot_product(const float a[3], const float b[3]) {
+    return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2]);
+}
+
+// dt10's hash based random num gen
+uint32_t pairwise_rand(const uint32_t pid1, const uint32_t pid2, const uint32_t grand) {
+    uint32_t s0 = (pid1 ^ grand)*pid2;
+    uint32_t s1 = (pid2 ^ grand)*pid1;
+    return s0 + s1;
+}
+
+void __attribute__((noinline)) force_update(bead_t *a, bead_t *b, float *f, device_state_t *s) {
+
+    float r_ij_dist_sq = sq_dist(a->pos, b->pos);
+
+    if (r_ij_dist_sq < GraphProperties.sq_r_c)
+    // IF BONDS ARE BEING USED COMMENT THE LINE ABOVE AND UNCOMMENT THE LINE BELOW
+    // if ((r_ij_dist_sq < sq_r_c) || are_beads_bonded(a->id, b->id))
+    {
+        // Only square root for distance once it's known these beads interact
+        float r_ij_dist = newt_sqrt(r_ij_dist_sq);
+
+        // Switching function - w_r is used for conservative too
+        float w_r = (1.0 - r_ij_dist/GraphProperties.r_c);
+
+        // Vector difference in position
+        float r_ij[3] = { a->pos[0] - b->pos[0],
+                          a->pos[1] - b->pos[1],
+                          a->pos[2] - b->pos[2]
+                        };
+// IF BONDS ARE BEING USED UNCOMMENT THE FOLLOWING SECTION
+//        if (are_beads_bonded(a->id, b->id)) {
+//            float s = r_ij_dist - bond_r0;
+//            force = force - (scale * bond_kappa * s);
+//        }
+//        if (!(r_ij_dist < r_c)) {
+//            return force;
+//        }
+
+        // Vector Unity scale of force acting in each dimension
+        float scale[3] = { r_ij[0] / r_ij_dist,
+                           r_ij[1] / r_ij_dist,
+                           r_ij[2] / r_ij_dist
+                         };
+
+        // Calculate magnitudes of all forces
+        // But multiply them by vector distance at the end
+
+        // Conservative force: Equation 8.5 in the dl_meso manual
+        // Conservative magnitude for these bead types
+        float a_ij = GraphProperties.A[a->type][b->type];
+        // Conservative portion of the force
+        float con = a_ij * w_r;
+
+        // Drag switching function is equal to random switching function squared
+        float w_d = w_r * w_r;
+        // Vector difference in velocity
+        float v_ij[3] = { a->vel[0] - b->vel[0],
+                          a->vel[1] - b->vel[1],
+                          a->vel[2] - b->vel[2]
+                        };
+        // Vector distance difference and Vector velocity difference dot product
+        float dotProd = dot_product(r_ij, v_ij);
+        // Divide this by r_ij_dist as the equation is divided by r_ij_dist squared
+        dotProd /= r_ij_dist;
+        // Get the drag force
+        float drag = -1.0 * GraphProperties.drag_coef * w_d * dotProd;
+
+        // Get the pairwise random number
+        uint32_t rand = pairwise_rand(a->id, b->id, s->grand) >> 1;
+        uint32_t max = DT10_RAND_MAX >> 1;
+        float test = 3.46939;
+        float r = (float(rand) / float(max)) * test;
+        r = (test/2 - r);
+
+        // random force
+        float ran = GraphProperties.sigma_ij * s->inv_sqrt_dt * r * w_r;
+
+        // Final force value is total of forces multiplied by scale
+        f[0] = f[0] + (scale[0] * (con + drag + ran));
+        f[1] = f[1] + (scale[1] * (con + drag + ran));
+        f[2] = f[2] + (scale[2] * (con + drag + ran));
+    }
+}
+
+// Prototype function for slot function. Implemented later for clarity
+uint8_t get_next_slot(uint16_t bitmap);
+uint16_t clear_slot(uint16_t bitmap, uint8_t pos);
+uint16_t set_slot(uint16_t bitmap, uint8_t pos);
+uint8_t get_next_free_slot(uint16_t bitmap);
+
+void local_calcs(uint8_t ci, void* state) {
+    device_state_t* s = static_cast<device_state_t*>(state);
+
+    // Map of all local beads
+    uint16_t j = s->bslot;
+
+    // Generate bead_t from target bead
+    bead_t a;
+    a.id     = s->bead_slot_id[ci];
+    a.type   = s->bead_slot_type[ci];
+    a.pos[0] = s->bead_slot_pos[ci][0];
+    a.pos[1] = s->bead_slot_pos[ci][1];
+    a.pos[2] = s->bead_slot_pos[ci][2];
+    a.vel[0] = s->bead_slot_vel[ci][0];
+    a.vel[1] = s->bead_slot_vel[ci][1];
+    a.vel[2] = s->bead_slot_vel[ci][2];
+    // We don't care about acceleration here
+
+    // While there are beads left
+    while(j) {
+        // Get one of the beads
+        uint8_t cj = get_next_slot(j);
+        // If they are not the same
+        if(ci != cj) {
+            // Generate bead_t from other bead
+            bead_t b;
+            b.id   = s->bead_slot_id[cj];
+            b.type = s->bead_slot_type[cj];
+            b.pos[0] = s->bead_slot_pos[cj][0];
+            b.pos[1] = s->bead_slot_pos[cj][1];
+            b.pos[2] = s->bead_slot_pos[cj][2];
+            b.vel[0] = s->bead_slot_vel[cj][0];
+            b.vel[1] = s->bead_slot_vel[cj][1];
+            b.vel[2] = s->bead_slot_vel[cj][2];
+            // We don't care about acceleration here
+
+            // Get force acting on this
+            float f[3] = {0, 0, 0};
+            force_update(&a, &b, f, s);
+            // Add this to the accumulated force for the target bead
+            s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
+            s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
+            s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
+      }
+      j = clear_slot(j, cj);
+    }
+}
+
+// used to help adjust the relative positions for the periodic boundary
+int period_bound_adj(int dim) {
+    if(dim > 1) {
+        return -1;
+    } else if (dim < -1) {
+        return 1;
+    } else {
+        return dim;
+    }
+}
+
+void neighbour_calcs(const uint32_t bead_id, const uint8_t bead_type, const float *bead_pos, const float *bead_vel, const uint16_t *from,  void* state, const void* properties) {
+    device_state_t *s = static_cast<device_state_t*>(state);
+    const device_properties_t *p = static_cast<const device_properties_t*>(properties);
+
+    bead_t b;
+    b.id = bead_id;
+    b.type = bead_type;
+    b.pos[0] = bead_pos[0];
+    b.pos[1] = bead_pos[1];
+    b.pos[2] = bead_pos[2];
+    b.vel[0] = bead_vel[0];
+    b.vel[1] = bead_vel[1];
+    b.vel[2] = bead_vel[2];
+
+    // From the device location get the adjustments to the bead positions
+    int8_t x_rel = period_bound_adj(from[0] - p->loc[0]);
+    int8_t y_rel = period_bound_adj(from[1] - p->loc[1]);
+    int8_t z_rel = period_bound_adj(from[2] - p->loc[2]);
+
+    // relative position for this particle to this device
+    b.pos[0] = b.pos[0] + x_rel;
+    b.pos[1] = b.pos[1] + y_rel;
+    b.pos[2] = b.pos[2] + z_rel;
+
+    // loop through the occupied bead slots -- update force
+    uint16_t i = s->bslot;
+    while(i) {
+        uint8_t ci = get_next_slot(i);
+        bead_t a;
+        a.id = s->bead_slot_id[ci];
+        a.type = s->bead_slot_type[ci];
+        a.pos[0] = s->bead_slot_pos[ci][0];
+        a.pos[1] = s->bead_slot_pos[ci][1];
+        a.pos[2] = s->bead_slot_pos[ci][2];
+        a.vel[0] = s->bead_slot_vel[ci][0];
+        a.vel[1] = s->bead_slot_vel[ci][1];
+        a.vel[2] = s->bead_slot_vel[ci][2];
+
+        float f[3] = {0, 0, 0};
+        force_update(&a, &b, f, s);
+
+        s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
+        s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
+        s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
+
+        i = clear_slot(i, ci);
+    }
+}
+
+void velocity_Verlet(uint8_t ci, device_state_t *s) {
+    // force[0] = force[0] / p_mass;
+    // force[1] = force[1] / p_mass;
+    // force[2] = force[2] / p_mass;
+
+    // ------ End of previous velocity Verlet -----
+    s->bead_slot_vel[ci][0] = s->old_vel[ci][0] + ((s->force_slot[ci][0] + s->bead_slot_acc[ci][0]) * s->dt * 0.5);
+    s->bead_slot_vel[ci][1] = s->old_vel[ci][1] + ((s->force_slot[ci][1] + s->bead_slot_acc[ci][1]) * s->dt * 0.5);
+    s->bead_slot_vel[ci][2] = s->old_vel[ci][2] + ((s->force_slot[ci][2] + s->bead_slot_acc[ci][2]) * s->dt * 0.5);
+    // Store old velocity
+    s->old_vel[ci][0] = s->bead_slot_vel[ci][0];
+    s->old_vel[ci][1] = s->bead_slot_vel[ci][1];
+    s->old_vel[ci][2] = s->bead_slot_vel[ci][2];
+    // Store old Force
+    s->bead_slot_acc[ci][0] = s->force_slot[ci][0];
+    s->bead_slot_acc[ci][1] = s->force_slot[ci][1];
+    s->bead_slot_acc[ci][2] = s->force_slot[ci][2];
+
+    // ------ Start of new velocity Verlet ------
+
+    // Update position
+    s->bead_slot_pos[ci][0] = s->bead_slot_pos[ci][0] + (s->bead_slot_vel[ci][0] * s->dt) + (s->force_slot[ci][0] * 0.5 * s->dt * s->dt);
+    s->bead_slot_pos[ci][1] = s->bead_slot_pos[ci][1] + (s->bead_slot_vel[ci][1] * s->dt) + (s->force_slot[ci][1] * 0.5 * s->dt * s->dt);
+    s->bead_slot_pos[ci][2] = s->bead_slot_pos[ci][2] + (s->bead_slot_vel[ci][2] * s->dt) + (s->force_slot[ci][2] * 0.5 * s->dt * s->dt);
+
+    // ----- clear the forces ---------------
+    s->force_slot[ci][0] = 0.0;
+    s->force_slot[ci][1] = 0.0;
+    s->force_slot[ci][2] = 0.0;
+}
+
+uint32_t p_rand(uint64_t *rngstate) {
+    uint32_t c = (*rngstate) >> 32;
+    uint32_t x = (*rngstate) & 0xFFFFFFFF;
+    *rngstate = x * ((uint64_t)429488355U) + c;
+    return x^c;
+}
+
+void update_velocity(uint8_t ci, void *state) {
+    device_state_t* s = static_cast<device_state_t*>(state);
+
+    // Update intermediate velocity - If a bead migrates, this is done when received
+    s->bead_slot_vel[ci][0] = s->old_vel[ci][0] + s->bead_slot_acc[ci][0] * GraphProperties.lambda * s->dt;
+    s->bead_slot_vel[ci][1] = s->old_vel[ci][1] + s->bead_slot_acc[ci][1] * GraphProperties.lambda * s->dt;
+    s->bead_slot_vel[ci][2] = s->old_vel[ci][2] + s->bead_slot_acc[ci][2] * GraphProperties.lambda * s->dt;
+}
+
+void migration(uint8_t ci, void* state, const void* properties) {
+    device_state_t* s = static_cast<device_state_t*>(state);
+    const device_properties_t* p = static_cast<const device_properties_t*>(properties);
+
+    // ----- migration code ------
+    bool migrating = false; // flag that says whether this particle needs to migrate
+    uint16_t d_loc[3]; // the potential destination for this bead
+    //    migration in the x dim
+    if (s->bead_slot_pos[ci][0] >= GraphProperties.cell_length){
+        migrating = true;
+        if (p->loc[0] == (GraphProperties.cells_per_dimension - 1)) {
+            d_loc[0] = 0;
+        } else {
+            d_loc[0] = p->loc[0] + 1;
+        }
+        s->bead_slot_pos[ci][0] = s->bead_slot_pos[ci][0] - GraphProperties.cell_length; // make it relative to the dest
+    } else if (s->bead_slot_pos[ci][0] < 0.0) {
+        migrating = true;
+        if(p->loc[0] == 0) {
+            d_loc[0] = GraphProperties.cells_per_dimension - 1;
+        } else {
+            d_loc[0] = p->loc[0] - 1;
+        }
+       s->bead_slot_pos[ci][0] = s->bead_slot_pos[ci][0] + GraphProperties.cell_length; // make it relative to the dest
+    } else {
+        d_loc[0] = p->loc[0];
+    }
+
+    //    migration in the y dim
+    if (s->bead_slot_pos[ci][1] >= GraphProperties.cell_length) {
+        migrating = true;
+        if (p->loc[1] == (GraphProperties.cells_per_dimension - 1)) {
+            d_loc[1] = 0;
+        } else {
+            d_loc[1] = p->loc[1] + 1;
+        }
+        s->bead_slot_pos[ci][1] = s->bead_slot_pos[ci][1] - GraphProperties.cell_length; // make it relative to the dest
+    } else if (s->bead_slot_pos[ci][1] < 0.0) {
+        migrating = true;
+        if (p->loc[1] == 0) {
+            d_loc[1] = GraphProperties.cells_per_dimension - 1;
+        } else {
+            d_loc[1] = p->loc[1] - 1;
+        }
+        s->bead_slot_pos[ci][1] = s->bead_slot_pos[ci][1] + GraphProperties.cell_length; // make it relative to the dest
+    } else {
+        d_loc[1] = p->loc[1];
+    }
+
+    //    migration in the z dim
+    if (s->bead_slot_pos[ci][2] >= GraphProperties.cell_length) {
+        migrating = true;
+        if (p->loc[2] == (GraphProperties.cells_per_dimension - 1)) {
+            d_loc[2] = 0;
+        } else {
+            d_loc[2] = p->loc[2] + 1;
+        }
+        s->bead_slot_pos[ci][2] = s->bead_slot_pos[ci][2] - GraphProperties.cell_length; // make it relative to the dest
+    } else if (s->bead_slot_pos[ci][2] < 0.0) {
+        migrating = true;
+        if (p->loc[2] == 0) {
+            d_loc[2] = GraphProperties.cells_per_dimension - 1;
+        } else {
+            d_loc[2] = p->loc[2] - 1;
+        }
+        s->bead_slot_pos[ci][2] = s->bead_slot_pos[ci][2] + GraphProperties.cell_length; // make it relative to the dest
+    } else {
+        d_loc[2] = p->loc[2];
+    }
+
+    if (migrating) {
+        s->migrateslot = set_slot(s->migrateslot, ci);
+        s->migrate_loc[ci][0] = d_loc[0]; // set the destination
+        s->migrate_loc[ci][1] = d_loc[1];
+        s->migrate_loc[ci][2] = d_loc[2];
+    } else {
+        update_velocity(ci, s);
+    }
+
+}
+
+void update_complete(void* state, const void* properties) {
+    device_state_t* s = static_cast<device_state_t*>(state);
+    const device_properties_t* p = static_cast<const device_properties_t*>(properties);
+
+    if (!(s->update_completes_received == NEIGHBOURS && s->mode == UPDATE_COMPLETE && s->total_update_beads == 0 && s->updates_received == NEIGHBOURS && s->updates_sent == 2)) {
+        return;
+    }
+    s->update_completes_received = 0;
+    s->updates_sent = 0;
+    s->updates_received = 0;
+
+    s->timestep++;
+
+    if (s->timestep == 1000) {
+        s->dt = GraphProperties.dt_normal;
+        s->inv_sqrt_dt = GraphProperties.inv_sqrt_dt_normal;
+    }
+
+//    #if defined(TIMER)
+//        // Timed run has ended
+//        if (deviceState->timestep >= s->max_timestep) {
+//            *readyToSend = HostPin;
+//            s->mode = END;
+//            return true;
+//        }
+
+    s->grand = p_rand(&s->rngstate); // advance the random number
+
+    // ------ velocity Verlet ------
+    uint16_t i = s->bslot;
+    while (i) {
+        uint8_t ci = get_next_slot(i);
+        velocity_Verlet(ci, s);
+
+        migration(ci, s, p);
+
+        i = clear_slot(i, ci);
+    }
+    // *readyToSend = Pin(0); // This is done in readyToSend handler
+    if (!s->migrateslot) {
+        s->mode = MIGRATION_COMPLETE;
+    } else {
+        s->mode = MIGRATION;
+    }
+}
+
+void migration_complete(void* state) {
+    device_state_t* s = static_cast<device_state_t*>(state);
+
+    if (!(s->total_migration_beads == 0 && s->mode == MIGRATION_COMPLETE && s->migration_completes_received == NEIGHBOURS && s->migrations_received == NEIGHBOURS && s->migrates_sent == 2)) {
+        return;
+    }
+    // we have just finished a particle migration step
+    s->migration_completes_received = 0;
+    s->migrations_received = 0;
+    s->migrates_sent = 0;
+    // Add new beads to bead_slot and update bslot
+    s->bslot = s->newBeadMap;
+
+    if(s->emitcnt >= GraphProperties.emitperiod) {
+        s->mode = EMIT;
+        if (s->bslot) {
+            // We want to emit any beads we have to the host
+            s->sentslot = s->bslot;
+            // *readyToSend = HostPin; // This is done in readyToSend handler
+        } else {
+            // We have no beads to emit so move to emit_complete
+            s->mode = EMIT_COMPLETE;
+            // *readyToSend = Pin(0); // This is done in readyToSend handler
+
+        }
+        s->emitcnt = 1;
+    } else {
+        // We're not emitting this timestep
+        s->emitcnt++;
+        // Move into the emit_complete and tell neighbours so they know we're ready to move onto the next update
+        s->mode = EMIT_COMPLETE;
+        // *readyToSend = Pin(0); // This is done in readyToSend handler
+    }
+}
+
+void emit_complete(void* state) {
+    device_state_t* s = static_cast<device_state_t*>(state);
+
+    if (s->emit_completes_received == NEIGHBOURS && s->mode == EMIT_COMPLETE && s->emit_complete_sent == 2) {
+        s->emit_completes_received = 0;
+        s->emit_complete_sent = 0;
+        s->mode = UPDATE;
+        s->sentslot = s->bslot;
+        s->newBeadMap = s->bslot;
+        if (!s->bslot){
+            s->mode = UPDATE_COMPLETE;
+        }
+    }
+
+
+}
+
+// Slot functions
+// Given a bitmap, return the position of the next occupied slot
+uint8_t get_next_slot(uint16_t bitmap) {
+    uint16_t mask = 0x1;
+    for (int i = 0; i < MAX_BEADS; i++) {
+        if (bitmap & mask) {
+            return i;
+        }
+        mask = mask << 1; // Shift to the next position
+    }
+    return 0xFF; // We are empty
+}
+
+// Given a bitmap and a position in that, clear this slot (set to 0)
+uint16_t clear_slot(uint16_t bitmap, uint8_t pos) {
+    return bitmap & ~(1 << pos);
+}
+
+// Given a bitmap, count the number of occupied slots and therefore, the number
+// of beads this bitmap represents
+uint8_t get_num_beads(uint16_t bitmap) {
+    uint8_t cnt = 0;
+    uint16_t mask = 0x1;
+    for (int i = 0; i < MAX_BEADS; i++) {
+        if (bitmap & mask) {
+            cnt++;
+        }
+        mask = mask << 1;
+    }
+    return cnt;
+}
+
+// Given a bitmap and a position in that, set this slot (set to 1)
+// This will indicate that this position in the bead array contains a bead
+uint16_t set_slot(uint16_t bitmap, uint8_t pos) {
+    return bitmap | (1 << pos);
+}
+
+// Given a bitmap, return the position of the next empty slot
+uint8_t get_next_free_slot(uint16_t bitmap) {
+    uint16_t mask = 0x1;
+    for(int i = 0; i < MAX_BEADS; i++){
+        if(!(bitmap & mask)) {
+           return i;
+        }
+        mask = mask << 1;
+    }
+    return 0xFF; // Error there are no free slots!
+}
+
+        ]]></SharedCode>
+
+        <!-- Initialisation logic. -->
+        <OnInit><![CDATA[
+deviceState->rngstate = 1234; // start with a seed
+deviceState->grand = p_rand(&deviceState->rngstate);
+deviceState->grand = p_rand(&deviceState->rngstate);
+deviceState->mode = UPDATE;
+if(!deviceState->bslot) {
+    deviceState->newBeadMap = 0;
+    deviceState->mode = UPDATE_COMPLETE;
+}
+deviceState->dt = graphProperties->dt_early;
+deviceState->inv_sqrt_dt = graphProperties->inv_sqrt_dt_early;
+        ]]></OnInit>
+
+        <OutputPin name="update_send" messageTypeId="update">
+          <OnSend><![CDATA[
+// Place timestep in message
+message->timestep = deviceState->timestep;
+uint8_t num_beads = 0;
+
+// Have we sent our first update message already?
+if (!deviceState->updates_sent) {
+    // If not, place the number of beads we have to send in the message
+    num_beads = get_num_beads(deviceState->bslot);
+    message->sync = num_beads;
+    // Don't do this again until the next timestep
+    deviceState->updates_sent = 1;
+} else {
+    // We've already sent the number of beads we have
+    message->sync = 0;
+}
+// Find the next bead to send
+uint8_t ci = get_next_slot(deviceState->sentslot);
+
+// Calculate the forces acting on this bead from other beads in this cell
+local_calcs(ci, deviceState);
+
+// Place this cells location in the message so they can use it to adjust it's position
+message->from[0] = deviceProperties->loc[0];
+message->from[1] = deviceProperties->loc[1];
+message->from[2] = deviceProperties->loc[2];
+
+// Place this beads data in the message
+message->bead_type = deviceState->bead_slot_type[ci];
+message->bead_id = deviceState->bead_slot_id[ci];
+message->bead_pos[0] = deviceState->bead_slot_pos[ci][0];
+message->bead_pos[1] = deviceState->bead_slot_pos[ci][1];
+message->bead_pos[2] = deviceState->bead_slot_pos[ci][2];
+message->bead_vel[0] = deviceState->bead_slot_vel[ci][0];
+message->bead_vel[1] = deviceState->bead_slot_vel[ci][1];
+message->bead_vel[2] = deviceState->bead_slot_vel[ci][2];
+
+deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
+
+// The last bead is being sent, stick the final bead identifier in this message
+if (!deviceState->sentslot) {
+    // *readyToSend = No; // This is done in readyToSend handler
+    deviceState->newBeadMap = deviceState->bslot;
+    deviceState->mode = UPDATE_COMPLETE;
+    deviceState->updates_sent = 2;
+    if (num_beads != 1) { // If there is only one bead to send we'll detect that on recv.
+        // If there is 0 beads, this won't be reached. If there is >1 beads, num_beads will be 0 when it reaches here.
+        message->sync = -1; // This signifies that this is the last update bead
+    }
+    update_complete(deviceState, deviceProperties);
+}
+//else { // This is done in readyToSend handler
+//    *readyToSend = Pin(0);
+//}
+//return;
+          ]]></OnSend>
+        </OutputPin>
+
+<InputPin name="update_recv" messageTypeId="update">
+            <OnReceive><![CDATA[
+// Sync = 0  Indicates that this is a bead, but not the first or last
+// Sync > 0  Indicates the first bead message, containing the number of beads to be sent by the sender
+// Sync = 1  Indicates that this is the only bead to send, and acts as update_complete
+// Sync = -1 Indicates that this is the last bead from this sender
+
+if (message->sync > 0) {
+    deviceState->updates_received++;
+    deviceState->total_update_beads += message->sync;
+}
+
+if (message->sync == -1 || message->sync == 1) {
+    deviceState->update_completes_received++;
+}
+
+neighbour_calcs(message->bead_id, message->bead_type, message->bead_pos,
+                message->bead_vel, message->from, deviceState, deviceProperties);
+
+deviceState->total_update_beads--;
+
+update_complete(deviceState, deviceProperties);
+            ]]></OnReceive>
+        </InputPin>
+
+        <OutputPin name="update_complete_send" messageTypeId="update_complete">
+          <OnSend><![CDATA[
+message->from[0] = deviceProperties->loc[0];
+message->from[1] = deviceProperties->loc[1];
+message->from[2] = deviceProperties->loc[2];
+// This message is only sent if there's no beads to be sent for UPDATE mode
+deviceState->updates_sent = 2;
+update_complete(deviceState, deviceProperties);
+// *readyToSend = No; This is done in readyToSendHandler
+          ]]></OnSend>
+        </OutputPin>
+
+        <InputPin name="update_complete_recv" messageTypeId="update_complete">
+            <OnReceive><![CDATA[
+deviceState->update_completes_received++;
+// This is only received if a cell has no beads to send for updates
+deviceState->updates_received++;
+update_complete(deviceState, deviceProperties);
+            ]]></OnReceive>
+        </InputPin>
+
+        <OutputPin name="migrate_send" messageTypeId="migrate">
+          <OnSend><![CDATA[
+message->timestep = deviceState->timestep;
+uint8_t num_beads = 0;
+// Have we sent our first migrate message already?
+if (!deviceState->migrates_sent) {
+    // If not, place the number of beads we have to migrate in the message
+    num_beads = get_num_beads(deviceState->migrateslot);
+    message->sync = num_beads;
+    // Don't do this again until the next timestep
+    deviceState->migrates_sent = 1;
+} else {
+    // We've already sent the number of beads we have to migrate
+    message->sync = 0;
+}
+
+uint8_t ci = get_next_slot(deviceState->migrateslot);
+message->from[0] = deviceState->migrate_loc[ci][0];
+message->from[1] = deviceState->migrate_loc[ci][1];
+message->from[2] = deviceState->migrate_loc[ci][2];
+message->bead_id = deviceState->bead_slot_id[ci];
+message->bead_type = deviceState->bead_slot_type[ci];
+message->bead_pos[0] = deviceState->bead_slot_pos[ci][0];
+message->bead_pos[1] = deviceState->bead_slot_pos[ci][1];
+message->bead_pos[2] = deviceState->bead_slot_pos[ci][2];
+message->bead_vel[0] = deviceState->bead_slot_vel[ci][0];
+message->bead_vel[1] = deviceState->bead_slot_vel[ci][1];
+message->bead_vel[2] = deviceState->bead_slot_vel[ci][2];
+
+// clear the migration slot bit
+deviceState->migrateslot = clear_slot(deviceState->migrateslot, ci);
+// clear the bead slot -- it no longer belongs to us
+deviceState->bslot = clear_slot(deviceState->bslot, ci);
+// clear the new bead slot -- To match bslot
+deviceState->newBeadMap = clear_slot(deviceState->newBeadMap, ci);
+
+// The last bead is being sent, stick the final bead identifier in this message
+if (!deviceState->migrateslot) {
+    // *readyToSend = No; // This is done in readyToSend handler
+    deviceState->mode = MIGRATION_COMPLETE;
+    if (num_beads != 1) { // If there is only one bead to send we'll detect that on recv.
+        // If there is 0 beads, this won't be reached. If there is >1 beads, num_beads will be 0 when it reaches here.
+        message->sync = -1; // This signifies that this is the last migrate bead
+    }
+    deviceState->migrates_sent = 2;
+    migration_complete(deviceState);
+}
+          ]]></OnSend>
+        </OutputPin>
+
+        <InputPin name="migrate_recv" messageTypeId="migrate">
+            <OnReceive><![CDATA[
+// Sync = 0  Indicates that this is a bead, but not the first or last
+// Sync > 0  Indicates the first bead message, containing the number of beads to be sent by the sender
+// Sync = 1  Indicates that this is the only bead to send, and acts as migrate_complete
+// Sync = -1 Indicates that this is the last bead from this sender
+if (message->sync > 0) {
+    deviceState->migrations_received++;
+    deviceState->total_migration_beads += message->sync;
+}
+
+if (message->sync == -1 || message->sync == 1) {
+    deviceState->migration_completes_received++;
+}
+
+// Check the migrating bead is addressed to this cell. If not discard it, but we need to adjust the sync data still.
+if ((message->from[0] == deviceProperties->loc[0]) && (message->from[1] == deviceProperties->loc[1]) && (message->from[2] == deviceProperties->loc[2])) {
+    // looks like we are getting a new addition to our family
+    uint8_t ni = get_next_free_slot(deviceState->newBeadMap);
+    if (ni == 0xFF) {
+        // deviceState->error = 0xE0; // This error reporting needs dealing with so for now let's just lose the bead
+        // *readyToSend = HostPin; // This will be done in readyToSend handler
+        // return;
+    } else {
+        deviceState->newBeadMap = set_slot(deviceState->newBeadMap, ni);
+
+        // Welcome the new little bead
+        deviceState->bead_slot_type[ni] = message->bead_type;
+        deviceState->bead_slot_id[ni] = message->bead_id;
+        deviceState->bead_slot_pos[ni][0] = message->bead_pos[0];
+        deviceState->bead_slot_pos[ni][1] = message->bead_pos[1];
+        deviceState->bead_slot_pos[ni][2] = message->bead_pos[2];
+        deviceState->bead_slot_acc[ni][0] = message->bead_acc[0];
+        deviceState->bead_slot_acc[ni][1] = message->bead_acc[1];
+        deviceState->bead_slot_acc[ni][2] = message->bead_acc[2];
+        // Force slot should be cleared anyway
+
+        // Store old velocity
+        deviceState->old_vel[ni][0] = message->bead_vel[0];
+        deviceState->old_vel[ni][1] = message->bead_vel[1];
+        deviceState->old_vel[ni][2] = message->bead_vel[2];
+
+        // Update velocity
+        update_velocity(ni, deviceState);
+    }
+}
+deviceState->total_migration_beads--;
+migration_complete(deviceState);
+            ]]></OnReceive>
+        </InputPin>
+
+        <OutputPin name="migrate_complete_send" messageTypeId="migrate_complete">
+          <OnSend><![CDATA[
+// This message is only sent if there's no beads to be sent for MIGRATE mode
+deviceState->migrates_sent = 2; // Indicates we've sent this
+migration_complete(deviceState);
+          ]]></OnSend>
+        </OutputPin>
+
+        <InputPin name="migrate_complete_recv" messageTypeId="migrate_complete">
+            <OnReceive><![CDATA[
+// A neighbours is complete add it to total
+deviceState->migration_completes_received++;
+// This is only received if a cell has no beads to send for migrations
+deviceState->migrations_received++;
+migration_complete(deviceState);
+            ]]></OnReceive>
+        </InputPin>
+
+        <OutputPin name="emit_complete_send" messageTypeId="emit_complete">
+          <OnSend><![CDATA[
+// Tell neighbours I have finished emitting.
+deviceState->emit_complete_sent = 2;
+emit_complete(deviceState);
+          ]]></OnSend>
+        </OutputPin>
+
+        <InputPin name="emit_complete_recv" messageTypeId="emit_complete">
+            <OnReceive><![CDATA[
+deviceState->emit_completes_received++;
+emit_complete(deviceState);
+            ]]></OnReceive>
+        </InputPin>
+
+        <!-- This handler is invoked after a message is received, and after OnInit (if it returns nonzero).-->
+        <ReadyToSend><![CDATA[
+if (deviceState->mode == UPDATE) {
+    *readyToSend = RTS_FLAG_update_send;
+} else if (deviceState->mode == UPDATE_COMPLETE) {
+    if (deviceState->updates_sent != 2) {
+        *readyToSend = RTS_FLAG_update_complete_send;
+    } else {
+        *readyToSend = 0;
+    }
+} else if (deviceState->mode == MIGRATION) {
+    *readyToSend = RTS_FLAG_migrate_send;
+} else if (deviceState->mode == MIGRATION_COMPLETE) {
+    if (deviceState->migrates_sent != 2) {
+        *readyToSend = RTS_FLAG_migrate_complete_send;
+    } else {
+        *readyToSend = 0;
+    }
+} else if (deviceState->mode == EMIT) {
+    *readyToSend = RTS_SUPER_IMPLICIT_SEND_FLAG;
+} else if (deviceState->mode == EMIT_COMPLETE) {
+    if (deviceState->emit_complete_sent != 2) {
+        *readyToSend = RTS_FLAG_emit_complete_send;
+    } else {
+        *readyToSend = 0;
+    }
+}
+        ]]></ReadyToSend>
+
+        <SupervisorOutPin messageTypeId="emit">
+          <OnSend><![CDATA[
+uint8_t ci = get_next_slot(deviceState->sentslot);
+message->timestep = deviceState->timestep;
+message->from[0] = deviceProperties->loc[0];
+message->from[1] = deviceProperties->loc[1];
+message->from[2] = deviceProperties->loc[2];
+
+message->bead_id = deviceState->bead_slot_id[ci];
+message->bead_type = deviceState->bead_slot_type[ci];
+message->bead_pos[0] = deviceState->bead_slot_pos[ci][0];
+message->bead_pos[1] = deviceState->bead_slot_pos[ci][1];
+message->bead_pos[2] = deviceState->bead_slot_pos[ci][2];
+message->bead_vel[0] = deviceState->bead_slot_vel[ci][0];
+message->bead_vel[1] = deviceState->bead_slot_vel[ci][1];
+message->bead_vel[2] = deviceState->bead_slot_vel[ci][2];
+
+deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
+if (!deviceState->sentslot) {
+    deviceState->mode = EMIT_COMPLETE;
+}
+
+          ]]></OnSend>
+        </SupervisorOutPin>
+
+      </DeviceType>
+
+      <SupervisorType id="host" SupervisorInPin="emit_receive">
+        <!-- There is one supervisor device type in a given application. This
+             particular supervisor is written assuming there is only one
+             instance for simplicity.
+        -->
+        <Code><![CDATA[
+#include <stdio.h>
+#include <map>
+
+// Typedefs
+// Structure of a bead for easier passing around
+typedef struct _bead_t {
+    uint32_t id; // 4 bytes
+    uint8_t type; // 1 byte
+    float pos[3]; // 12 bytes
+    float vel[3]; // 12 bytes
+    float acc[3]; // 12 bytes
+} bead_t; // 41 bytes
+
+        ]]></Code>
+
+        <State><![CDATA[
+uint32_t timestep = 0;
+std::map<uint32_t, uint32_t> bead_print_map;
+std::string state_dir = "/xml-dpd-states/";
+bool first = false;
+        ]]></State>
+
+        <OnInit><![CDATA[
+char *home = getenv("HOME");
+supervisorState->state_dir = std::string(home) + supervisorState->state_dir;
+std::cout << "\nSupervisor running...\n";
+std::cout << "Timestep = " << supervisorState->timestep << "\r";
+        ]]></OnInit>
+
+        <SupervisorInPin id="emit_receive" messageTypeId="emit">
+          <OnReceive><![CDATA[
+if (supervisorState->timestep < message->timestep) {
+    // Update current timestep to print to screen
+    supervisorState->timestep = message->timestep;
+    supervisorState->bead_print_map[supervisorState->timestep] = 0;
+    std::cout << "Timestep = " << supervisorState->timestep << "\r";
+
+    // Create a new file for this new timesteps state and print the JSON preamble
+    std::string fpath = supervisorState->state_dir + "state_" + std::to_string(supervisorState->timestep) + ".json";
+    FILE* file = fopen(fpath.c_str(), "w+");
+    fprintf(file, "{\n\t%cbeads%c:[\n", 34, 34);
+    fclose(file);
+    supervisorState->first = true;
+}
+
+// Create a bead object form this message
+bead_t b;
+b.id = message->bead_id;
+b.type = message->bead_type;
+// Set its position as absolute within the volume
+b.pos[0] = message->bead_pos[0] + message->from[0];
+b.pos[1] = message->bead_pos[1] + message->from[1];
+b.pos[2] = message->bead_pos[2] + message->from[2];
+b.vel[0] = message->bead_vel[0];
+b.vel[1] = message->bead_vel[1];
+b.vel[2] = message->bead_vel[2];
+
+// Open the file for the timestep of this bead
+std::string path = supervisorState->state_dir + "state_" + std::to_string(message->timestep) + ".json";
+FILE* f = fopen(path.c_str(), "a+"); // a+ as we only want to append
+// If it's the first we don't need a comma to separate it from the previous bead
+if (supervisorState->first) {
+    supervisorState->first = false;
+} else {
+    fprintf(f, ",\n");
+}
+
+//Print it to this file and close it
+fprintf(f, "\t\t{");
+fprintf(f, "%cid%c:%u, ", 34, 34, b.id);
+fprintf(f, "%ctype%c:%u, ", 34, 34, b.type);
+fprintf(f, "%cx%c:%f, ", 34, 34, b.pos[0]);
+fprintf(f, "%cy%c:%f, ", 34, 34, b.pos[1]);
+fprintf(f, "%cz%c:%f, ", 34, 34, b.pos[2]);
+fprintf(f, "%cvx%c:%f, ", 34, 34, b.vel[0]);
+fprintf(f, "%cvy%c:%f, ", 34, 34, b.vel[1]);
+fprintf(f, "%cvz%c:%f}", 34, 34, b.vel[2]);
+fclose(f);
+
+// Increment the number of beads we've had for this timestep - used to know when to close it
+supervisorState->bead_print_map[message->timestep]++;
+
+// If we've had all the beads from this timestep
+if (supervisorState->bead_print_map[message->timestep] >= graphProperties->total_beads) {
+    // Open the file for this timestep
+    std::string path = supervisorState->state_dir + "state_" + std::to_string(message->timestep) + ".json";
+    FILE* old_file = fopen(path.c_str(), "a+"); // a+ as we only want to append
+    fprintf(old_file, "\n]}\n");
+    fclose(old_file);
+
+}
+
+          ]]></OnReceive>
+        </SupervisorInPin>
+
+        <OnStop><![CDATA[
+std::cout << "\nStopped\n";
+        ]]></OnStop>
+
+      </SupervisorType>
+    </DeviceTypes>
+  </GraphType>
+</Graphs>

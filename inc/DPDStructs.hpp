@@ -157,6 +157,13 @@ struct DPDState {
 
 #elif defined(XML)
 
+// DT forms
+const ptype normal_dt = 0.02;
+const ptype early_dt = 0.002;
+// Inverse square root of dt - dt^(-1/2)
+const ptype normal_inv_sqrt_dt = 7.071067812;
+const ptype early_inv_sqrt_dt = 22.360679775;
+
 // Mode enum
 #define UPDATE 0
 #define UPDATE_COMPLETE 1
@@ -167,13 +174,15 @@ struct DPDState {
 #define START 6
 #define END 7
 
+#define BEAD_TYPES 3
+
 struct GraphProperties {
     float r_c = 1.0;
     float sq_r_c = 1.0;
-    float A[3][3] = { {25.0, 75.0, 35.0},
-                      {75.0, 25.0, 50.0},
-                      {35.0, 50.0, 25.0}
-                    }; // Interaction Matrix
+    float A[BEAD_TYPES][BEAD_TYPES] = { {25.0, 75.0, 35.0},
+                                        {75.0, 25.0, 50.0},
+                                        {35.0, 50.0, 25.0}
+                                      }; // Interaction Matrix
     float drag_coef = 4.5; // Drag coefficient
     float sigma_ij = 3; // Random coefficient. Related to drag_coef and temperature - simga = sqrt(2 * drag_coef * temp)
     float dt_normal = 0.02; // Size of timestep after 1000 timesteps

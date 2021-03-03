@@ -28,10 +28,13 @@ public:
 
     // Access to cell data
     uint8_t get_cell_bslot(cell_t loc) override;
+    uint8_t get_device_bslot(PDeviceId loc) override;
     const bead_t * get_bead_from_cell_slot(cell_t loc, uint8_t slot) override;
+    const bead_t * get_bead_from_device_slot(PDeviceId id, uint8_t slot) override;
 
     // Adding a bead to the cell
     void place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) override;
+    void place_bead_in_device_slot(bead_t *b, PDeviceId id, uint8_t slot) override;
 
 protected:
 
