@@ -5,10 +5,15 @@
 #ifndef __XMLGENERATOR_IMPL
 #define __XMLGENERATOR_IMPL
 
-XMLGenerator::XMLGenerator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string out_path) : Simulator<XMLVolume>(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+XMLGenerator::XMLGenerator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string out_path, bool timed) : Simulator<XMLVolume>(volume_length, cells_per_dimension, start_timestep, max_timestep) {
     this->volume = new XMLVolume(volume_length, cells_per_dimension);
     this->out_path = out_path;
-    this->graph_type = "../xml-graph-types/dpd_exfil_type.xml";
+    this->timed = timed;
+    if (!timed) {
+        this->graph_type = "../xml-graph-types/dpd_exfil_type.xml";
+    } else {
+        this->graph_type = "../xml-graph-types/dpd_perf_timed.xml";
+    }
 }
 
 // Generate the XML
@@ -53,7 +58,6 @@ void XMLGenerator::write() {
 std::string XMLGenerator::generate_graph_instance() {
     // Open tag
     std::string graphInstance = "\t<GraphInstance id=\"";
-
     // ID of this graph instance
     std::stringstream stream;
     stream << std::fixed << std::setprecision(0) << this->volume->get_volume_length();
@@ -61,7 +65,11 @@ std::string XMLGenerator::generate_graph_instance() {
     graphInstance += "dpd_oil_water_" + vol_len + "_" + vol_len + "_" + vol_len;
 
     // Identify the graph type
-    graphInstance += "\" graphTypeId=\"dpd_exfil_graph_type\"";
+    if (!this->timed) {
+        graphInstance += "\" graphTypeId=\"dpd_exfil_graph_type\"";
+    } else {
+        graphInstance += "\" graphTypeId=\"dpd_perf_graph_type\"";
+    }
 
     // Set the properties
     graphInstance += " P=\"";
@@ -92,7 +100,9 @@ std::string XMLGenerator::generate_graph_instance() {
     graphInstance += std::to_string(graphProperties->inv_sqrt_dt_early) + ", ";
     graphInstance += std::to_string(graphProperties->lambda) + ", ";
     graphInstance += std::to_string(graphProperties->cell_length) + ", ";
-    graphInstance += std::to_string(graphProperties->emitperiod) + ", ";
+    if (!timed) {
+        graphInstance += std::to_string(graphProperties->emitperiod) + ", ";
+    }
     graphInstance += std::to_string(start_timestep) + ", ";
     graphInstance += std::to_string(max_timestep) + ", ";
     graphInstance += std::to_string(graphProperties->cells_per_dimension) + ", ";
@@ -211,7 +221,9 @@ std::string XMLGenerator::generate_device_instance(cell_t loc) {
     devI = devI.substr(0, devI.length() - 2);
     devI += " }, ";
     devI += std::to_string(deviceState->mode) + ", ";
-    devI += std::to_string(deviceState->emitcnt) + ", ";
+    if (!timed) {
+        devI += std::to_string(deviceState->emitcnt) + ", ";
+    }
     devI += std::to_string(deviceState->timestep) + ", ";
     devI += std::to_string(deviceState->grand) + ", ";
     devI += std::to_string(deviceState->rngstate) + ", ";

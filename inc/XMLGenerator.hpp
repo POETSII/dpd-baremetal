@@ -15,7 +15,7 @@ class XMLGenerator : public Simulator<XMLVolume> {
     public:
 
     // Constructors and destructors
-    XMLGenerator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string out_path);
+    XMLGenerator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string out_path, bool timed);
     ~XMLGenerator() {};
 
     // Functions which must be implemented
@@ -33,6 +33,8 @@ protected:
     std::string xml;
     // Holds the output filepath
     std::string out_path;
+    // If this is XML is to be timed when running
+    bool timed;
 
     // Generator functions for the graph instance
     std::string generate_graph_instance();
