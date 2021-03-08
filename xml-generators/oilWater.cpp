@@ -17,11 +17,15 @@ and two types of oil*/
 void print_help() {
     std::cerr << "POETS DPD simulator - POLite version\n";
     std::cerr << "Usage:\n";
-    std::cerr << "./run <Volume length> [--time t][--bonds] [--print-number-of-beads] [--help]\n";
+    std::cerr << "./run <Volume length> [--time t][--timed] [--print-number-of-beads] [--help]\n";
     std::cerr << "\n";
     std::cerr << "Volume length           - The length of one side of the simulation volume.\n";
     std::cerr << "                          Simulation volumes are (currently) assumed to be cubes.\n";
     std::cerr << "                          This value must be 3 or larger, no string.\n";
+    std::cerr << "\n";
+    std::cerr << "timed                   - Optional Boolean. If the run of the generated XML is to be timed.\n";
+    std::cerr << "                        - Removes state exfiltration and ensures that it self-terminates";
+    std::cerr << "                          reporting the wallclock runtime.\n";
     std::cerr << "\n";
     std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
@@ -72,6 +76,7 @@ int main(int argc, char *argv[]) {
     float problem_size = 0;
     int N = 0;
     uint32_t max_time = 10000;
+    bool timed = false;
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && argv[i][1] == '-') {
@@ -79,10 +84,12 @@ int main(int argc, char *argv[]) {
             if (arg == "--help") {
                 print_help();
                 return(0);
+            } else if (boost::contains(arg, "--timed")) {
+                timed = true;
             } else if (boost::contains(arg, "--time")) {
                 max_time = std::stoi(argv[i+1]);
                 i++;
-            } else {
+            }else {
                 std::cerr << "Unrecognised argument: " << arg << "\n";
                 return 1;
             }
@@ -106,7 +113,7 @@ int main(int argc, char *argv[]) {
     printf("Generating a DPD XML\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    XMLGenerator generator(problem_size, N, 0, max_time, out_path);
+    XMLGenerator generator(problem_size, N, 0, max_time, out_path, timed);
     XMLVolume *volume = generator.get_volume();
 
     printf("Volume setup -- adding beads\n");

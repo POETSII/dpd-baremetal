@@ -1071,17 +1071,18 @@ deviceState->timestep++; // This will stop the cell from sending again
         -->
         <Code><![CDATA[
 #include <stdio.h>
-#include <map>
+//#include <map>
+#include <sys/time.h>
 
-// Typedefs
-// Structure of a bead for easier passing around
-typedef struct _bead_t {
-    uint32_t id; // 4 bytes
-    uint8_t type; // 1 byte
-    float pos[3]; // 12 bytes
-    float vel[3]; // 12 bytes
-    float acc[3]; // 12 bytes
-} bead_t; // 41 bytes
+//// Typedefs
+//// Structure of a bead for easier passing around
+//typedef struct _bead_t {
+//    uint32_t id; // 4 bytes
+//    uint8_t type; // 1 byte
+//    float pos[3]; // 12 bytes
+//    float vel[3]; // 12 bytes
+//    float acc[3]; // 12 bytes
+//} bead_t; // 41 bytes
 
         ]]></Code>
 
@@ -1090,9 +1091,14 @@ typedef struct _bead_t {
 //std::map<uint32_t, uint32_t> bead_print_map;
 //std::string state_dir = "/xml-dpd-states/";
 //bool first = false;
+struct timeval start, finish, elapsedTime;
         ]]></State>
 
         <OnInit><![CDATA[
+FILE* f = fopen("/home/jrbeaumont/orch-start.txt", "w+");
+fprintf(f, " "); // Create a file to show we've started
+fclose(f);
+gettimeofday(&supervisorState->start, NULL); // Get start time
 //char *home = getenv("HOME");
 //supervisorState->state_dir = std::string(home) + supervisorState->state_dir;
 std::cout << "\nSupervisor running...\n";
@@ -1167,6 +1173,16 @@ Super::stop_application();
 
         <OnStop><![CDATA[
 std::cout << "\nStopped\n";
+gettimeofday(&supervisorState->finish, NULL);
+timersub(&supervisorState->finish, &supervisorState->start, &supervisorState->elapsedTime);
+double duration = (double) supervisorState->elapsedTime.tv_sec + (double) supervisorState->elapsedTime.tv_usec / 1000000.0;
+std::cout << "Runtime = " << duration << "\n";
+FILE* timefile = fopen("/home/jrbeaumont/orch-runtime.csv", "a+");
+fprintf(timefile, "%d, %f\n", graphProperties->cells_per_dimension, duration);
+fclose(timefile);
+FILE* f = fopen("/home/jrbeaumont/orch-done.txt", "w+");
+fprintf(f, " ");
+fclose(f);
         ]]></OnStop>
 
       </SupervisorType>
