@@ -29,6 +29,10 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
     std::cout << "External server ready.\n";
 #endif
 
+    POLiteCells *cells = (POLiteCells *)volume->get_cells();
+    cells->set_start_timestep(start_timestep);
+    cells->set_end_timestep(max_timestep);
+
 }
 
 // Run the simulation

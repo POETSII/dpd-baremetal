@@ -21,7 +21,7 @@ class Volume {
     // Add a bead to the volume
     cell_t add_bead(const bead_t* in);
     // Adds a bead to the volume in given cell space. Value of all positions must be less than cell length
-    void add_bead_to_cell(const bead_t* bead, const cell_t in);
+    void add_bead_to_cell(bead_t* in, const cell_t cell);
 
     // Debugging
     // Prints the number of beads assigned to each cell

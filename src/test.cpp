@@ -3,12 +3,19 @@
 #include <stdint.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <map>
+#include <math.h>
+#include <random>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+
+#include <boost/algorithm/string.hpp>
+
 #include <HostLink.h>
-#ifndef SERIAL
-#include "POETSDPDSimulator.hpp"
-#else
-#include "SerialDPDSimulator.hpp"
-#endif
+
+#include "POLiteSimulator.hpp"
+#include "POLiteVolume.hpp"
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
@@ -16,14 +23,6 @@
 #else
 #include "sync.h"
 #endif
-#include "SimVolume.hpp"
-#include <map>
-#include <math.h>
-#include <random>
-#include <boost/algorithm/string.hpp>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
 
 void getParameters(std::string *bead_file, std::string *expected, float *volume_length, int *cells_per_dimension, uint32_t *test_length) {
   #ifdef GALS
@@ -87,7 +86,8 @@ int main() {
     printf("Volume dimensions: %f, %f, %f\n", volume_length, volume_length, volume_length);
 
     // Start at timestep 0, run until test_length timestep is reached
-    SimVolume<ptype> volume(volume_length, cells_per_dimension);
+    POLiteSimulator simulator(volume_length, cells_per_dimension, 0, test_length);
+    POLiteVolume *volume = simulator.get_volume();
 
     std::cerr << "Volume setup -- loading beads from " << bead_file << "\n";
 
@@ -127,7 +127,7 @@ int main() {
         cell.y = std::stoi(lines.at(6));
         cell.z = std::stoi(lines.at(7));
         // Add it to the universe
-        volume.add_bead_to_cell(b1, cell);
+        volume->add_bead_to_cell(b1, cell);
         // Increment the number of beads
         num_beads_in++;
     }
@@ -173,9 +173,7 @@ int main() {
         expected_cell_map[b1.id] = cell;
     }
 
-    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, test_length);
-
-    simulator->write(); // write the universe into the POETS memory
+    simulator.write(); // write the universe into the POETS memory
 
     // volume.print_occupancy();
 
@@ -188,7 +186,7 @@ int main() {
 
     // Run the test and get the result
     std::map<uint32_t, DPDMessage> actual_out;
-    simulator->test(&actual_out);
+    simulator.test(&actual_out);
 
     // Get the finish time
     gettimeofday(&finish, NULL);

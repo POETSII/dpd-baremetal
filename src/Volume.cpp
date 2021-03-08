@@ -75,7 +75,7 @@ cell_t Volume<C>::add_bead(const bead_t *in) {
 }
 
 template<class C>
-void Volume<C>::add_bead_to_cell(const bead_t *in, const cell_t cell) {
+void Volume<C>::add_bead_to_cell(bead_t *in, const cell_t cell) {
     float cell_length = cells->get_cell_length();
 
     if (in->pos.x() > cell_length || in->pos.y() > cell_length || in->pos.z() > cell_length) {
