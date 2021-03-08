@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
     printf("Generating a DPD XML\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    POLiteSimulator simulator(problem_size, N, 0, max_time);
+    POLiteSimulator simulator(problem_size, N, 0, max_time, 2, 4);
     POLiteVolume *volume = simulator.get_volume();
 
     printf("Volume setup -- adding beads\n");
@@ -177,9 +177,9 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    // std::string init_state_file = "/home/jrbeaumont/xml-dpd-states/state_0.json";
-    // FILE* f = fopen(init_state_file.c_str(), "w+");
-    // fprintf(f, "{\n\t\"beads\":[\n");
+    std::string init_state_file = "/home/jrbeaumont/polite-dpd-states/state_0.json";
+    FILE* f = fopen(init_state_file.c_str(), "w+");
+    fprintf(f, "{\n\t\"beads\":[\n");
     bool first_bead = true;
     // Add water beads
     uint32_t b_uid = 0;
@@ -198,12 +198,12 @@ int main(int argc, char *argv[]) {
                 volume->add_bead(b1);
                 added = true;
                 beads_added++;
-                // if (first_bead) {
-                //     fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
-                //     first_bead = false;
-                // } else {
-                //     fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
-                // }
+                if (first_bead) {
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                    first_bead = false;
+                } else {
+                    fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                }
             }
         }
     }
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
                 volume->add_bead(b1);
                 added = true;
                 beads_added++;
-                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             }
         }
     }
@@ -245,13 +245,13 @@ int main(int argc, char *argv[]) {
                 volume->add_bead(b1);
                 added = true;
                 beads_added++;
-                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
             }
         }
     }
 
-    // fprintf(f, "\n\t]\n}");
-    // fclose(f);
+    fprintf(f, "\n\t]\n}");
+    fclose(f);
 
     simulator.write();
 

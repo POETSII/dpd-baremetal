@@ -12,6 +12,7 @@ class POLiteVolume : public SimulationVolume<PGraph<DPDDevice, DPDState, None, D
 public:
 
     // Constructors and destructors
+    POLiteVolume(float volume_length, unsigned cells_per_dimension, uint32_t boxes_x, uint32_t boxes_y);
     POLiteVolume(float volume_length, unsigned cells_per_dimension);
 
     // Simulation setup

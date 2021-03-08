@@ -10,10 +10,13 @@
 #define __POLITEVOLUME_IMPL
 
 // Constructor
-POLiteVolume::POLiteVolume(float volume_length, unsigned cells_per_dimension) : SimulationVolume<PGraph<DPDDevice, DPDState, None, DPDMessage> *>(volume_length, cells_per_dimension) {
-    this->boxes_x = 1;
-    this->boxes_y = 1;
+POLiteVolume::POLiteVolume(float volume_length, unsigned cells_per_dimension, uint32_t boxes_x, uint32_t boxes_y) : SimulationVolume<PGraph<DPDDevice, DPDState, None, DPDMessage> *>(volume_length, cells_per_dimension) {
+    this->boxes_x = boxes_x;
+    this->boxes_y = boxes_y;
     this->cells = new POLiteCells(cells_per_dimension, (float)(volume_length / cells_per_dimension), this->boxes_x, this->boxes_y);
+}
+
+POLiteVolume::POLiteVolume(float volume_length, unsigned cells_per_dimension) : POLiteVolume(volume_length, cells_per_dimension, 1, 1) {
 }
 
 // Write the volume

@@ -5,20 +5,17 @@
 #ifndef __POLITESIMULATOR_IMPL
 #define __POLITESIMULATOR_IMPL
 
-POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
-    this->volume = new POLiteVolume(volume_length, cells_per_dimension);
-    // Get box arrangement from volume
-    uint32_t boxesX = volume->get_boxes_x();
-    uint32_t boxesY = volume->get_boxes_y();
+POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, uint32_t boxes_x, uint32_t boxes_y) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+    this->volume = new POLiteVolume(volume_length, cells_per_dimension, boxes_x, boxes_y);
 
     std::cout << "Acquiring Hostlink...\n";
     // Acquire Hostlink so can communicate with POETS hardware
-    hostLink = new HostLink(boxesX, boxesY);
+    hostLink = new HostLink(boxes_x, boxes_y);
 
     std::cout << "HostLink acquired.     \n";
 
-    std::cout << "Running on " << boxesX * boxesY << " box";
-    if ((boxesX * boxesY) != 1) {
+    std::cout << "Running on " << boxes_x * boxes_y << " box";
+    if ((boxes_x * boxes_y) != 1) {
         std::cout << "es";
     }
     std::cout << ".\n";
@@ -35,12 +32,15 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
 
 }
 
+POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : POLiteSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep, 1, 1) {
+}
+
 // Run the simulation
 void POLiteSimulator::run() {
 #ifdef VISUALISE
     // Max runtime - currently only checked when a json file is closed
     runtime_hours = 0;
-    runtime_minutes = 5;
+    runtime_minutes = 30;
     runtime_seconds = 0;
 
     uint16_t cells_per_dimension = volume->get_cells_per_dimension();

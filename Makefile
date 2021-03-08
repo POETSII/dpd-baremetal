@@ -28,8 +28,7 @@ SOCAT_SCRIPT = ./scripts/socat_script
 # This should be kept up to date as the "best" POETS DPD version
 run: timed-improved-gals-new-verlet
 
-visual: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DONE_BY_ONE
-visual: base-gals oil-water
+visual: visual-improved-gals-obo-new-verlet
 
 # This is used on a client PC to receive bead data for visualisation
 bridge: $(INC)/config.h $(DPD_BIN)/dpd-bridge
@@ -677,10 +676,10 @@ timed-improved-gals-obo: base-gals oil-water
 timed-improved-gals-obo-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DDRAM
 timed-improved-gals-obo-dram: base-gals oil-water
 
-timed-improved-gals-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET
+timed-improved-gals-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-new-verlet: base-gals oil-water
 
-timed-improved-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DDRAM
+timed-improved-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DDRAM -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-new-verlet-dram: base-gals oil-water
 
 timed-improved-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
@@ -689,7 +688,7 @@ timed-improved-gals-obo-new-verlet: base-gals oil-water
 timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM
 timed-improved-gals-obo-new-verlet-dram: base-gals oil-water
 
-visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
+visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
 visual-improved-gals-obo-new-verlet: base-gals oil-water
 
 stats-gals: DFLAGS=-DSTATS
