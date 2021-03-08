@@ -253,6 +253,11 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         if (s->error) {
             msg->type = s->error;
             msg->timestep = s->timestep;
+            msg->from.x = s->loc.x;
+            msg->from.y = s->loc.y;
+            msg->from.z = s->loc.z;
+            msg->beads[0].id = get_num_beads(s->bslot);
+            return;
         }
 	    if(s->mode == UPDATE) {
         #ifdef MESSAGE_MANAGEMENT

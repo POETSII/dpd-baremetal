@@ -99,18 +99,15 @@ void POLiteSimulator::run() {
     bool first = true;
     // enter the main loop
     while(1) {
-    #ifdef SERIAL
-        // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = volume->receiveMessage();
-    #else
         PMessage<DPDMessage> pmsg;
         hostLink->recvMsg(&pmsg, sizeof(pmsg));
         DPDMessage msg = pmsg.payload;
-    #endif
+
         if (msg.type == 0xE0) {
             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
             exit(1);
         }
+
     #ifdef TIMER
       #ifdef BEAD_COUNTER
         if (msg.type == 0xAB) {
@@ -134,7 +131,7 @@ void POLiteSimulator::run() {
                 timestep = msg.timestep;
             }
         } else if (msg.type != 0xBB) {
-            if (msg.timestep >= _max_timestep) {
+            if (msg.timestep >= max_timestep) {
                 gettimeofday(&finish, NULL);
                 timersub(&finish, &start, &elapsedTime);
                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
@@ -303,6 +300,8 @@ void POLiteSimulator::test(void *result) {
 
         if (msg.type == 0xE0) {
             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+            std::cout << "Cell " << msg.from.x << ", " << msg.from.y << ", " << msg.from.z << "\n";
+            std::cout << "Num beads = " << msg.beads[0].id << "\n";
             exit(1);
         }
 
@@ -312,10 +311,14 @@ void POLiteSimulator::test(void *result) {
             b.type = msg.beads[0].type;
             b.pos.set(msg.beads[0].pos.x() + msg.from.x, msg.beads[0].pos.y() + msg.from.y, msg.beads[0].pos.z() + msg.from.z);
             (*res)[b.id] = b;
+            std::cout << "Finished = " << finish << "/" << total_cells << " ";
+            std::cout << "Beads = " << res->size() << "/" << total_beads_in << "\r";
         }
 
         if (msg.type == 0xAA || msg.type == 0xAB) {
             finish++;
+            std::cout << "Finished = " << finish << "/" << total_cells << " ";
+            std::cout << "Beads = " << res->size() << "/" << total_beads_in << "\r";
             if (finish >= total_cells && res->size() >= total_beads_in) {
             #ifdef SERIAL
                 thread.join();

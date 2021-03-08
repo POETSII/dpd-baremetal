@@ -159,8 +159,8 @@ base-gals: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 # used alone. A backend must be compiled also and these included
 
 # Oil and water
-oil-water: $(DPD_SRC)/run.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_SRC)/run.cpp
+oil-water: $(DPD_EXAMPLES)/oilWater.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_EXAMPLES)/oilWater.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
       -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
@@ -239,10 +239,10 @@ test-new-verlet-large: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST
 test-new-verlet-large: test-large
 
 # Test with bonds
-test-bonds: DFLAGS=-DBONDS
+test-bonds: DFLAGS=-DBONDS -DVESICLE_SELF_ASSEMBLY
 test-bonds: test
 
-test-bonds-new-verlet: DFLAGS=-DBONDS -DBETTER_VERLET
+test-bonds-new-verlet: DFLAGS=-DBONDS -DBETTER_VERLET -DVESICLE_SELF_ASSEMBLY
 test-bonds-new-verlet: test
 
 # DT change refers to having a smaller dt for the first 1000 timesteps
@@ -258,10 +258,10 @@ test-new-verlet-dt-change: test
 test-new-verlet-large-dt-change: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST -DSMALL_DT_EARLY
 test-new-verlet-large-dt-change: test-large
 
-test-bonds-dt-change: DFLAGS=-DBONDS -DSMALL_DT_EARLY
+test-bonds-dt-change: DFLAGS=-DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY
 test-bonds-dt-change: test
 
-test-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
+test-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY
 test-bonds-new-verlet-dt-change: test
 
 # --------------------------- GALS TESTING ---------------------------
@@ -288,11 +288,11 @@ test-gals-new-verlet-large: DFLAGS=-DBETTER_VERLET
 test-gals-new-verlet-large: test-gals-large
 
 # Test with bonds
-test-gals-bonds: DFLAGS=-DBONDS
+test-gals-bonds: DFLAGS=-DBONDS -DVESICLE_SELF_ASSEMBLY
 test-gals-bonds: test-gals
 
 # Test with bonds and new verlet
-test-gals-bonds-new-verlet: DFLAGS=-DBONDS -DBETTER_VERLET
+test-gals-bonds-new-verlet: DFLAGS=-DBONDS -DBETTER_VERLET -DVESICLE_SELF_ASSEMBLY
 test-gals-bonds-new-verlet: test-gals
 
 test-gals-dt-change: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DSMALL_DT_EARLY
@@ -311,11 +311,11 @@ test-gals-new-verlet-large-dt-change: DFLAGS=-DBETTER_VERLET -DSMALL_DT_EARLY
 test-gals-new-verlet-large-dt-change: test-gals-large
 
 # Test with bonds
-test-gals-bonds-dt-change: DFLAGS=-DBONDS -DSMALL_DT_EARLY
+test-gals-bonds-dt-change: DFLAGS=-DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY
 test-gals-bonds-dt-change: test-gals
 
 # Test with bonds and new verlet
-test-gals-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY
 test-gals-bonds-new-verlet-dt-change: test-gals
 
 # --------------------------- TIMED RUNS ---------------------------

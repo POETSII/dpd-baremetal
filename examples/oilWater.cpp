@@ -255,7 +255,6 @@ int main(int argc, char *argv[]) {
 
     simulator.write();
 
-    printf("Running...\n");
     simulator.run();
 
     return 0;

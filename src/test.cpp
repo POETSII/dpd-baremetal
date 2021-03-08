@@ -225,17 +225,11 @@ int main() {
             // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
 
             if (expected_type != actual_type) {
-                // std::cerr << "ID: " << actual_id << "\n";
-                // std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << " ";
-                // std::cerr << "FAIL\n";
                 fail = true;
                 this_failed = true;
             }
 
             if (expected_pos.x() != actual_pos.x() || expected_pos.y() != actual_pos.y() || expected_pos.z() != actual_pos.z()) {
-                // printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
-                // printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
-                // printf("FAIL\n");
                 fail = true;
                 this_failed = true;
             }
@@ -255,7 +249,7 @@ int main() {
     printf("TESTING HAS ");
     if (fail) {
         printf("FAILED\n");
-        exit_code = 1;
+        exit_code = 55;
     } else {
         printf("PASSED\n");
         exit_code = 0;
