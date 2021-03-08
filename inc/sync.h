@@ -362,6 +362,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        if(s->sentslot) {
                 *readyToSend = HostPin;
 	        } else {
+            #ifdef TESTING
+                msg->type = 0xAA;
+            #endif
 	            *readyToSend = No;
 	        }
             return;
@@ -506,7 +509,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
-        msg->type = 0xAA;
+        msg->type = 0xAB;
         msg->timestep = s->timestep;
     #ifdef MESSAGE_COUNTER
         msg->from.x = s->loc.x;

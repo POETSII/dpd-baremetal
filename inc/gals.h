@@ -448,7 +448,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
 
         if (s->mode == END) {
-            msg->type = 0xAA;
+            msg->type = 0xAB;
         #ifndef BEAD_COUNTER
             msg->timestep = s->timestep;
         #else
@@ -675,7 +675,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	// finish -- sends a message to the host on termination
 	inline bool finish(volatile DPDMessage* msg) {
     #ifdef STATS
-        msg->type = 0xAA;
+        msg->type = 0xAB;
     #endif
         return true;
     }

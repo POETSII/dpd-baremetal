@@ -135,7 +135,7 @@ int main() {
     // Get the expected bead positionings from the expected output file
     // Store the expected bead positions in a map of bead ID to bead information
     std::map<uint32_t, bead_t> expected_beads_map;
-    std::map<uint32_t, cell_t> expected_cell_map;
+    std::map<uint32_t, bead_t> actual_out;
 
     std::ifstream expected_out(expected);
     // Reuse line from above
@@ -154,23 +154,23 @@ int main() {
             // Add to vector
             lines.push_back(s);
         }
-        // Create the bead
-        bead_t b1;
-        b1.id = std::stol(lines.at(0));
-        b1.type = std::stoi(lines.at(1));
-        b1.pos.set(std::stof(lines.at(2)), std::stof(lines.at(3)), std::stof(lines.at(4)));
-        b1.velo.set(0.0, 0.0, 0.0);
-    #ifdef BETTER_VERLET
-        b1.acc.set(0.0, 0.0, 0.0);
-    #endif
         // Cell that bead ends up in
         cell_t cell;
         cell.x = std::stoi(lines.at(5));
         cell.y = std::stoi(lines.at(6));
         cell.z = std::stoi(lines.at(7));
+
+        // Create the bead
+        bead_t b1;
+        b1.id = std::stol(lines.at(0));
+        b1.type = std::stoi(lines.at(1));
+        b1.pos.set(std::stof(lines.at(2)) + cell.x, std::stof(lines.at(3)) + cell.y, std::stof(lines.at(4)) + cell.z);
+        b1.velo.set(0.0, 0.0, 0.0);
+    #ifdef BETTER_VERLET
+        b1.acc.set(0.0, 0.0, 0.0);
+    #endif
         // Add it to the map
         expected_beads_map[b1.id] = b1;
-        expected_cell_map[b1.id] = cell;
     }
 
     simulator.write(); // write the universe into the POETS memory
@@ -185,7 +185,6 @@ int main() {
     gettimeofday(&start, NULL);
 
     // Run the test and get the result
-    std::map<uint32_t, DPDMessage> actual_out;
     simulator.test(&actual_out);
 
     // Get the finish time
@@ -204,46 +203,48 @@ int main() {
         std::cerr << "In: " << num_beads_in << ". Out: " << actual_out.size() << "\n";
         fail = true;
     } else {
-        for (std::map<uint32_t, DPDMessage>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
+        for (std::map<uint32_t, bead_t>::iterator i = actual_out.begin(); i!=actual_out.end(); ++i) {
             // Actual values
-            bead_id_t actual_id = i->second.beads[0].id;
-            bead_class_t actual_type = i->second.beads[0].type;
-            Vector3D<ptype> actual_pos = i->second.beads[0].pos;
-            // Actual cell location
-            cell_t actual_cell;
-            actual_cell.x = i->second.from.x;
-            actual_cell.y = i->second.from.y;
-            actual_cell.z = i->second.from.z;
+            bead_id_t actual_id = i->second.id;
+            bead_class_t actual_type = i->second.type;
+            Vector3D<float> actual_pos;
+            actual_pos.set(i->second.pos.x(), i->second.pos.y(), i->second.pos.z());
+
             // Expected values
             bead_id_t expected_id = expected_beads_map[i->first].id;
             bead_class_t expected_type = expected_beads_map[i->first].type;
-            Vector3D<ptype> expected_pos = expected_beads_map[i->first].pos;
-            // Expected cell location
-            cell_t expected_cell;
-            expected_cell.x = expected_cell_map[i->first].x;
-            expected_cell.y = expected_cell_map[i->first].y;
-            expected_cell.z = expected_cell_map[i->first].z;
+            Vector3D<float> expected_pos = expected_beads_map[i->first].pos;
 
+            bool this_failed = false;
+
+            // cell_t actual_cell;
+            // actual_cell.x = floor(actual_pos.x());
+            // actual_cell.y = floor(actual_pos.y());
+            // actual_cell.z = floor(actual_pos.z());
+            // actual_pos.set(actual_pos.x() - actual_cell.x, actual_pos.y() - actual_cell.y, actual_pos.z() - actual_cell.z);
             // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
 
             if (expected_type != actual_type) {
-                std::cerr << "ID: " << actual_id << "\n";
-                std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << " ";
-                std::cerr << "FAIL\n";
+                // std::cerr << "ID: " << actual_id << "\n";
+                // std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << " ";
+                // std::cerr << "FAIL\n";
                 fail = true;
-            }
-
-            if (expected_cell.x != actual_cell.x || expected_cell.y != actual_cell.y || expected_cell.z != actual_cell.z) {
-                std::cerr << "Cell: Expected (" << expected_cell.x << ", " << expected_cell.y << ", " << expected_cell.z << ") Actual (" << actual_cell.x << ", " << actual_cell.y << ", " << actual_cell.z << ") ";
-                std::cerr << "FAIL\n";
-                fail = true;
+                this_failed = true;
             }
 
             if (expected_pos.x() != actual_pos.x() || expected_pos.y() != actual_pos.y() || expected_pos.z() != actual_pos.z()) {
-                printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
-                printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
-                printf("FAIL\n");
+                // printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
+                // printf("          Actual   (%1.20f, %1.20f, %1.20f) ", actual_pos.x(), actual_pos.y() , actual_pos.z());
+                // printf("FAIL\n");
                 fail = true;
+                this_failed = true;
+            }
+
+            if (this_failed) {
+                std::cerr << "ID: " << actual_id << "\n";
+                std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << "\n";
+                printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
+                printf("          Actual   (%1.20f, %1.20f, %1.20f)\n", actual_pos.x(), actual_pos.y() , actual_pos.z());
             }
 
         }

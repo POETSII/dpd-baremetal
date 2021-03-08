@@ -113,7 +113,7 @@ void POLiteSimulator::run() {
         }
     #ifdef TIMER
       #ifdef BEAD_COUNTER
-        if (msg.type == 0xAA) {
+        if (msg.type == 0xAB) {
             devices++;
             beads_out += msg.timestep;
             if (devices >= total_cells) { // All devices reported
@@ -157,7 +157,7 @@ void POLiteSimulator::run() {
         }
       #endif
     #elif defined(STATS)
-        if (msg.type == 0xAA) {
+        if (msg.type == 0xAB) {
             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
             return;
         }
@@ -286,41 +286,41 @@ void POLiteSimulator::run() {
 
 //Runs a test, gets the bead outputs and returns this to the test file
 void POLiteSimulator::test(void *result) {
-    std::map<uint32_t, DPDMessage> *res = (std::map<uint32_t, DPDMessage> *)result;
+    std::map<uint32_t, bead_t> *res = (std::map<uint32_t, bead_t> *)result;
     uint32_t total_cells = volume->get_number_of_cells();
     uint32_t total_beads_in = volume->get_number_of_beads();
     // Finish counter
     uint32_t finish = 0;
-#ifdef SERIAL
-    moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _volume->setQueue(&queue);
-    std::thread thread(&SerialSim::run, _volume);
-#else // We dont need host link if we're running serial sim on x86
+
     hostLink->boot("code.v", "data.v");
     hostLink->go();
-#endif
 
     // enter the main loop
     while(1) {
-    #ifdef SERIAL
-        // Need some way of acquiring messages from the serial x86 simulator
-        DPDMessage msg = _volume->receiveMessage();
-    #else
         PMessage<DPDMessage> pmsg;
         hostLink->recvMsg(&pmsg, sizeof(pmsg));
         DPDMessage msg = pmsg.payload;
-    #endif
+
         if (msg.type == 0xE0) {
             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
             exit(1);
         }
-        (*res)[msg.beads[0].id] = msg;
-        if (msg.type == 0xAA) {
+
+        if (msg.type != 0xAB) {
+            bead_t b;
+            b.id = msg.beads[0].id;
+            b.type = msg.beads[0].type;
+            b.pos.set(msg.beads[0].pos.x() + msg.from.x, msg.beads[0].pos.y() + msg.from.y, msg.beads[0].pos.z() + msg.from.z);
+            (*res)[b.id] = b;
+        }
+
+        if (msg.type == 0xAA || msg.type == 0xAB) {
             finish++;
             if (finish >= total_cells && res->size() >= total_beads_in) {
             #ifdef SERIAL
                 thread.join();
             #endif
+                std::cout << "\n";
                 return;
             }
         }
