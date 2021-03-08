@@ -26,7 +26,7 @@ POLITE_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLit
 SOCAT_SCRIPT = ./scripts/socat_script
 
 # This should be kept up to date as the "best" POETS DPD version
-run: timed-improved-gals-new-verlet
+run: timed-improved-gals-obo-new-verlet
 
 visual: visual-improved-gals-obo-new-verlet
 
@@ -682,10 +682,10 @@ timed-improved-gals-new-verlet: base-gals oil-water
 timed-improved-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DDRAM -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-new-verlet-dram: base-gals oil-water
 
-timed-improved-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
+timed-improved-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-obo-new-verlet: base-gals oil-water
 
-timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM
+timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-obo-new-verlet-dram: base-gals oil-water
 
 visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
