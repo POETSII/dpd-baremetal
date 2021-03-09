@@ -378,11 +378,14 @@ inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *b
                 #ifndef FLOAT_ONLY
                     Vector3D<int32_t> x = f.floatToFixed();
                     forces[ci] = forces[ci] + x;
+                  #ifdef REDUCE_LOCAL_CALCS
+                    forces[cj] = forces[cj] - x;
+                  #endif
                 #else
                     forces[ci] = forces[ci] + f;
-                #endif
-                #ifdef REDUCE_LOCAL_CALCS
-                    forces[cj] = forces[cj] - x;
+                  #ifdef REDUCE_LOCAL_CALCS
+                    forces[cj] = forces[cj] - f;
+                  #endif
                 #endif
                 }
                 j = clear_slot(j, cj);

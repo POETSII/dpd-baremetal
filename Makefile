@@ -790,6 +790,9 @@ timed-improved-gals-obo-new-verlet-dram: base-gals oil-water
 visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
 visual-improved-gals-obo-new-verlet: base-gals oil-water
 
+timed-improved-gals-obo-new-verlet-reduced-local-calcs: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+timed-improved-gals-obo-new-verlet-reduced-local-calcs: base-gals oil-water
+
 stats-gals: DFLAGS=-DSTATS
 stats-gals: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
 stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o base-gals oil-water
