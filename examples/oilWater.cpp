@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
     printf("Generating a DPD XML\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    POLiteSimulator simulator(problem_size, N, 0, max_time, 2, 4);
+    POLiteSimulator simulator(problem_size, N, 0, max_time, 1, 1);
     POLiteVolume *volume = simulator.get_volume();
 
     printf("Volume setup -- adding beads\n");
