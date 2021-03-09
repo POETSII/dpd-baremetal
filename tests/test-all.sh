@@ -1,5 +1,8 @@
 #!/bin/bash
 
+clear
+clear
+
 cd ..
 make clean
 make clean-tinsel
@@ -16,6 +19,18 @@ tests=(test
        test-new-verlet-large-dt-change
        test-bonds-dt-change
        test-bonds-new-verlet-dt-change
+       test-reduced-local-calcs
+       test-new-verlet-reduced-local-calcs
+       test-large-reduced-local-calcs
+       test-new-verlet-large-reduced-local-calcs
+       test-bonds-reduced-local-calcs
+       test-bonds-new-verlet-reduced-local-calcs
+       test-dt-change-reduced-local-calcs
+       test-new-verlet-dt-change-reduced-local-calcs
+       test-large-dt-change-reduced-local-calcs
+       test-new-verlet-large-dt-change-reduced-local-calcs
+       test-bonds-dt-change-reduced-local-calcs
+       test-bonds-new-verlet-dt-change-reduced-local-calcs
        test-gals
        test-gals-new-verlet
        test-gals-large
@@ -28,6 +43,18 @@ tests=(test
        test-gals-new-verlet-large-dt-change
        test-gals-bonds-dt-change
        test-gals-bonds-new-verlet-dt-change
+       test-gals-reduced-local-calcs
+       test-gals-new-verlet-reduced-local-calcs
+       test-gals-large-reduced-local-calcs
+       test-gals-new-verlet-large-reduced-local-calcs
+       test-gals-bonds-reduced-local-calcs
+       test-gals-bonds-new-verlet-reduced-local-calcs
+       test-gals-dt-change-reduced-local-calcs
+       test-gals-new-verlet-dt-change-reduced-local-calcs
+       test-gals-large-dt-change-reduced-local-calcs
+       test-gals-new-verlet-large-dt-change-reduced-local-calcs
+       test-gals-bonds-dt-change-reduced-local-calcs
+       test-gals-bonds-new-verlet-dt-change-reduced-local-calcs
        )
 
 function build_and_run {

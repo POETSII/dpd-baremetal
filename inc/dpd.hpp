@@ -381,6 +381,9 @@ inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *b
                 #else
                     forces[ci] = forces[ci] + f;
                 #endif
+                #ifdef REDUCE_LOCAL_CALCS
+                    forces[cj] = forces[cj] - x;
+                #endif
                 }
                 j = clear_slot(j, cj);
             }

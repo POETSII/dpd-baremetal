@@ -263,6 +263,52 @@ test-bonds-dt-change: test
 test-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY
 test-bonds-new-verlet-dt-change: test
 
+test-reduced-local-calcs: DFLAGS+=-DTESTING -DONE_BY_ONE -DREDUCE_LOCAL_CALCS
+test-reduced-local-calcs: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+# Larger test
+test-large-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DREDUCE_LOCAL_CALCS
+test-large-reduced-local-calcs: test
+
+# Test the improved verlet
+test-new-verlet-reduced-local-calcs: DFLAGS=-DTESTING -DBETTER_VERLET -DREDUCE_LOCAL_CALCS
+test-new-verlet-reduced-local-calcs: test
+
+# Test the improved verlet with a larger test
+test-new-verlet-large-reduced-local-calcs: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST -DREDUCE_LOCAL_CALCS
+test-new-verlet-large-reduced-local-calcs: test-large
+
+# Test with bonds
+test-bonds-reduced-local-calcs: DFLAGS=-DBONDS -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-bonds-reduced-local-calcs: test
+
+test-bonds-new-verlet-reduced-local-calcs: DFLAGS=-DBONDS -DBETTER_VERLET -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-bonds-new-verlet-reduced-local-calcs: test
+
+# DT change refers to having a smaller dt for the first 1000 timesteps
+test-dt-change-reduced-local-calcs: DFLAGS=-DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-dt-change-reduced-local-calcs: test
+
+test-large-dt-change-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-large-dt-change-reduced-local-calcs: test
+
+test-new-verlet-dt-change-reduced-local-calcs: DFLAGS=-DTESTING -DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-new-verlet-dt-change-reduced-local-calcs: test
+
+test-new-verlet-large-dt-change-reduced-local-calcs: DFLAGS=-DTESTING -DBETTER_VERLET -DLARGE_TEST -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-new-verlet-large-dt-change-reduced-local-calcs: test-large
+
+test-bonds-dt-change-reduced-local-calcs: DFLAGS=-DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-bonds-dt-change-reduced-local-calcs: test
+
+test-bonds-new-verlet-dt-change-reduced-local-calcs: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-bonds-new-verlet-dt-change-reduced-local-calcs: test
+
 # --------------------------- GALS TESTING ---------------------------
 # Base for testing GALS application
 # Improved gals and one by one make for the best GALS version
@@ -316,6 +362,59 @@ test-gals-bonds-dt-change: test-gals
 # Test with bonds and new verlet
 test-gals-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY
 test-gals-bonds-new-verlet-dt-change: test-gals
+
+# Test base gals with reduced number of local calculations
+test-gals-reduced-local-calcs: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DREDUCE_LOCAL_CALCS
+test-gals-reduced-local-calcs: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-gals
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	  -static-libgcc -static-libstdc++ \
+          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+# Larger test with reduced number of local calculations
+test-gals-large-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DREDUCE_LOCAL_CALCS
+test-gals-large-reduced-local-calcs: test-gals
+
+# Test the improved verlet with reduced number of local calculations
+test-gals-new-verlet-reduced-local-calcs: DFLAGS=-DBETTER_VERLET -DREDUCE_LOCAL_CALCS
+test-gals-new-verlet-reduced-local-calcs: test-gals
+
+# Test the improved verlet with a larger test with reduced number of local calculations
+test-gals-new-verlet-large-reduced-local-calcs: DFLAGS=-DBETTER_VERLET -DREDUCE_LOCAL_CALCS
+test-gals-new-verlet-large-reduced-local-calcs: test-gals-large
+
+# Test with bonds with reduced number of local calculations
+test-gals-bonds-reduced-local-calcs: DFLAGS=-DBONDS -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-gals-bonds-reduced-local-calcs: test-gals
+
+# Test with bonds and new verlet with reduced number of local calculations
+test-gals-bonds-new-verlet-reduced-local-calcs: DFLAGS=-DBONDS -DBETTER_VERLET -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-gals-bonds-new-verlet-reduced-local-calcs: test-gals
+
+# Test gals with smaller early dt with reduced number of local calculations
+test-gals-dt-change-reduced-local-calcs: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-gals-dt-change-reduced-local-calcs: test-gals
+
+# Larger test with smaller early dt with reduced number of local calculations
+test-gals-large-dt-change-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-gals-large-dt-change-reduced-local-calcs: test-gals
+
+# Test the improved verlet with reduced number of local calculations
+test-gals-new-verlet-dt-change-reduced-local-calcs: DFLAGS=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-gals-new-verlet-dt-change-reduced-local-calcs: test-gals
+
+# Test the improved verlet with a larger test with reduced number of local calculations
+test-gals-new-verlet-large-dt-change-reduced-local-calcs: DFLAGS=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+test-gals-new-verlet-large-dt-change-reduced-local-calcs: test-gals-large
+
+# Test with bonds with reduced number of local calculations
+test-gals-bonds-dt-change-reduced-local-calcs: DFLAGS=-DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-gals-bonds-dt-change-reduced-local-calcs: test-gals
+
+# Test with bonds and new verlet with reduced number of local calculations
+test-gals-bonds-new-verlet-dt-change-reduced-local-calcs: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+test-gals-bonds-new-verlet-dt-change-reduced-local-calcs: test-gals
 
 # --------------------------- TIMED RUNS ---------------------------
 timed-run: DFLAGS=-DTIMER

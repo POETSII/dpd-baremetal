@@ -32,6 +32,11 @@ SimulationVolume<V>::SimulationVolume(const float volume_length, const unsigned 
     std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing\n";
 #endif
 
+#ifdef REDUCED_LOCAL_CALCS
+    std::cout << "Local bead interactions will be reduced.\n";
+    std::cout << "Calculating the force between two local beads will be added to one bead and subtracted from the other.\n";
+#endif
+
 }
 
 // deconstructor

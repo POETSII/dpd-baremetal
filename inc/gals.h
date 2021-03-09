@@ -271,13 +271,24 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	        uint8_t ci = get_next_slot(s->sentslot);
 
-        #ifdef ONE_BY_ONE
-          #ifdef SMALL_DT_EARLY
+    #ifdef ONE_BY_ONE
+        #ifdef SMALL_DT_EARLY
+          #ifdef REDUCE_LOCAL_CALCS
+            // Pass in a beadmap containing only the beads which have yet to be sent.
+            // They will have the resulting force subtracted from their accumulated force
+            // This should reduce the number of calls to force_update for local bead interactions
+            local_calcs(ci, s->inv_sqrt_dt, clear_slot(s->sentslot, ci), s->bead_slot, s->grand, s->force_slot);
+          #else
             local_calcs(ci, s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
+          #endif
+        #else
+          #ifdef REDUCE_LOCAL_CALCS
+            local_calcs(ci, inv_sqrt_dt, clear_slot(s->sentslot, ci), s->bead_slot, s->grand, s->force_slot);
           #else
             local_calcs(ci, inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
           #endif
         #endif
+    #endif
 	        // send all of our beads to neighbours
 	        msg->from.x = s->loc.x;
             msg->from.y = s->loc.y;
