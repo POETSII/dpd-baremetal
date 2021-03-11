@@ -338,6 +338,8 @@ inline bool migration(const uint8_t map_pos, bead_t *bead, const uint8_t cell_le
 #endif
     return migrating;
 }
+
+#ifndef SINGLE_FORCE_LOOP
 #ifdef ONE_BY_ONE
   #ifndef FLOAT_ONLY
 inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces)
@@ -395,8 +397,7 @@ inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *b
         }
     #endif
     }
-
-// #include "../src/dpd.cpp"
+#endif
 
 inline bead_t get_relative_bead(const bead_t *in, const cell_t *this_cell, const cell_t *from_cell) {
     bead_t b;
@@ -416,5 +417,65 @@ inline bead_t get_relative_bead(const bead_t *in, const cell_t *this_cell, const
 
     return b;
 }
+
+#ifdef SINGLE_FORCE_LOOP
+ #ifdef REDUCE_LOCAL_CALCS
+  #ifndef FLOAT_ONLY
+inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces, float inv_sqrt_dt, int8_t local_slot_position = -1) {
+  #else
+inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces, float inv_sqrt_dt, int8_t local_slot_position = -1) {
+  #endif
+ #else
+  #ifndef FLOAT_ONLY
+inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<int32_t> *forces, float inv_sqrt_dt) {
+  #else
+inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, bead_t *beads, uint32_t grand, Vector3D<float> *forces, float inv_sqrt_dt) {
+  #endif
+#endif
+    uint16_t i = bslot;
+    while(i) {
+        uint8_t ci = get_next_slot(i);
+      #ifdef SEND_TO_SELF
+        if(acting_bead->id != beads[ci]->id) {
+      #endif
+
+        #ifndef ACCELERATE
+            Vector3D<ptype> f = force_update(&beads[ci], acting_bead, grand, inv_sqrt_dt);
+        #else
+            return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
+                                            s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
+                                            s->bead_slot[ci].velo.x(), s->bead_slot[ci].velo.y(), s->bead_slot[ci].velo.z(),
+                                            s->bead_slot[cj].velo.x(), s->bead_slot[cj].velo.y(), s->bead_slot[cj].velo.z(),
+                                            s->bead_slot[ci].id, s->bead_slot[cj].id,
+                                            s->bead_slot[ci].pos.sq_dist(s->bead_slot[cj].pos), r_c,
+                                            A[s->bead_slot[ci].type][s->bead_slot[cj].type], s->grand);
+            Vector3D<ptype> f;
+            f.set(r.x, r.y, r.z);
+        #endif
+        #ifndef FLOAT_ONLY
+            Vector3D<int32_t> x = f.floatToFixed();
+            forces[ci] = forces[ci] + x;
+          #ifdef REDUCE_LOCAL_CALCS
+            if (local_slot_position >= 0) {
+                forces[local_slot_position] = forces[local_slot_position] - x;
+            }
+          #endif
+        #else
+            forces[ci] = forces[ci] + f;
+          #ifdef REDUCE_LOCAL_CALCS
+            if (local_slot_position >= 0) {
+                forces[local_slot_position] = forces[local_slot_position] - f;
+            }
+          #endif
+        #endif
+      #ifdef SEND_TO_SELF
+        }
+      #endif
+        i = clear_slot(i, ci);
+    }
+}
+#endif
+
+// #include "../src/dpd.cpp"
 
 #endif /* _DPD_H */

@@ -365,12 +365,7 @@ test-gals-bonds-new-verlet-dt-change: test-gals
 
 # Test base gals with reduced number of local calculations
 test-gals-reduced-local-calcs: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DREDUCE_LOCAL_CALCS
-test-gals-reduced-local-calcs: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-gals
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-gals-reduced-local-calcs: test-gals
 
 # Larger test with reduced number of local calculations
 test-gals-large-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DREDUCE_LOCAL_CALCS

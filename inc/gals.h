@@ -279,15 +279,31 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             // Pass in a beadmap containing only the beads which have yet to be sent.
             // They will have the resulting force subtracted from their accumulated force
             // This should reduce the number of calls to force_update for local bead interactions
+           #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt, ci);
+           #endif
           #else
+           #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt, ci);
+           #endif
           #endif
         #else
           #ifdef REDUCE_LOCAL_CALCS
+           #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+           #endif
           #else
+           #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+           #endif
           #endif
         #endif
     #endif
@@ -509,23 +525,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         s->total_update_beads += msg->total_beads;
                     }
 
-                    // bead_t b;
-                    // b.id = msg->beads[0].id;
-                    // b.type = msg->beads[0].type;
-                    // b.pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-                    // b.velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-                    // // from the device locaton get the adjustments to the bead positions
-                    // int8_t x_rel = period_bound_adj(msg->from.x - s->loc.x);
-                    // int8_t y_rel = period_bound_adj(msg->from.y - s->loc.y);
-                    // int8_t z_rel = period_bound_adj(msg->from.z - s->loc.z);
-
-                    // // relative position for this particle to this device
-                    // b.pos.x(b.pos.x() + ptype(x_rel));
-                    // b.pos.y(b.pos.y() + ptype(y_rel));
-                    // b.pos.z(b.pos.z() + ptype(z_rel));
-
                     bead_t b = get_relative_bead(&msg->beads[0], &s->loc, &msg->from);
 
+                #ifndef SINGLE_FORCE_LOOP
                     // loop through the occupied bead slots -- update force
                     uint16_t i = s->bslot;
                     while(i) {
@@ -563,6 +565,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     #endif
                         i = clear_slot(i, ci);
                     }
+                #else
+                  #ifdef SMALL_DT_EARLY
+                    calc_bead_force_on_beads(&b, s->bslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt);
+                  #else
+                    calc_bead_force_on_beads(&b, s->bslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+                  #endif
+                #endif
+
                     s->total_update_beads--;
 
                 #ifdef IMPROVED_GALS
