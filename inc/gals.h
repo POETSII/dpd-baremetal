@@ -273,13 +273,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             // They will have the resulting force subtracted from their accumulated force
             // This should reduce the number of calls to force_update for local bead interactions
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
+            local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s);
            #else
             calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
            #endif
           #else
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
+            local_calcs(ci, s->inv_sqrt_dt, s->bslot, s);
            #else
             calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
            #endif
@@ -287,13 +287,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         #else
           #ifdef REDUCE_LOCAL_CALCS
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
+            local_calcs(ci, inv_sqrt_dt, s->sentslot, s);
            #else
             calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
            #endif
           #else
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
+            local_calcs(ci, inv_sqrt_dt, s->bslot, s);
            #else
             calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
            #endif

@@ -208,7 +208,7 @@ inline void velocity_Verlet(uint8_t bead_index, const ptype dt, DPDState *s) {
     Vector3D<ptype> force = s->force_slot[bead_index].fixedToFloat();
 #else
     Vector3D<ptype> force;
-    force.set(f->x(), f->y(), f->z());
+    force.set(s->force_slot[bead_index].x(), s->force_slot[bead_index].y(), s->force_slot[bead_index].z());
 #endif
 
 #ifndef BETTER_VERLET
@@ -325,23 +325,21 @@ inline bool migration(const uint8_t bead_index, const ptype dt, DPDState *s) {
 
 #ifndef SINGLE_FORCE_LOOP
 #ifdef ONE_BY_ONE
-inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint16_t bslot, DPDState *s)
+inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint16_t bslot, DPDState *s) {
 #else
-inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, DPDState *s)
-#endif
-    {
-    #ifndef ONE_BY_ONE
+inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, DPDState *s) {
+
         uint16_t i = bslot;
         while (i) {
             uint8_t ci = get_next_slot(i);
-    #endif
+#endif
             uint16_t j = bslot;
             while(j) {
                 uint8_t cj = get_next_slot(j);
                 if(ci != cj) {
 
                 #ifndef ACCELERATE
-                    Vector3D<ptype> f = force_update(&beads[ci], &beads[cj], inv_sqrt_dt, s);
+                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj], inv_sqrt_dt, s);
                 #else
                     return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
                                                     s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
@@ -355,14 +353,14 @@ inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, DPDState 
                 #endif
                 #ifndef FLOAT_ONLY
                     Vector3D<int32_t> x = f.floatToFixed();
-                    forces[ci] = forces[ci] + x;
+                    s->force_slot[ci] = s->force_slot[ci] + x;
                   #ifdef REDUCE_LOCAL_CALCS
-                    forces[cj] = forces[cj] - x;
+                    s->force_slot[cj] = s->force_slot[cj] - x;
                   #endif
                 #else
-                    forces[ci] = forces[ci] + f;
+                    s->force_slot[ci] = s->force_slot[ci] + f;
                   #ifdef REDUCE_LOCAL_CALCS
-                    forces[cj] = forces[cj] - f;
+                    s->force_slot[cj] = s->force_slot[cj] - f;
                   #endif
                 #endif
                 }
