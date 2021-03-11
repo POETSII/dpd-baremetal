@@ -398,4 +398,23 @@ inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, bead_t *b
 
 // #include "../src/dpd.cpp"
 
+inline bead_t get_relative_bead(const bead_t *in, const cell_t *this_cell, const cell_t *from_cell) {
+    bead_t b;
+    b.id = in->id;
+    b.type = in->type;
+    b.pos.set(in->pos.x(), in->pos.y(), in->pos.z());
+    b.velo.set(in->velo.x(), in->velo.y(), in->velo.z());
+    // from the device locaton get the adjustments to the bead positions
+    int8_t x_rel = period_bound_adj(from_cell->x - this_cell->x);
+    int8_t y_rel = period_bound_adj(from_cell->y - this_cell->y);
+    int8_t z_rel = period_bound_adj(from_cell->z - this_cell->z);
+
+    // relative position for this particle to this device
+    b.pos.x(b.pos.x() + ptype(x_rel));
+    b.pos.y(b.pos.y() + ptype(y_rel));
+    b.pos.z(b.pos.z() + ptype(z_rel));
+
+    return b;
+}
+
 #endif /* _DPD_H */

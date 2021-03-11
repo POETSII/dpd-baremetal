@@ -509,20 +509,22 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         s->total_update_beads += msg->total_beads;
                     }
 
-                    bead_t b;
-                    b.id = msg->beads[0].id;
-                    b.type = msg->beads[0].type;
-                    b.pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
-                    b.velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
-                    // from the device locaton get the adjustments to the bead positions
-                    int8_t x_rel = period_bound_adj(msg->from.x - s->loc.x);
-                    int8_t y_rel = period_bound_adj(msg->from.y - s->loc.y);
-                    int8_t z_rel = period_bound_adj(msg->from.z - s->loc.z);
+                    // bead_t b;
+                    // b.id = msg->beads[0].id;
+                    // b.type = msg->beads[0].type;
+                    // b.pos.set(msg->beads[0].pos.x(), msg->beads[0].pos.y(), msg->beads[0].pos.z());
+                    // b.velo.set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
+                    // // from the device locaton get the adjustments to the bead positions
+                    // int8_t x_rel = period_bound_adj(msg->from.x - s->loc.x);
+                    // int8_t y_rel = period_bound_adj(msg->from.y - s->loc.y);
+                    // int8_t z_rel = period_bound_adj(msg->from.z - s->loc.z);
 
-                    // relative position for this particle to this device
-                    b.pos.x(b.pos.x() + ptype(x_rel));
-                    b.pos.y(b.pos.y() + ptype(y_rel));
-                    b.pos.z(b.pos.z() + ptype(z_rel));
+                    // // relative position for this particle to this device
+                    // b.pos.x(b.pos.x() + ptype(x_rel));
+                    // b.pos.y(b.pos.y() + ptype(y_rel));
+                    // b.pos.z(b.pos.z() + ptype(z_rel));
+
+                    bead_t b = get_relative_bead(&msg->beads[0], &s->loc, &msg->from);
 
                     // loop through the occupied bead slots -- update force
                     uint16_t i = s->bslot;
