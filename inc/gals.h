@@ -103,25 +103,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         uint16_t i = s->bslot;
         while(i){
             uint8_t ci = get_next_slot(i);
-        #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-            velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt);
-        #elif defined(SMALL_DT_EARLY)
-            velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], s->dt);
-        #elif defined(BETTER_VERLET)
-            velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], dt);
-        #else
-            velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], dt);
-        #endif
 
-        #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci]);
-        #elif defined(SMALL_DT_EARLY)
-            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt);
-        #elif defined(BETTER_VERLET)
-            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci]);
-        #else
-            migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt);
-        #endif
+          #ifdef SMALL_DT_EARLY
+            velocity_Verlet(ci, s->dt, s);
+          #else
+            velocity_Verlet(ci, dt, s);
+          #endif
+
+          #ifdef SMALL_DT_EARLY
+            migration(ci, s->dt, s);
+          #else
+            migration(ci, dt, s);
+          #endif
 
             i = clear_slot(i, ci);
         }
@@ -207,6 +200,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             }
         #endif
             s->mode = UPDATE;
+            s->sentslot = s->bslot;
             *readyToSend = Pin(0);
             if(s->bslot == 0){
                 s->newBeadMap = s->bslot;
@@ -220,10 +214,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
-		s->rngstate = 1234; // start with a seed
+        // Move the numbers a couple of times
 		s->grand = p_rand(&s->rngstate);
         s->grand = p_rand(&s->rngstate);
-		// s->mode = UPDATE;
         *readyToSend = Pin(0);
 		if(s->bslot == 0) {
             s->newBeadMap = s->bslot;
@@ -242,8 +235,8 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     }
 
 	// send handler -- called when the ready to send flag has been set
-	inline void send(volatile DPDMessage *msg){
-        msg->mode = 0x00;
+	inline void send(volatile DPDMessage *msg) {
+        msg->mode = s->mode;
         msg->type = 0x00;
         msg->timestep = s->timestep;
 
@@ -255,14 +248,14 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
 
 	    if(s->mode == UPDATE) {
-            msg->mode = UPDATE;
+            // msg->mode = UPDATE;
         #ifdef MESSAGE_MANAGEMENT
             s->msgs_to_recv += NEIGHBOURS - s->nbs_complete; // Only expect messages from neighbours who have beads
             msg->type = 0x00; // 0 represents a standard update message
         #endif
 
             if (!s->updates_sent) {
-                s->sentslot = s->bslot;
+                // s->sentslot = s->bslot;
                 msg->total_beads = get_num_beads(s->bslot);
                 s->updates_sent = 1;
             } else {
@@ -282,13 +275,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
            #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt, ci);
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
            #endif
           #else
            #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt, ci);
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
            #endif
           #endif
         #else
@@ -296,13 +289,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
            #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
            #endif
           #else
            #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
            #endif
           #endif
         #endif
@@ -353,7 +346,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         if(s->mode == UPDATE_COMPLETE) {
-            msg->mode = UPDATE_COMPLETE;
+            // msg->mode = UPDATE_COMPLETE;
         #ifndef IMPROVED_GALS
             // This message is only sent if there's no beads to be sent for update in IMPROVED_GALS
             msg->total_beads = s->updates_sent;
@@ -367,7 +360,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
 	    if(s->mode == MIGRATION) { // we are in the MIGRATION mode we want to send beads to our neighbours
 	        // overload from with the dst filtering will happen on the recv side
-            msg->mode = MIGRATION;
+            // msg->mode = MIGRATION;
             if (!s->migrates_sent) {
                 msg->total_beads = get_num_beads(s->migrateslot);
                 s->migrates_sent = 1;
@@ -390,7 +383,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        s->bslot = clear_slot(s->bslot, ci);
             // clear the new bead slot -- To match bslot
             s->newBeadMap = clear_slot(s->newBeadMap, ci);
-	        // s->sentslot = s->bslot;
 
         #ifdef IMPROVED_GALS
             // The last bead is being sent, stick the final bead identifier in this message
@@ -414,7 +406,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if (s->mode == MIGRATION_COMPLETE) {
             *readyToSend = No;
-            msg->mode = MIGRATION_COMPLETE;
+            // msg->mode = MIGRATION_COMPLETE;
         #ifndef IMPROVED_GALS
             msg->total_beads = s->migrates_sent;
         #endif
@@ -465,7 +457,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
         if (s->mode==EMIT_COMPLETE) {
             // Tell neighbours I have finished emitting.
-            msg->mode = EMIT_COMPLETE;
+            // msg->mode = EMIT_COMPLETE;
             s->emit_complete_sent = 2;
             // s->emit_completes_received++;
             if (!emit_complete()) {
@@ -486,17 +478,6 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         }
 
 	}
-
-	// // used to help adjust the relative positions for the periodic boundary
- //    __attribute__((noinline)) int8_t period_bound_adj(int8_t dim) {
- //        if(dim > 1) {
- //            return -1;
- //        } else if (dim < -1) {
- //            return 1;
- //        } else {
- //            return dim;
- //        }
- //    }
 
 #ifdef MESSAGE_MANAGEMENT
     inline void set_rts() {
@@ -536,11 +517,10 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         if(s->bead_slot[ci].id != b.id) {
                     #endif
                         #ifndef ACCELERATE
-                            // Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
                       #ifdef SMALL_DT_EARLY
-                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, s->grand, s->inv_sqrt_dt);
+                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, s->inv_sqrt_dt, s);
                       #else
-                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, s->grand, inv_sqrt_dt);
+                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, inv_sqrt_dt, s);
                       #endif
 
                         #else
@@ -567,9 +547,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     }
                 #else
                   #ifdef SMALL_DT_EARLY
-                    calc_bead_force_on_beads(&b, s->bslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt);
+                    calc_bead_force_on_beads(&b, s->bslot, s->inv_sqrt_dt, s);
                   #else
-                    calc_bead_force_on_beads(&b, s->bslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+                    calc_bead_force_on_beads(&b, s->bslot, inv_sqrt_dt, s);
                   #endif
                 #endif
 
@@ -638,9 +618,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                             s->old_velo[ni].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                             // Update velocity
                           #ifndef SMALL_DT_EARLY
-                            update_velocity(&s->bead_slot[ni], &s->old_velo[ni], dt);
+                            update_velocity(ni, dt, s);
                           #else
-                            update_velocity(&s->bead_slot[ni], &s->old_velo[ni], s->dt);
+                            update_velocity(ni, s->dt, s);
                           #endif
                         #endif
                         }

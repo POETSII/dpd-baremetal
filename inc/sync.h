@@ -73,9 +73,6 @@ typedef uint32_t bead_id_t; // the ID for the bead
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
-    // dt10's random number generator
-
-
 	// init handler -- called once by POLite at the start of execution
 	inline void init() {
     #ifdef MESSAGE_COUNTER
@@ -127,25 +124,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
     	    uint16_t i = s->bslot;
     	    while(i){
                 uint8_t ci = get_next_slot(i);
-            #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt);
-            #elif defined(SMALL_DT_EARLY)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], s->dt);
-            #elif defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], dt);
-            #else
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], dt);
-            #endif
 
-            #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci])) {
-            #elif defined(SMALL_DT_EARLY)
-                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], s->dt)) {
-            #elif defined(BETTER_VERLET)
-                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci])) {
-            #else
-                if (migration(ci, &s->bead_slot[ci], s->cell_length, s->loc, s->cells_per_dimension, &s->migrateslot, &s->migrate_loc[ci], dt)) {
-            #endif
+              #ifdef SMALL_DT_EARLY
+                velocity_Verlet(ci, s->dt, s);
+              #else
+                velocity_Verlet(ci, dt, s);
+              #endif
+
+              #ifdef SMALL_DT_EARLY
+                if (migration(ci, s->dt, s)) {
+              #else
+                if (migration(ci, dt, s)) {
+              #endif
                     *readyToSend = Pin(0);
                 }
                 i = clear_slot(i, ci);
@@ -283,13 +273,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                #ifndef SINGLE_FORCE_LOOP
                 local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
                #else
-                calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt, ci);
+                calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
                #endif
               #else
                #ifndef SINGLE_FORCE_LOOP
                 local_calcs(ci, s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
                #else
-                calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt, ci);
+                calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
                #endif
               #endif
             #else
@@ -297,13 +287,13 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                #ifndef SINGLE_FORCE_LOOP
                 local_calcs(ci, inv_sqrt_dt, s->sentslot, s->bead_slot, s->grand, s->force_slot);
                #else
-                calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+                calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
                #endif
               #else
                #ifndef SINGLE_FORCE_LOOP
                 local_calcs(ci, inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
                #else
-                calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+                calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
                #endif
               #endif
             #endif
@@ -487,9 +477,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        }
         #else
           #ifdef SMALL_DT_EARLY
-            calc_bead_force_on_beads(&b, s->bslot, s->bead_slot, s->grand, s->force_slot, s->inv_sqrt_dt);
+            calc_bead_force_on_beads(&b, s->bslot, s->inv_sqrt_dt, s);
           #else
-            calc_bead_force_on_beads(&b, s->bslot, s->bead_slot, s->grand, s->force_slot, inv_sqrt_dt);
+            calc_bead_force_on_beads(&b, s->bslot, inv_sqrt_dt, s);
           #endif
         #endif
 	    } else if (s->mode == MIGRATION) {
@@ -524,9 +514,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     s->old_velo[ci].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                     // Update velocity
                 #ifndef SMALL_DT_EARLY
-                    update_velocity(&s->bead_slot[ci], &s->old_velo[ci], dt);
+                    update_velocity(ci, dt, s);
                 #else
-                    update_velocity(&s->bead_slot[ci], &s->old_velo[ci], s->dt);
+                    update_velocity(ci, s->dt, s);
                 #endif
                 #endif
                 }
