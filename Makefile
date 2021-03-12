@@ -309,6 +309,54 @@ test-bonds-dt-change-reduced-local-calcs: test
 test-bonds-new-verlet-dt-change-reduced-local-calcs: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
 test-bonds-new-verlet-dt-change-reduced-local-calcs: test
 
+test-float-only: DFLAGS+=-DTESTING -DFLOAT_ONLY
+test-float-only: test
+
+test-float-only-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-float-only-better-verlet: test-float-only
+
+test-float-only-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-float-only-dt-change: test-float-only
+
+test-float-only-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-float-only-better-verlet-dt-change: test-float-only
+
+test-float-only-single-force-loop: DFLAGS+=-DTESTING -DFLOAT_ONLY -DSINGLE_FORCE_LOOP
+test-float-only-single-force-loop: test
+
+test-float-only-single-force-loop-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-float-only-single-force-loop-better-verlet: test-float-only-single-force-loop
+
+test-float-only-single-force-loop-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-float-only-single-force-loop-dt-change: test-float-only-single-force-loop
+
+test-float-only-single-force-loop-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-float-only-single-force-loop-better-verlet-dt-change: test-float-only-single-force-loop
+
+test-float-only-reduced-local-calcs: DFLAGS+=-DTESTING -DFLOAT_ONLY -DREDUCE_LOCAL_CALCS
+test-float-only-reduced-local-calcs: test
+
+test-float-only-reduced-local-calcs-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-float-only-reduced-local-calcs-better-verlet: test-float-only-reduced-local-calcs
+
+test-float-only-reduced-local-calcs-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-float-only-reduced-local-calcs-dt-change: test-float-only-reduced-local-calcs
+
+test-float-only-reduced-local-calcs-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-float-only-reduced-local-calcs-better-verlet-dt-change: test-float-only-reduced-local-calcs
+
+test-float-only-reduced-local-calcs-single-force-loop: DFLAGS+=-DTESTING -DFLOAT_ONLY -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP
+test-float-only-reduced-local-calcs-single-force-loop: test
+
+test-float-only-reduced-local-calcs-single-force-loop-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-float-only-reduced-local-calcs-single-force-loop-better-verlet: test-float-only-reduced-local-calcs-single-force-loop
+
+test-float-only-reduced-local-calcs-single-force-loop-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-float-only-reduced-local-calcs-single-force-loop-dt-change: test-float-only-reduced-local-calcs-single-force-loop
+
+test-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: test-float-only-reduced-local-calcs-single-force-loop
+
 # --------------------------- GALS TESTING ---------------------------
 # Base for testing GALS application
 # Improved gals and one by one make for the best GALS version
@@ -410,6 +458,54 @@ test-gals-bonds-dt-change-reduced-local-calcs: test-gals
 # Test with bonds and new verlet with reduced number of local calculations
 test-gals-bonds-new-verlet-dt-change-reduced-local-calcs: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
 test-gals-bonds-new-verlet-dt-change-reduced-local-calcs: test-gals
+
+test-gals-float-only: DFLAGS+=-DTESTING -DFLOAT_ONLY
+test-gals-float-only: test-gals
+
+test-gals-float-only-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-gals-float-only-better-verlet: test-gals-float-only
+
+test-gals-float-only-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-gals-float-only-dt-change: test-gals-float-only
+
+test-gals-float-only-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-float-only-better-verlet-dt-change: test-gals-float-only
+
+test-gals-float-only-single-force-loop: DFLAGS+=-DTESTING -DFLOAT_ONLY -DSINGLE_FORCE_LOOP
+test-gals-float-only-single-force-loop: test-gals
+
+test-gals-float-only-single-force-loop-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-gals-float-only-single-force-loop-better-verlet: test-gals-float-only-single-force-loop
+
+test-gals-float-only-single-force-loop-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-gals-float-only-single-force-loop-dt-change: test-gals-float-only-single-force-loop
+
+test-gals-float-only-single-force-loop-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-float-only-single-force-loop-better-verlet-dt-change: test-gals-float-only-single-force-loop
+
+test-gals-float-only-reduced-local-calcs: DFLAGS+=-DTESTING -DFLOAT_ONLY -DREDUCE_LOCAL_CALCS
+test-gals-float-only-reduced-local-calcs: test-gals
+
+test-gals-float-only-reduced-local-calcs-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-gals-float-only-reduced-local-calcs-better-verlet: test-gals-float-only-reduced-local-calcs
+
+test-gals-float-only-reduced-local-calcs-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-gals-float-only-reduced-local-calcs-dt-change: test-gals-float-only-reduced-local-calcs
+
+test-gals-float-only-reduced-local-calcs-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-float-only-reduced-local-calcs-better-verlet-dt-change: test-gals-float-only-reduced-local-calcs
+
+test-gals-float-only-reduced-local-calcs-single-force-loop: DFLAGS+=-DTESTING -DFLOAT_ONLY -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP
+test-gals-float-only-reduced-local-calcs-single-force-loop: test-gals
+
+test-gals-float-only-reduced-local-calcs-single-force-loop-better-verlet: DFLAGS+=-DBETTER_VERLET
+test-gals-float-only-reduced-local-calcs-single-force-loop-better-verlet: test-gals-float-only-reduced-local-calcs-single-force-loop
+
+test-gals-float-only-reduced-local-calcs-single-force-loop-dt-change: DFLAGS+=-DSMALL_DT_EARLY
+test-gals-float-only-reduced-local-calcs-single-force-loop-dt-change: test-gals-float-only-reduced-local-calcs-single-force-loop
+
+test-gals-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY
+test-gals-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: test-gals-float-only-reduced-local-calcs-single-force-loop
 
 # --------------------------- TIMED RUNS ---------------------------
 timed-run: DFLAGS=-DTIMER

@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     b1->type = 0;
     // Place both in the same cell but so one gets forced out of the corner
     b0->pos.set(2.75, 2.75, 0.25);
-    b1->pos.set(2.25, 2.25, 0.75);;
+    b1->pos.set(2.25, 2.25, 0.75);
     // Add 0 velocities
     b0->velo.set(0.0, 0.0, 0.0);
     beads_added++;

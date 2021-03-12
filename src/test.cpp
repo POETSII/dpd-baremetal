@@ -47,6 +47,14 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
     *cells_per_dimension = 40;
     *test_length = 100;
 
+#elif defined(FLOAT_ONLY)
+    printf("Testing a system with 2 beads for floating point correctness\n");
+    *bead_file += "in_3_float";
+    *expected += "out_3_float";
+    *volume_length = 3;
+    *cells_per_dimension = 3;
+    *test_length = 10000;
+
 #else
     printf("Testing a smaller system without bonds\n");
     *bead_file += "in_18";
