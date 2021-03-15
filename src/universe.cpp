@@ -241,6 +241,12 @@ void Universe<S>::set_beads_added(uint32_t beads_added) {
 // constructor
 template<class S>
 Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
+    FILE* f = fopen("../config_time.csv", "a+");
+    fprintf(f, "%u, ", D);
+    std::cout << "Building universe\n";
+    struct timeval start, finish, elapsedTime;
+    gettimeofday(&start, NULL);
+
     _size = size;
     _D = D;
     _unit_size = _size / S(D);
@@ -302,9 +308,6 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     }
     std::cout << ".\n";
 
-#ifndef OUTPUT_MAPPING
-    _hostLink = new HostLink(_boxesX, _boxesY);
-#endif
     _g = new PGraph<DPDDevice, DPDState, None, DPDMessage>(_boxesX, _boxesY);
 
     // create the devices
@@ -501,15 +504,20 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
     }
     // all the edges have been connected
 
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    fprintf(f, "%1.20f, ", duration);
+
+    std::cout << "Universe built in " << duration << "s\n";
+
 #ifdef DRAM
     _g->mapVerticesToDRAM = true;
     std::cout << "Mapping vertices to DRAM\n";
 #endif
+    std::cout << "Mapping\n";
+    gettimeofday(&start, NULL);
     _g->map(); // map the graph into hardware calling the POLite placer
-
-#ifdef OUTPUT_MAPPING
-    outputMapping();
-#endif
 
     // initialise all the devices with their position
     for(std::map<PDeviceId, unit_t>::iterator i = _idToLoc.begin(); i!=_idToLoc.end(); ++i) {
@@ -522,6 +530,30 @@ Universe<S>::Universe(S size, unsigned D, uint32_t max_time) {
         _g->devices[cId]->state.N = _D;
         _g->devices[cId]->state.max_time = max_time;
     }
+
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    std::cout << "Mapped in " << duration << "s\n";
+    fprintf(f, "%1.20f, ", duration);
+
+#ifdef OUTPUT_MAPPING
+    outputMapping();
+#endif
+
+#ifndef OUTPUT_MAPPING
+    std::cout << "Acquiring hostlink\n";
+    gettimeofday(&start, NULL);
+    _hostLink = new HostLink(_boxesX, _boxesY);
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    std::cout << "Hostlink acquired in " << duration << "s\n";
+    fprintf(f, "%1.20f, ", duration);
+#endif
+
+fclose(f);
+
 }
 
 // deconstructor

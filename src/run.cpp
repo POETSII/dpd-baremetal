@@ -139,7 +139,9 @@ int main(int argc, char *argv[]) {
 
     Universe<ptype> uni(problem_size, N, max_time);
 
+    struct timeval start, finish, elapsedTime;
     printf("Universe setup -- adding beads\n");
+    gettimeofday(&start, NULL);
 
     int total_beads = N * N * N * BEAD_DENSITY;
     int w = 0.6 * total_beads;
@@ -356,14 +358,30 @@ int main(int argc, char *argv[]) {
         bonded_world_3D();
     }
 
+    FILE* f = fopen("../config_time.csv", "a+");
+
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    std::cout << "Beads added in " << duration << "s\n";
+    fprintf(f, "%1.20f, ", duration);
+
     uni.set_beads_added(beads_added);
 
+    std::cout << "Writing down to hardware\n";
+    gettimeofday(&start, NULL);
     uni.write(); // write the universe into the POETS memory
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    std::cout << "Written in " << duration << "s\n";
+    fprintf(f, "%1.20f\n", duration);
+    fclose(f);
 
     // uni.print_occupancy();
 
-    printf("running...\n");
-    uni.run(max_time); // start the simulation
+    // printf("running...\n");
+    // uni.run(max_time); // start the simulation
 
     return 0;
 }
