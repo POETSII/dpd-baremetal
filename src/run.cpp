@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
     Vector3D<float> vcm(0.0, 0.0, 0.0);
 
     for(int i=0; i < total_beads; i++) {
-        long index = static_cast<long>(rvelDist.size() * randf());
+        long index = static_cast<long>((rvelDist.size() - 1) * randf());
         float vmag  = rvelDist.at(index);
 
         float vtheta = acos(1.0-2.0 * randf());

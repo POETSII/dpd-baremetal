@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    POLiteSimulator simulator(problem_size, N, 0, max_time);
+    POLiteSimulator simulator(problem_size, N, 0, max_time, 2, 4);
     POLiteVolume *volume = (POLiteVolume *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
     Vector3D<float> vcm(0.0, 0.0, 0.0);
 
     for(int i=0; i < total_beads; i++) {
-        long index = static_cast<long>(rvelDist.size() * randf());
+        long index = static_cast<long>((rvelDist.size() - 1) * randf());
         float vmag  = rvelDist.at(index);
 
         float vtheta = acos(1.0-2.0 * randf());
