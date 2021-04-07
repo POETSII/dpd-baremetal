@@ -63,10 +63,7 @@ cell_t Volume<C>::add_bead(const bead_t *in) {
         b.pos.y(b.pos.y() - (float(t.y) * cell_length));
         b.pos.z(b.pos.z() - (float(t.z) * cell_length));
 
-        // Get the next free slot in this device
-        uint8_t slot = get_next_free_slot(bslot);
-
-        cells->place_bead_in_cell_slot(&b, t, slot);
+        cells->place_bead_in_cell(&b, t);
 
         beads_added++;
     }
@@ -84,13 +81,7 @@ void Volume<C>::add_bead_to_cell(bead_t *in, const cell_t cell) {
         exit(EXIT_FAILURE);
     }
 
-    // Get the devices bslot
-    uint8_t bslot = cells->get_cell_bslot(cell);
-
-    // Get the next free slot in this device
-    uint8_t slot = get_next_free_slot(bslot);
-
-    cells->place_bead_in_cell_slot(in, cell, slot);
+    cells->place_bead_in_cell(in, cell);
 
     beads_added++;
 }

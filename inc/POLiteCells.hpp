@@ -33,8 +33,8 @@ public:
     const bead_t * get_bead_from_device_slot(PDeviceId id, uint8_t slot) override;
 
     // Adding a bead to the cell
-    void place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) override;
-    void place_bead_in_device_slot(bead_t *b, PDeviceId id, uint8_t slot) override;
+    void place_bead_in_cell(bead_t *b, cell_t loc) override;
+    void place_bead_in_device(bead_t *b, PDeviceId id) override;
 
 protected:
 
