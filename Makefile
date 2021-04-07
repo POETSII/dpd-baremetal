@@ -913,8 +913,11 @@ timed-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/Vesic
 timed-gals-vesicle-fastest-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
 timed-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
 
-visual-vesicle: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DFLOAT_ONLY -DDRAM
+visual-vesicle: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
 visual-vesicle: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+
+visual-vesicle-dram: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
+visual-vesicle-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
 visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
