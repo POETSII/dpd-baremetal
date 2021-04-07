@@ -91,17 +91,19 @@ const bead_t * POLiteCells::get_bead_from_device_slot(PDeviceId id, uint8_t slot
     return &cells->devices[id]->state.bead_slot[slot];
 }
 
-void POLiteCells::place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) {
-    DPDState *state = &cells->devices[locToId[loc]]->state;
-    state->bead_slot[slot] = *b; // Add the bead
-    state->bslot = set_slot(state->bslot, slot); // Set the slot in the bitmap
-    state->sentslot = state->bslot; // To make sure the bead is sent at timestep 0
+void POLiteCells::place_bead_in_cell(bead_t *b, cell_t loc) {
+    place_bead_in_device(b, locToId[loc]);
 }
 
-void POLiteCells::place_bead_in_device_slot(bead_t *b, PDeviceId id, uint8_t slot) {
+void POLiteCells::place_bead_in_device(bead_t *b, PDeviceId id) {
     DPDState *state = &cells->devices[id]->state;
-    state->bead_slot[slot] = *b; // Add the bead
-    state->bslot = set_slot(state->bslot, slot); // Set the slot in the bitmap
+    uint8_t new_slot = get_next_free_slot(state->bslot);
+    if (new_slot == 0xFF) {
+        std::cerr << "Error: There were no free slots left in cell " << idToLoc[id].x << ", " << idToLoc[id].y << ", " << idToLoc[id].z << "\n";
+        exit(1);
+    }
+    state->bead_slot[new_slot] = *b; // Add the bead
+    state->bslot = set_slot(state->bslot, new_slot); // Set the slot in the bitmap
     state->sentslot = state->bslot; // To make sure the bead is sent at timestep 0
 }
 

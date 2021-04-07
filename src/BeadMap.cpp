@@ -39,7 +39,7 @@ inline uint8_t get_next_free_slot(uint16_t bitmap) {
     uint16_t mask = 0x1;
     for(int i = 0; i < MAX_BEADS; i++){
         if(!(bitmap & mask)) {
-           return i;
+            return i;
         }
         mask = mask << 1;
     }
