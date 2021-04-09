@@ -26,7 +26,7 @@ cd ..
 make clean
 make clean-tinsel
 
-s=103
+s=$((max + 1))
 max=125
 make timed-gals-vesicle-fastest-dram
 cd ./bin
