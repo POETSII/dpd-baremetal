@@ -36,8 +36,15 @@ void print_help() {
     std::cerr << "                          Simulation volumes are (currently) assumed to be cubes.\n";
     std::cerr << "                          This value must be 3 or larger, no string.\n";
     std::cerr << "\n";
-    std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
+    std::cerr << "time t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
+    std::cerr << "\n";
+    std::cerr << "boxes-x x               - Optional integer. The number of POETS Boxes to use in the X dimension.\n";
+    std::cerr << "                        - The maximum currently is 2\n";
+    std::cerr << "                        - If not provided, a default of 1 will be used\n";
+    std::cerr << "boxes-y y               - Optional integer. The number of POETS Boxes to use in the Y dimension.\n";
+    std::cerr << "                        - The maximum currently is 4\n";
+    std::cerr << "                        - If not provided, a default of 1 will be used\n";
     std::cerr << "\n";
     std::cerr << "help                    - Optional. Print this help information\n";
 }
@@ -86,6 +93,9 @@ int main(int argc, char *argv[]) {
     int N = 0;
     uint32_t max_time = 10000;
 
+    uint32_t boxes_x = 1;
+    uint32_t boxes_y = 1;
+
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && argv[i][1] == '-') {
             std::string arg(argv[i]);
@@ -94,6 +104,12 @@ int main(int argc, char *argv[]) {
                 return(0);
             } else if (boost::contains(arg, "--time")) {
                 max_time = std::stoi(argv[i+1]);
+                i++;
+            } else if (boost::contains(arg, "--boxes-x")) {
+                boxes_x = std::stoi(argv[i+1]);
+                i++;
+            } else if (boost::contains(arg, "--boxes-y")) {
+                boxes_y = std::stoi(argv[i+1]);
                 i++;
             } else {
                 std::cerr << "Unrecognised argument: " << arg << "\n";
@@ -115,7 +131,9 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    POLiteSimulator simulator(problem_size, N, 0, max_time, 2, 4);
+    // Default box numbers are x = 1, y = 1.
+    // These can be set at run time, or hard coded.
+    POLiteSimulator simulator(problem_size, N, 0, max_time, boxes_x, boxes_y);
     POLiteVolume *volume = (POLiteVolume *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
