@@ -175,8 +175,8 @@ oil-water-bonds: $(DPD_SRC)/OilWaterBonds.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
-vesicle: $(DPD_SRC)/VesicleSelfAssembly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/VesicleSelfAssembly.o $(DPD_SRC)/VesicleSelfAssembly.cpp
+vesicle: $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/VesicleSelfAssembly.o $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/VesicleSelfAssembly.o \
 	  -static-libgcc -static-libstdc++ \
           -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
@@ -908,16 +908,16 @@ visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 timed-gals-vesicle-fastest: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
-timed-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+timed-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
 timed-gals-vesicle-fastest-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
-timed-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+timed-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
 visual-vesicle: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
-visual-vesicle: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+visual-vesicle: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
 visual-vesicle-dram: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
-visual-vesicle-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_SRC)/VesicleSelfAssembly.cpp vesicle
+visual-vesicle-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
 visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
