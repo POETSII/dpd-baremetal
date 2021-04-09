@@ -10,6 +10,9 @@
 
 // Constructor
 POLiteCells::POLiteCells(unsigned cells_per_dimension, ptype cell_length, uint32_t boxes_x, uint32_t boxes_y) : SimulationCells<PGraph<DPDDevice, DPDState, None, DPDMessage> *>(cells_per_dimension, cell_length) {
+    struct timeval start, finish, elapsedTime;
+    gettimeofday(&start, NULL);
+
     // Create the PGraph
     this->cells = new PGraph<DPDDevice, DPDState, None, DPDMessage>(boxes_x, boxes_y);
 
@@ -28,15 +31,30 @@ POLiteCells::POLiteCells(unsigned cells_per_dimension, ptype cell_length, uint32
 
     connect_cells(cells_per_dimension);
 
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    FILE* f = fopen("../vesicle-config-time.csv", "a+");
+    fprintf(f, "%1.20f, ", duration);
+    fclose(f);
+
     // Larger runs will need cells mapped to DRAM instead of SRAM
   #ifdef DRAM
     this->cells->mapVerticesToDRAM = true;
     std::cout << "Mapping vertices to DRAM\n";
   #endif
+    gettimeofday(&start, NULL);
     // Map to the hardware
     this->cells->map();
 
     initialise_cells();
+
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    f = fopen("../vesicle-config-time.csv", "a+");
+    fprintf(f, "%1.20f, ", duration);
+    fclose(f);
 }
 
 // Destructor

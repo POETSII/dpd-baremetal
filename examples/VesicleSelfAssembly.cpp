@@ -127,6 +127,10 @@ int main(int argc, char *argv[]) {
         return(0);
     }
 
+    FILE* f = fopen("../vesicle-config-time.csv", "a+");
+    fprintf(f, "%u, ", N);
+    fclose(f);
+
     int beads_added = 0;
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
@@ -137,7 +141,8 @@ int main(int argc, char *argv[]) {
     POLiteVolume *volume = (POLiteVolume *)simulator.get_volume();
 
     printf("Universe setup -- adding beads\n");
-
+    struct timeval start, finish, elapsedTime;
+    gettimeofday(&start, NULL);
     // Declare temperature for simulation
     const float temp = 1.0;
 
@@ -320,13 +325,31 @@ int main(int argc, char *argv[]) {
     // fprintf(f, "]}");
     // fclose(f);
 
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    f = fopen("../vesicle-config-time.csv", "a+");
+    fprintf(f, "%1.20f, ", duration);
+    fclose(f);
+
 #ifndef SERIAL
 //    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, max_time);
 #else
     SerialDPDSimulator *simulator = new SerialDPDSimulator();
 #endif
 
+    gettimeofday(&start, NULL);
+
     simulator.write(); // Write the volume to the simulator memory
+
+    gettimeofday(&finish, NULL);
+    timersub(&finish, &start, &elapsedTime);
+    duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+    f = fopen("../vesicle-config-time.csv", "a+");
+    fprintf(f, "%1.20f", duration);
+    fclose(f);
+
+    return 0;
 
     simulator.run(); // Start the simulation
 
