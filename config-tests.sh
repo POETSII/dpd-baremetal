@@ -7,7 +7,7 @@ make clean-tinsel
 boxes_x=2
 boxes_y=4
 
-s=3
+s=26
 max=102
 make timed-gals-vesicle-fastest
 cd ./bin
@@ -33,8 +33,8 @@ cd ./bin
 while [[ $s -le $max ]]
 do
     ./run $s --boxes-x $boxes_x --boxes-y $boxes_y
-    echo >> ../vesicle-config-time.csv
     if [[ $? -eq 0 ]] ; then
+        echo >> ../vesicle-config-time.csv
         s=$((s + 1))
     fi
     echo "Finished"
