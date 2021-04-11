@@ -1,14 +1,11 @@
 make clean
 make clean-tinsel
 
-# Max SRAM = 102
-# Max DRAM = unknown
-
 boxes_x=2
-boxes_y=4
+boxes_y=2
 
-s=26
-max=102
+s=3
+max=80
 make timed-gals-vesicle-fastest
 cd ./bin
 while [[ $s -le $max ]]
