@@ -6,7 +6,12 @@
 #include <vector>
 #include <iostream>
 
-#include "dpd.hpp"
+// #ifndef XML
+// #include "dpd.hpp"
+// #else
+// #include "DPDStructs.hpp"
+// #include "DPDConstants.hpp"
+// #endif
 #include "Cells.hpp"
 
 template<class C>
