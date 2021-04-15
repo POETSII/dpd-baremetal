@@ -14,6 +14,8 @@ SimulationVolume<V>::SimulationVolume(const float volume_length, const unsigned 
 #elif defined(SERIAL)
     std::cout << "Building a serial volume.\n";
     std::cout << "The DPD algorithm will be run on this x86 machine in serial.\n";
+#elif defined(XML)
+    std::cout << "Building an XML file to be run with The Ochestrator.\n";
 #else
     std::cout << "Building a synchronous volume.\n";
 #endif
