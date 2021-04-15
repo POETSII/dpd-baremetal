@@ -1003,7 +1003,7 @@ rdf-calculator:
       -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ---------------------------- XML Generators --------------------------------
-XML_GEN=./xml-generators
+XML_GEN = ./xml-generators
 XML_OBJS = $(DPD_BIN)/XMLCells.o $(DPD_BIN)/XMLVolume.o $(DPD_BIN)/XMLGenerator.o
 
 $(DPD_BIN)/XMLCells.o: $(DPD_SRC)/XMLCells.cpp $(DPD_INC)/XMLCells.hpp

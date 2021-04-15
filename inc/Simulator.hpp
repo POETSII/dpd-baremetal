@@ -12,7 +12,7 @@ class Simulator : public Executor<V> {
     public:
 
     // Constructors and destructors
-    Simulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep);
+    Simulator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep);
     ~Simulator() {}
 
     // Write the volume into the simulator memory

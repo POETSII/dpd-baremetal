@@ -132,26 +132,13 @@ const bead_t * XMLCells::get_bead_from_device_slot(PDeviceId id, uint8_t slot) {
     b.acc.z(state->bead_slot_acc[slot][2]);
 }
 
-void XMLCells::place_bead_in_cell_slot(bead_t *b, cell_t loc, uint8_t slot) {
-    DPDState *state = &this->cells.at(locToId[loc]);
-    state->bead_slot_id[slot] = b->id;
-    state->bead_slot_type[slot] = b->type;
-    state->bead_slot_pos[slot][0] = b->pos.x();
-    state->bead_slot_pos[slot][1] = b->pos.y();
-    state->bead_slot_pos[slot][2] = b->pos.z();
-    state->bead_slot_vel[slot][0] = b->velo.x();
-    state->bead_slot_vel[slot][1] = b->velo.y();
-    state->bead_slot_vel[slot][2] = b->velo.z();
-    state->bead_slot_acc[slot][0] = b->acc.x();
-    state->bead_slot_acc[slot][1] = b->acc.y();
-    state->bead_slot_acc[slot][2] = b->acc.z();
-
-    state->bslot = set_slot(state->bslot, slot); // Set the slot
-    state->sentslot = state->bslot; // Set sentslot so the beads is shared at timestep 0
+void XMLCells::place_bead_in_cell(bead_t *b, cell_t loc) {
+    place_bead_in_device(b, locToId[loc]);
 }
 
-void XMLCells::place_bead_in_device_slot(bead_t *b, PDeviceId id, uint8_t slot) {
+void XMLCells::place_bead_in_device(bead_t *b, PDeviceId id) {
     DPDState *state = &this->cells.at(id);
+    uint8_t slot = get_next_free_slot(state->bslot);
     state->bead_slot_id[slot] = b->id;
     state->bead_slot_type[slot] = b->type;
     state->bead_slot_pos[slot][0] = b->pos.x();
