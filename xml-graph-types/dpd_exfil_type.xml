@@ -378,8 +378,9 @@ uint8_t get_next_free_slot(uint16_t bitmap);
 void local_calcs(uint8_t ci, void* state) {
     device_state_t* s = static_cast<device_state_t*>(state);
 
-    // Map of all local beads
-    uint16_t j = s->bslot;
+    // Sentslot shows the beads that this bead (ci) hasn't had its force
+    // calculated against yet.
+    uint16_t j = s->sentslot;
 
     // Generate bead_t from target bead
     bead_t a;
@@ -414,10 +415,17 @@ void local_calcs(uint8_t ci, void* state) {
             // Get force acting on this
             float f[3] = {0, 0, 0};
             force_update(&a, &b, f, s);
-            // Add this to the accumulated force for the target bead
+
+            // Add this to the accumulated force for the bead to be sent.
             s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
             s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
             s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
+
+            // Forces are equal and opposite so, subtract this from the
+            // accumulated for the bead not being sent this time.
+            s->force_slot[cj][0] = s->force_slot[cj][0] - f[0];
+            s->force_slot[cj][1] = s->force_slot[cj][1] - f[1];
+            s->force_slot[cj][2] = s->force_slot[cj][2] - f[2];
       }
       j = clear_slot(j, cj);
     }
@@ -795,7 +803,10 @@ if (!deviceState->updates_sent) {
 // Find the next bead to send
 uint8_t ci = get_next_slot(deviceState->sentslot);
 
-// Calculate the forces acting on this bead from other beads in this cell
+// Clear this bead from sentslot so we don't calculate its force with itself
+deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
+
+// Calculate the forces acting on this bead from beads we haven't sent yet
 local_calcs(ci, deviceState);
 
 // Place this cells location in the message so they can use it to adjust it's position
@@ -812,8 +823,6 @@ message->bead_pos[2] = deviceState->bead_slot_pos[ci][2];
 message->bead_vel[0] = deviceState->bead_slot_vel[ci][0];
 message->bead_vel[1] = deviceState->bead_slot_vel[ci][1];
 message->bead_vel[2] = deviceState->bead_slot_vel[ci][2];
-
-deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
 
 // The last bead is being sent, stick the final bead identifier in this message
 if (!deviceState->sentslot) {
