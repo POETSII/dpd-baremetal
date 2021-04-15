@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!-- DPD -->
 <Graphs xmlns="" appname="dpd_simulator">
-  <GraphType id="dpd_perf_graph_type">
+  <GraphType id="dpd_exfil_graph_type">
 
     <Properties><![CDATA[
 float r_c;
@@ -15,11 +15,12 @@ float inv_sqrt_dt_normal; // Inverse sqrt of dt after 1000 timesteps
 float inv_sqrt_dt_early; // Inverse sqrt of dt for first 1000 timesteps
 float lambda; // Used in thermostat
 float cell_length; // Size of a cell in one dimension (All cells are cubes)
-// uint32_t emitperiod; // Frequency of the state being output to the host
+uint32_t emitperiod; // Frequency of the state being output to the host
 uint32_t start_timestep;
 uint32_t max_timestep; // Number of timesteps to simulate
 uint32_t cells_per_dimension; // Size of the simulation box in terms of cells (It's a cube (Default 3))
 uint32_t total_beads;
+
     ]]></Properties>
 
     <MessageTypes>
@@ -84,16 +85,25 @@ int8_t sync; // > 0  - Number of beads this cell has to send
 // 0 Bytes
       ]]></MessageType>
 
-      <!-- Message sent from cell to supervisor (host).
-      This identifies that the end timestep has been reached, and the timer
-      can be stopped.
+      <!-- Message sent from cell to supervisor (host) to emit data for
+           visualisation or analysis purposes.
+           Contains a bead and the sending cell's location.
+           Sync information is not needed, as soon as a cells emitted it'll get
+           going on the next state (update).
       -->
-      <MessageType id="end"><![CDATA[
-// 0 Bytes
+      <MessageType id="emit"><![CDATA[
+float bead_pos[3];
+float bead_vel[3];
+float bead_acc[3];
+uint16_t from[3];
+uint32_t timestep;
+uint32_t bead_id;
+uint8_t bead_type;
+// 51 bytes
       ]]></MessageType>
 
-       <!-- Message sent by cells when they have finished their timestep.
-       All cells will reach this state before they can move onto updating once again.
+       <!-- Message sent by cells when they have finished emitting their state
+            regardless of whether it contains any beads or not.
        -->
       <MessageType id="emit_complete"><![CDATA[
 // 0 Bytes
@@ -134,7 +144,7 @@ uint16_t migrate_loc[MAX_BEADS][3]; // Slots containing the destinations of wher
 
 // State for knowing where we are and what we're doing
 uint8_t mode; // The mode that this device is in.
-// uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+uint32_t emitcnt; // a counter to kept track of updates between emitting the state
 uint32_t timestep; // the current timestep that we are on
 
 // Variables for global random
@@ -212,7 +222,7 @@ typedef struct device_state {
 
     // State for knowing where we are and what we're doing
     uint8_t mode; // The mode that this device is in.
-    // uint32_t emitcnt; // a counter to kept track of updates between emitting the state
+    uint32_t emitcnt; // a counter to kept track of updates between emitting the state
     uint32_t timestep; // the current timestep that we are on
 
     // Variables for global random
@@ -365,62 +375,6 @@ uint16_t clear_slot(uint16_t bitmap, uint8_t pos);
 uint16_t set_slot(uint16_t bitmap, uint8_t pos);
 uint8_t get_next_free_slot(uint16_t bitmap);
 
-void local_calcs(uint8_t ci, void* state) {
-    device_state_t* s = static_cast<device_state_t*>(state);
-
-    // Sentslot shows the beads that this bead (ci) hasn't had its force
-    // calculated against yet.
-    uint16_t j = s->sentslot;
-
-    // Generate bead_t from target bead
-    bead_t a;
-    a.id     = s->bead_slot_id[ci];
-    a.type   = s->bead_slot_type[ci];
-    a.pos[0] = s->bead_slot_pos[ci][0];
-    a.pos[1] = s->bead_slot_pos[ci][1];
-    a.pos[2] = s->bead_slot_pos[ci][2];
-    a.vel[0] = s->bead_slot_vel[ci][0];
-    a.vel[1] = s->bead_slot_vel[ci][1];
-    a.vel[2] = s->bead_slot_vel[ci][2];
-    // We don't care about acceleration here
-
-    // While there are beads left
-    while(j) {
-        // Get one of the beads
-        uint8_t cj = get_next_slot(j);
-        // If they are not the same
-        if(ci != cj) {
-            // Generate bead_t from other bead
-            bead_t b;
-            b.id   = s->bead_slot_id[cj];
-            b.type = s->bead_slot_type[cj];
-            b.pos[0] = s->bead_slot_pos[cj][0];
-            b.pos[1] = s->bead_slot_pos[cj][1];
-            b.pos[2] = s->bead_slot_pos[cj][2];
-            b.vel[0] = s->bead_slot_vel[cj][0];
-            b.vel[1] = s->bead_slot_vel[cj][1];
-            b.vel[2] = s->bead_slot_vel[cj][2];
-            // We don't care about acceleration here
-
-            // Get force acting on this
-            float f[3] = {0, 0, 0};
-            force_update(&a, &b, f, s);
-
-            // Add this to the accumulated force for the bead to be sent.
-            s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
-            s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
-            s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
-
-            // Forces are equal and opposite so, subtract this from the
-            // accumulated for the bead not being sent this time.
-            s->force_slot[cj][0] = s->force_slot[cj][0] - f[0];
-            s->force_slot[cj][1] = s->force_slot[cj][1] - f[1];
-            s->force_slot[cj][2] = s->force_slot[cj][2] - f[2];
-      }
-      j = clear_slot(j, cj);
-    }
-}
-
 // used to help adjust the relative positions for the periodic boundary
 int period_bound_adj(int dim) {
     if(dim > 1) {
@@ -432,52 +386,48 @@ int period_bound_adj(int dim) {
     }
 }
 
-void neighbour_calcs(const uint32_t bead_id, const uint8_t bead_type, const float *bead_pos, const float *bead_vel, const uint16_t *from,  void* state, const void* properties) {
+void calc_bead_force_on_beads(const uint32_t bead_id, const uint8_t bead_type, const float *bead_pos, const float *bead_vel, uint16_t bead_map, void* state, int8_t local_slot_position = -1) {
     device_state_t *s = static_cast<device_state_t*>(state);
-    const device_properties_t *p = static_cast<const device_properties_t*>(properties);
 
-    bead_t b;
-    b.id = bead_id;
-    b.type = bead_type;
-    b.pos[0] = bead_pos[0];
-    b.pos[1] = bead_pos[1];
-    b.pos[2] = bead_pos[2];
-    b.vel[0] = bead_vel[0];
-    b.vel[1] = bead_vel[1];
-    b.vel[2] = bead_vel[2];
-
-    // From the device location get the adjustments to the bead positions
-    int8_t x_rel = period_bound_adj(from[0] - p->loc[0]);
-    int8_t y_rel = period_bound_adj(from[1] - p->loc[1]);
-    int8_t z_rel = period_bound_adj(from[2] - p->loc[2]);
-
-    // relative position for this particle to this device
-    b.pos[0] = b.pos[0] + x_rel;
-    b.pos[1] = b.pos[1] + y_rel;
-    b.pos[2] = b.pos[2] + z_rel;
+    bead_t acting_bead;
+    acting_bead.id = bead_id;
+    acting_bead.type = bead_type;
+    acting_bead.pos[0] = bead_pos[0];
+    acting_bead.pos[1] = bead_pos[1];
+    acting_bead.pos[2] = bead_pos[2];
+    acting_bead.vel[0] = bead_vel[0];
+    acting_bead.vel[1] = bead_vel[1];
+    acting_bead.vel[2] = bead_vel[2];
 
     // loop through the occupied bead slots -- update force
-    uint16_t i = s->bslot;
-    while(i) {
-        uint8_t ci = get_next_slot(i);
-        bead_t a;
-        a.id = s->bead_slot_id[ci];
-        a.type = s->bead_slot_type[ci];
-        a.pos[0] = s->bead_slot_pos[ci][0];
-        a.pos[1] = s->bead_slot_pos[ci][1];
-        a.pos[2] = s->bead_slot_pos[ci][2];
-        a.vel[0] = s->bead_slot_vel[ci][0];
-        a.vel[1] = s->bead_slot_vel[ci][1];
-        a.vel[2] = s->bead_slot_vel[ci][2];
+    while(bead_map) {
+        uint8_t ci = get_next_slot(bead_map);
+        bead_t local_bead;
+        local_bead.id = s->bead_slot_id[ci];
+        local_bead.type = s->bead_slot_type[ci];
+        local_bead.pos[0] = s->bead_slot_pos[ci][0];
+        local_bead.pos[1] = s->bead_slot_pos[ci][1];
+        local_bead.pos[2] = s->bead_slot_pos[ci][2];
+        local_bead.vel[0] = s->bead_slot_vel[ci][0];
+        local_bead.vel[1] = s->bead_slot_vel[ci][1];
+        local_bead.vel[2] = s->bead_slot_vel[ci][2];
 
         float f[3] = {0, 0, 0};
-        force_update(&a, &b, f, s);
+        force_update(&local_bead, &acting_bead, f, s);
 
         s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
         s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
         s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
 
-        i = clear_slot(i, ci);
+        // If its a local-local calculation, we only need to calculate this
+        // once as the force is opposite
+        if (local_slot_position >= 0) {
+            s->force_slot[local_slot_position][0] = s->force_slot[local_slot_position][0] - f[0];
+            s->force_slot[local_slot_position][1] = s->force_slot[local_slot_position][1] - f[1];
+            s->force_slot[local_slot_position][2] = s->force_slot[local_slot_position][2] - f[2];
+        }
+
+        bead_map = clear_slot(bead_map, ci);
     }
 }
 
@@ -668,25 +618,26 @@ void migration_complete(void* state) {
     // Add new beads to bead_slot and update bslot
     s->bslot = s->newBeadMap;
 
-//    if(s->emitcnt >= GraphProperties.emitperiod) {
-//        s->mode = EMIT;
-//        if (s->bslot) {
-//            // We want to emit any beads we have to the host
-//            s->sentslot = s->bslot;
-//            // *readyToSend = HostPin; // This is done in readyToSend handler
-//        } else {
-//            // We have no beads to emit so move to emit_complete
-//            s->mode = EMIT_COMPLETE;
-//            // *readyToSend = Pin(0); // This is done in readyToSend handler
-//        }
-//        s->emitcnt = 1;
-//    } else {
-//        // We're not emitting this timestep
-//        s->emitcnt++;
+    if(s->emitcnt >= GraphProperties.emitperiod) {
+        s->mode = EMIT;
+        if (s->bslot) {
+            // We want to emit any beads we have to the host
+            s->sentslot = s->bslot;
+            // *readyToSend = HostPin; // This is done in readyToSend handler
+        } else {
+            // We have no beads to emit so move to emit_complete
+            s->mode = EMIT_COMPLETE;
+            // *readyToSend = Pin(0); // This is done in readyToSend handler
+
+        }
+        s->emitcnt = 1;
+    } else {
+        // We're not emitting this timestep
+        s->emitcnt++;
         // Move into the emit_complete and tell neighbours so they know we're ready to move onto the next update
         s->mode = EMIT_COMPLETE;
         // *readyToSend = Pin(0); // This is done in readyToSend handler
-//    }
+    }
 }
 
 void emit_complete(void* state) {
@@ -796,7 +747,9 @@ uint8_t ci = get_next_slot(deviceState->sentslot);
 deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
 
 // Calculate the forces acting on this bead from beads we haven't sent yet
-local_calcs(ci, deviceState);
+calc_bead_force_on_beads(deviceState->bead_slot_id[ci], deviceState->bead_slot_type[ci], deviceState->bead_slot_pos[ci],
+                deviceState->bead_slot_vel[ci], deviceState->sentslot, deviceState, ci);
+
 
 // Place this cells location in the message so they can use it to adjust it's position
 message->from[0] = deviceProperties->loc[0];
@@ -848,8 +801,28 @@ if (message->sync == -1 || message->sync == 1) {
     deviceState->update_completes_received++;
 }
 
-neighbour_calcs(message->bead_id, message->bead_type, message->bead_pos,
-                message->bead_vel, message->from, deviceState, deviceProperties);
+bead_t acting_bead;
+acting_bead.id = message->bead_id;
+acting_bead.type = message->bead_type;
+acting_bead.pos[0] = message->bead_pos[0];
+acting_bead.pos[1] = message->bead_pos[1];
+acting_bead.pos[2] = message->bead_pos[2];
+acting_bead.vel[0] = message->bead_vel[0];
+acting_bead.vel[1] = message->bead_vel[1];
+acting_bead.vel[2] = message->bead_vel[2];
+
+// From the device location get the adjustments to the bead positions
+int8_t x_rel = period_bound_adj(message->from[0] - deviceProperties->loc[0]);
+int8_t y_rel = period_bound_adj(message->from[1] - deviceProperties->loc[1]);
+int8_t z_rel = period_bound_adj(message->from[2] - deviceProperties->loc[2]);
+
+// relative position for this particle to this device
+acting_bead.pos[0] = acting_bead.pos[0] + x_rel;
+acting_bead.pos[1] = acting_bead.pos[1] + y_rel;
+acting_bead.pos[2] = acting_bead.pos[2] + z_rel;
+
+calc_bead_force_on_beads(acting_bead.id, acting_bead.type, acting_bead.pos,
+                acting_bead.vel, deviceState->bslot, deviceState);
 
 deviceState->total_update_beads--;
 
@@ -1014,9 +987,7 @@ emit_complete(deviceState);
 
         <!-- This handler is invoked after a message is received, and after OnInit (if it returns nonzero).-->
         <ReadyToSend><![CDATA[
-if (deviceState->timestep == graphProperties->max_timestep) {
-    *readyToSend = RTS_SUPER_IMPLICIT_SEND_FLAG;
-} else if (deviceState->mode == UPDATE) {
+if (deviceState->mode == UPDATE) {
     *readyToSend = RTS_FLAG_update_send;
 } else if (deviceState->mode == UPDATE_COMPLETE) {
     if (deviceState->updates_sent != 2) {
@@ -1032,8 +1003,8 @@ if (deviceState->timestep == graphProperties->max_timestep) {
     } else {
         *readyToSend = 0;
     }
-//} else if (deviceState->mode == EMIT) {
-//    *readyToSend = RTS_SUPER_IMPLICIT_SEND_FLAG;
+} else if (deviceState->mode == EMIT) {
+    *readyToSend = RTS_SUPER_IMPLICIT_SEND_FLAG;
 } else if (deviceState->mode == EMIT_COMPLETE) {
     if (deviceState->emit_complete_sent != 2) {
         *readyToSend = RTS_FLAG_emit_complete_send;
@@ -1043,30 +1014,27 @@ if (deviceState->timestep == graphProperties->max_timestep) {
 }
         ]]></ReadyToSend>
 
-        <SupervisorOutPin messageTypeId="end">
+        <SupervisorOutPin messageTypeId="emit">
           <OnSend><![CDATA[
-//uint8_t ci = get_next_slot(deviceState->sentslot);
-//message->timestep = deviceState->timestep;
-//message->from[0] = deviceProperties->loc[0];
-//message->from[1] = deviceProperties->loc[1];
-//message->from[2] = deviceProperties->loc[2];
+uint8_t ci = get_next_slot(deviceState->sentslot);
+message->timestep = deviceState->timestep;
+message->from[0] = deviceProperties->loc[0];
+message->from[1] = deviceProperties->loc[1];
+message->from[2] = deviceProperties->loc[2];
 
-//message->bead_id = deviceState->bead_slot_id[ci];
-//message->bead_type = deviceState->bead_slot_type[ci];
-//message->bead_pos[0] = deviceState->bead_slot_pos[ci][0];
-//message->bead_pos[1] = deviceState->bead_slot_pos[ci][1];
-//message->bead_pos[2] = deviceState->bead_slot_pos[ci][2];
-//message->bead_vel[0] = deviceState->bead_slot_vel[ci][0];
-//message->bead_vel[1] = deviceState->bead_slot_vel[ci][1];
-//message->bead_vel[2] = deviceState->bead_slot_vel[ci][2];
+message->bead_id = deviceState->bead_slot_id[ci];
+message->bead_type = deviceState->bead_slot_type[ci];
+message->bead_pos[0] = deviceState->bead_slot_pos[ci][0];
+message->bead_pos[1] = deviceState->bead_slot_pos[ci][1];
+message->bead_pos[2] = deviceState->bead_slot_pos[ci][2];
+message->bead_vel[0] = deviceState->bead_slot_vel[ci][0];
+message->bead_vel[1] = deviceState->bead_slot_vel[ci][1];
+message->bead_vel[2] = deviceState->bead_slot_vel[ci][2];
 
-//deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
-//if (!deviceState->sentslot) {
-//    deviceState->mode = EMIT_COMPLETE;
-//}
-
-deviceState->mode = END; // Move into END to stop the cell
-deviceState->timestep++; // This will stop the cell from sending again
+deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
+if (!deviceState->sentslot) {
+    deviceState->mode = EMIT_COMPLETE;
+}
 
           ]]></OnSend>
         </SupervisorOutPin>

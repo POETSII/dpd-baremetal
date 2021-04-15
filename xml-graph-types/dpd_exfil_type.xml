@@ -375,62 +375,6 @@ uint16_t clear_slot(uint16_t bitmap, uint8_t pos);
 uint16_t set_slot(uint16_t bitmap, uint8_t pos);
 uint8_t get_next_free_slot(uint16_t bitmap);
 
-void local_calcs(uint8_t ci, void* state) {
-    device_state_t* s = static_cast<device_state_t*>(state);
-
-    // Sentslot shows the beads that this bead (ci) hasn't had its force
-    // calculated against yet.
-    uint16_t j = s->sentslot;
-
-    // Generate bead_t from target bead
-    bead_t a;
-    a.id     = s->bead_slot_id[ci];
-    a.type   = s->bead_slot_type[ci];
-    a.pos[0] = s->bead_slot_pos[ci][0];
-    a.pos[1] = s->bead_slot_pos[ci][1];
-    a.pos[2] = s->bead_slot_pos[ci][2];
-    a.vel[0] = s->bead_slot_vel[ci][0];
-    a.vel[1] = s->bead_slot_vel[ci][1];
-    a.vel[2] = s->bead_slot_vel[ci][2];
-    // We don't care about acceleration here
-
-    // While there are beads left
-    while(j) {
-        // Get one of the beads
-        uint8_t cj = get_next_slot(j);
-        // If they are not the same
-        if(ci != cj) {
-            // Generate bead_t from other bead
-            bead_t b;
-            b.id   = s->bead_slot_id[cj];
-            b.type = s->bead_slot_type[cj];
-            b.pos[0] = s->bead_slot_pos[cj][0];
-            b.pos[1] = s->bead_slot_pos[cj][1];
-            b.pos[2] = s->bead_slot_pos[cj][2];
-            b.vel[0] = s->bead_slot_vel[cj][0];
-            b.vel[1] = s->bead_slot_vel[cj][1];
-            b.vel[2] = s->bead_slot_vel[cj][2];
-            // We don't care about acceleration here
-
-            // Get force acting on this
-            float f[3] = {0, 0, 0};
-            force_update(&a, &b, f, s);
-
-            // Add this to the accumulated force for the bead to be sent.
-            s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
-            s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
-            s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
-
-            // Forces are equal and opposite so, subtract this from the
-            // accumulated for the bead not being sent this time.
-            s->force_slot[cj][0] = s->force_slot[cj][0] - f[0];
-            s->force_slot[cj][1] = s->force_slot[cj][1] - f[1];
-            s->force_slot[cj][2] = s->force_slot[cj][2] - f[2];
-      }
-      j = clear_slot(j, cj);
-    }
-}
-
 // used to help adjust the relative positions for the periodic boundary
 int period_bound_adj(int dim) {
     if(dim > 1) {
@@ -442,52 +386,48 @@ int period_bound_adj(int dim) {
     }
 }
 
-void neighbour_calcs(const uint32_t bead_id, const uint8_t bead_type, const float *bead_pos, const float *bead_vel, const uint16_t *from,  void* state, const void* properties) {
+void calc_bead_force_on_beads(const uint32_t bead_id, const uint8_t bead_type, const float *bead_pos, const float *bead_vel, uint16_t bead_map, void* state, int8_t local_slot_position = -1) {
     device_state_t *s = static_cast<device_state_t*>(state);
-    const device_properties_t *p = static_cast<const device_properties_t*>(properties);
 
-    bead_t b;
-    b.id = bead_id;
-    b.type = bead_type;
-    b.pos[0] = bead_pos[0];
-    b.pos[1] = bead_pos[1];
-    b.pos[2] = bead_pos[2];
-    b.vel[0] = bead_vel[0];
-    b.vel[1] = bead_vel[1];
-    b.vel[2] = bead_vel[2];
-
-    // From the device location get the adjustments to the bead positions
-    int8_t x_rel = period_bound_adj(from[0] - p->loc[0]);
-    int8_t y_rel = period_bound_adj(from[1] - p->loc[1]);
-    int8_t z_rel = period_bound_adj(from[2] - p->loc[2]);
-
-    // relative position for this particle to this device
-    b.pos[0] = b.pos[0] + x_rel;
-    b.pos[1] = b.pos[1] + y_rel;
-    b.pos[2] = b.pos[2] + z_rel;
+    bead_t acting_bead;
+    acting_bead.id = bead_id;
+    acting_bead.type = bead_type;
+    acting_bead.pos[0] = bead_pos[0];
+    acting_bead.pos[1] = bead_pos[1];
+    acting_bead.pos[2] = bead_pos[2];
+    acting_bead.vel[0] = bead_vel[0];
+    acting_bead.vel[1] = bead_vel[1];
+    acting_bead.vel[2] = bead_vel[2];
 
     // loop through the occupied bead slots -- update force
-    uint16_t i = s->bslot;
-    while(i) {
-        uint8_t ci = get_next_slot(i);
-        bead_t a;
-        a.id = s->bead_slot_id[ci];
-        a.type = s->bead_slot_type[ci];
-        a.pos[0] = s->bead_slot_pos[ci][0];
-        a.pos[1] = s->bead_slot_pos[ci][1];
-        a.pos[2] = s->bead_slot_pos[ci][2];
-        a.vel[0] = s->bead_slot_vel[ci][0];
-        a.vel[1] = s->bead_slot_vel[ci][1];
-        a.vel[2] = s->bead_slot_vel[ci][2];
+    while(bead_map) {
+        uint8_t ci = get_next_slot(bead_map);
+        bead_t local_bead;
+        local_bead.id = s->bead_slot_id[ci];
+        local_bead.type = s->bead_slot_type[ci];
+        local_bead.pos[0] = s->bead_slot_pos[ci][0];
+        local_bead.pos[1] = s->bead_slot_pos[ci][1];
+        local_bead.pos[2] = s->bead_slot_pos[ci][2];
+        local_bead.vel[0] = s->bead_slot_vel[ci][0];
+        local_bead.vel[1] = s->bead_slot_vel[ci][1];
+        local_bead.vel[2] = s->bead_slot_vel[ci][2];
 
         float f[3] = {0, 0, 0};
-        force_update(&a, &b, f, s);
+        force_update(&local_bead, &acting_bead, f, s);
 
         s->force_slot[ci][0] = s->force_slot[ci][0] + f[0];
         s->force_slot[ci][1] = s->force_slot[ci][1] + f[1];
         s->force_slot[ci][2] = s->force_slot[ci][2] + f[2];
 
-        i = clear_slot(i, ci);
+        // If its a local-local calculation, we only need to calculate this
+        // once as the force is opposite
+        if (local_slot_position >= 0) {
+            s->force_slot[local_slot_position][0] = s->force_slot[local_slot_position][0] - f[0];
+            s->force_slot[local_slot_position][1] = s->force_slot[local_slot_position][1] - f[1];
+            s->force_slot[local_slot_position][2] = s->force_slot[local_slot_position][2] - f[2];
+        }
+
+        bead_map = clear_slot(bead_map, ci);
     }
 }
 
@@ -807,7 +747,9 @@ uint8_t ci = get_next_slot(deviceState->sentslot);
 deviceState->sentslot = clear_slot(deviceState->sentslot, ci);
 
 // Calculate the forces acting on this bead from beads we haven't sent yet
-local_calcs(ci, deviceState);
+calc_bead_force_on_beads(deviceState->bead_slot_id[ci], deviceState->bead_slot_type[ci], deviceState->bead_slot_pos[ci],
+                deviceState->bead_slot_vel[ci], deviceState->sentslot, deviceState, ci);
+
 
 // Place this cells location in the message so they can use it to adjust it's position
 message->from[0] = deviceProperties->loc[0];
@@ -859,8 +801,28 @@ if (message->sync == -1 || message->sync == 1) {
     deviceState->update_completes_received++;
 }
 
-neighbour_calcs(message->bead_id, message->bead_type, message->bead_pos,
-                message->bead_vel, message->from, deviceState, deviceProperties);
+bead_t acting_bead;
+acting_bead.id = message->bead_id;
+acting_bead.type = message->bead_type;
+acting_bead.pos[0] = message->bead_pos[0];
+acting_bead.pos[1] = message->bead_pos[1];
+acting_bead.pos[2] = message->bead_pos[2];
+acting_bead.vel[0] = message->bead_vel[0];
+acting_bead.vel[1] = message->bead_vel[1];
+acting_bead.vel[2] = message->bead_vel[2];
+
+// From the device location get the adjustments to the bead positions
+int8_t x_rel = period_bound_adj(message->from[0] - deviceProperties->loc[0]);
+int8_t y_rel = period_bound_adj(message->from[1] - deviceProperties->loc[1]);
+int8_t z_rel = period_bound_adj(message->from[2] - deviceProperties->loc[2]);
+
+// relative position for this particle to this device
+acting_bead.pos[0] = acting_bead.pos[0] + x_rel;
+acting_bead.pos[1] = acting_bead.pos[1] + y_rel;
+acting_bead.pos[2] = acting_bead.pos[2] + z_rel;
+
+calc_bead_force_on_beads(acting_bead.id, acting_bead.type, acting_bead.pos,
+                acting_bead.vel, deviceState->bslot, deviceState);
 
 deviceState->total_update_beads--;
 
