@@ -27,7 +27,7 @@ void print_help() {
     std::cerr << "                        - Removes state exfiltration and ensures that it self-terminates\n";
     std::cerr << "                          reporting the wallclock runtime.\n";
     std::cerr << "\n";
-    std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
+    std::cerr << "time t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
     std::cerr << "\n";
     std::cerr << "help                    - Optional. Print this help information\n";
