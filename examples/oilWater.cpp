@@ -27,8 +27,15 @@ void print_help() {
     std::cerr << "                        - Removes state exfiltration and ensures that it self-terminates";
     std::cerr << "                          reporting the wallclock runtime.\n";
     std::cerr << "\n";
-    std::cerr << "time=t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
+    std::cerr << "time t                  - Optional integer. The number of timesteps for this sumulation to run for.\n";
     std::cerr << "                        - If not provided, a default of 10000 will be used\n";
+    std::cerr << "\n";
+    std::cerr << "boxes-x x               - Optional integer. The number of POETS Boxes to use in the X dimension.\n";
+    std::cerr << "                        - The maximum currently is 2\n";
+    std::cerr << "                        - If not provided, a default of 1 will be used\n";
+    std::cerr << "boxes-y y               - Optional integer. The number of POETS Boxes to use in the Y dimension.\n";
+    std::cerr << "                        - The maximum currently is 4\n";
+    std::cerr << "                        - If not provided, a default of 1 will be used\n";
     std::cerr << "\n";
     std::cerr << "help                    - Optional. Print this help information\n";
 }
@@ -78,18 +85,25 @@ int main(int argc, char *argv[]) {
     uint32_t max_time = 10000;
     bool timed = false;
 
+    uint32_t boxes_x = 1;
+    uint32_t boxes_y = 1;
+
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-' && argv[i][1] == '-') {
             std::string arg(argv[i]);
             if (arg == "--help") {
                 print_help();
                 return(0);
-            } else if (boost::contains(arg, "--timed")) {
-                timed = true;
             } else if (boost::contains(arg, "--time")) {
                 max_time = std::stoi(argv[i+1]);
                 i++;
-            }else {
+            } else if (boost::contains(arg, "--boxes-x")) {
+                boxes_x = std::stoi(argv[i+1]);
+                i++;
+            } else if (boost::contains(arg, "--boxes-y")) {
+                boxes_y = std::stoi(argv[i+1]);
+                i++;
+            } else {
                 std::cerr << "Unrecognised argument: " << arg << "\n";
                 return 1;
             }
@@ -109,7 +123,7 @@ int main(int argc, char *argv[]) {
     printf("Generating a DPD XML\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    POLiteSimulator simulator(problem_size, N, 0, max_time, 1, 1);
+    POLiteSimulator simulator(problem_size, N, 0, max_time, boxes_x, boxes_y);
     POLiteVolume *volume = simulator.get_volume();
 
     printf("Volume setup -- adding beads\n");
