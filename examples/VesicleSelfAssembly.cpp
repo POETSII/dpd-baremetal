@@ -1,25 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <assert.h>
 #include <sys/time.h>
-#include <HostLink.h>
-#ifndef SERIAL
-#include "POLiteSimulator.hpp"
-#endif
-#ifdef GALS
-#include "gals.h"
-#elif defined(SERIAL)
-#include "serial.hpp"
-#include "SerialDPDSimulator.hpp"
-#else
-#include "sync.h"
-#endif
-#include <map>
 #include <math.h>
 #include <random>
 
 #include <boost/algorithm/string.hpp>
+
+#include "POLiteSimulator.hpp"
 
 #ifndef BONDS
   float bond_r0 = 0.3;
