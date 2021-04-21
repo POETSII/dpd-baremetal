@@ -20,7 +20,8 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POLITE_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/Simulator.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POLITE_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLiteCells.o \
+              $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/Simulator.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -912,6 +913,20 @@ timed-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/
 
 timed-gals-vesicle-fastest-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
 timed-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+
+visual-gals-vesicle-fastest: DFLAGS=-DVISUAL -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+visual-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+
+visual-gals-vesicle-fastest-dram: DFLAGS=-DVISUAL -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
+visual-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+
+stats-gals-vesicle-fastest: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+stats-gals-vesicle-fastest: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+stats-gals-vesicle-fastest: clean-tinsel clean $(TINSEL_LIB)/lib.o base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+
+stats-gals-vesicle-fastest-dram: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
+stats-gals-vesicle-fastest-dram: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+stats-gals-vesicle-fastest-dram: clean-tinsel clean $(TINSEL_LIB)/lib.o base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
 visual-vesicle: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
 visual-vesicle: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
