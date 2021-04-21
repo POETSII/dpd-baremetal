@@ -924,7 +924,7 @@ stats-gals-vesicle-fastest: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DONE_BY_ONE -
 stats-gals-vesicle-fastest: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
 stats-gals-vesicle-fastest: clean-tinsel clean $(TINSEL_LIB)/lib.o base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
-stats-gals-vesicle-fastest-dram: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
+stats-gals-vesicle-fastest-dram: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
 stats-gals-vesicle-fastest-dram: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
 stats-gals-vesicle-fastest-dram: clean-tinsel clean $(TINSEL_LIB)/lib.o base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
