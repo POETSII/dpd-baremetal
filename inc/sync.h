@@ -313,11 +313,38 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	        } else {
                 *readyToSend = No;
             #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
-              #ifdef SMALL_DT_EARLY
-                local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-              #else
-                local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-              #endif
+                #ifdef SMALL_DT_EARLY
+                  #ifdef REDUCE_LOCAL_CALCS
+                    // Pass in a beadmap containing only the beads which have yet to be sent.
+                    // They will have the resulting force subtracted from their accumulated force
+                    // This should reduce the number of calls to force_update for local bead interactions
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
+                   #endif
+                  #else
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, s->inv_sqrt_dt, s->bslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
+                   #endif
+                  #endif
+                #else
+                  #ifdef REDUCE_LOCAL_CALCS
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, inv_sqrt_dt, s->sentslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
+                   #endif
+                  #else
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(inv_sqrt_dt, s->bslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
+                   #endif
+                  #endif
+                #endif
             #endif
 	        }
         #else
@@ -325,11 +352,38 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = No; // No more beads to send
                 msg->type = 0xBC; // 0xBC represents this is my last bead.
             #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
-              #ifdef SMALL_DT_EARLY
-                local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-              #else
-                local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-              #endif
+                #ifdef SMALL_DT_EARLY
+                  #ifdef REDUCE_LOCAL_CALCS
+                    // Pass in a beadmap containing only the beads which have yet to be sent.
+                    // They will have the resulting force subtracted from their accumulated force
+                    // This should reduce the number of calls to force_update for local bead interactions
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
+                   #endif
+                  #else
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, s->inv_sqrt_dt, s->bslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
+                   #endif
+                  #endif
+                #else
+                  #ifdef REDUCE_LOCAL_CALCS
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, inv_sqrt_dt, s->sentslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
+                   #endif
+                  #else
+                   #ifndef SINGLE_FORCE_LOOP
+                    local_calcs(ci, inv_sqrt_dt, s->bslot, s);
+                   #else
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
+                   #endif
+                  #endif
+                #endif
             #endif
             } else if (s->msgs_to_recv <= 0 || s->nbs_complete == NEIGHBOURS) {
                 *readyToSend = Pin(0); // We have beads to send, and we've received a round of messages from all neighbours
