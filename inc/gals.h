@@ -85,17 +85,9 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
         while(i){
             uint8_t ci = get_next_slot(i);
 
-          #ifdef SMALL_DT_EARLY
-            velocity_Verlet(ci, s->dt, s);
-          #else
-            velocity_Verlet(ci, dt, s);
-          #endif
+            velocity_Verlet(ci, s);
 
-          #ifdef SMALL_DT_EARLY
-            migration(ci, s->dt, s);
-          #else
-            migration(ci, dt, s);
-          #endif
+            migration(ci, s);
 
             i = clear_slot(i, ci);
         }
