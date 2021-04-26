@@ -62,7 +62,7 @@ inline uint32_t p_rand(uint64_t *rngstate) {
     return x^c;
 }
 
-inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const ptype inv_sqrt_dt, DPDState *s) {
+inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, DPDState *s) {
 
     ptype r_ij_dist_sq = a->pos.sq_dist(b->pos);
 
@@ -135,7 +135,12 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const ptype inv_sqrt_d
         r = (test/2 - r);
 
         // random force
+      #ifndef SMALL_DT_EARLY
         ptype ran = sigma_ij * inv_sqrt_dt * r * w_r;
+      #else
+        ptype ran = sigma_ij * s->inv_sqrt_dt * r * w_r;
+      #endif
+
     #else
         ptype ran = 0;
     #endif
@@ -145,13 +150,17 @@ inline Vector3D<ptype> force_update(bead_t *a, bead_t *b, const ptype inv_sqrt_d
 }
 
 #ifdef BETTER_VERLET
-inline void update_velocity(uint8_t bead_index, const ptype dt, DPDState *s) {
+inline void update_velocity(uint8_t bead_index, DPDState *s) {
     // Update intermediate velocity - If a bead migrates, this is done when received
+  #ifndef SMALL_DT_EARLY
     s->bead_slot[bead_index].velo = s->old_velo[bead_index] + s->bead_slot[bead_index].acc * lambda * dt;
+  #else
+    s->bead_slot[bead_index].velo = s->old_velo[bead_index] + s->bead_slot[bead_index].acc * lambda * s->dt;
+  #endif
 }
 #endif
 
-inline void velocity_Verlet(uint8_t bead_index, const ptype dt, DPDState *s) {
+inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
 
 #ifndef FLOAT_ONLY
     Vector3D<ptype> force = s->force_slot[bead_index].fixedToFloat();
@@ -191,7 +200,7 @@ inline void velocity_Verlet(uint8_t bead_index, const ptype dt, DPDState *s) {
 #endif
 }
 
-inline bool migration(const uint8_t bead_index, const ptype dt, DPDState *s) {
+inline bool migration(const uint8_t bead_index, DPDState *s) {
 
     bool migrating = false; // flag that says whether this particle needs to migrate
     cell_t d_loc; // the potential destination for this bead
@@ -264,7 +273,7 @@ inline bool migration(const uint8_t bead_index, const ptype dt, DPDState *s) {
         s->migrate_loc[bead_index] = d_loc; // set the destination
 #ifdef BETTER_VERLET
     } else {
-        update_velocity(bead_index, dt, s);
+        update_velocity(bead_index, s);
     }
 #else
     }
@@ -274,9 +283,9 @@ inline bool migration(const uint8_t bead_index, const ptype dt, DPDState *s) {
 
 #ifndef SINGLE_FORCE_LOOP
 #ifdef ONE_BY_ONE
-inline void local_calcs(uint8_t ci, const ptype inv_sqrt_dt, const uint16_t bslot, DPDState *s) {
+inline void local_calcs(uint8_t ci, const uint16_t bslot, DPDState *s) {
 #else
-inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, DPDState *s) {
+inline void local_calcs(const uint16_t bslot, DPDState *s) {
 
         uint16_t i = bslot;
         while (i) {
@@ -288,7 +297,7 @@ inline void local_calcs(const ptype inv_sqrt_dt, const uint16_t bslot, DPDState 
                 if(ci != cj) {
 
                 #ifndef ACCELERATE
-                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj], inv_sqrt_dt, s);
+                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj], s);
                 #else
                     return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
                                                     s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),
@@ -343,9 +352,9 @@ inline bead_t get_relative_bead(const bead_t *in, const cell_t *this_cell, const
 
 #ifdef SINGLE_FORCE_LOOP
  #ifdef REDUCE_LOCAL_CALCS
-inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, float inv_sqrt_dt, DPDState *s, int8_t local_slot_position = -1) {
+inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, DPDState *s, int8_t local_slot_position = -1) {
  #else
-inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, float inv_sqrt_dt, DPDState *s) {
+inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, DPDState *s) {
  #endif
     uint16_t i = bslot;
     while(i) {
@@ -355,7 +364,7 @@ inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, 
       #endif
 
         #ifndef ACCELERATE
-            Vector3D<ptype> f = force_update(&s->bead_slot[ci], acting_bead, inv_sqrt_dt, s);
+            Vector3D<ptype> f = force_update(&s->bead_slot[ci], acting_bead, s);
         #else
             return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
                                             s->bead_slot[cj].pos.x(), s->bead_slot[cj].pos.y(), s->bead_slot[cj].pos.z(),

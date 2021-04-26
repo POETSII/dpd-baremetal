@@ -248,37 +248,18 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             s->sentslot = clear_slot(s->sentslot, ci);
 
     #ifdef ONE_BY_ONE
-        #ifdef SMALL_DT_EARLY
-          #ifdef REDUCE_LOCAL_CALCS
-            // Pass in a beadmap containing only the beads which have yet to be sent.
-            // They will have the resulting force subtracted from their accumulated force
-            // This should reduce the number of calls to force_update for local bead interactions
+        #ifdef REDUCE_LOCAL_CALCS
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s);
+            local_calcs(ci, s->sentslot, s);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s, ci);
            #endif
-          #else
-           #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, s->inv_sqrt_dt, s->bslot, s);
-           #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
-           #endif
-          #endif
         #else
-          #ifdef REDUCE_LOCAL_CALCS
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, inv_sqrt_dt, s->sentslot, s);
+            local_calcs(ci, s->bslot, s);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s);
            #endif
-          #else
-           #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, inv_sqrt_dt, s->bslot, s);
-           #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
-           #endif
-          #endif
         #endif
     #endif
 	        // Send this bead to all neighbours
@@ -498,12 +479,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         if(s->bead_slot[ci].id != b.id) {
                     #endif
                         #ifndef ACCELERATE
-                      #ifdef SMALL_DT_EARLY
-                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, s->inv_sqrt_dt, s);
-                      #else
-                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, inv_sqrt_dt, s);
-                      #endif
-
+                            Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, s);
                         #else
                             return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
                                                              b.pos.x(), b.pos.y(), b.pos.z(),
