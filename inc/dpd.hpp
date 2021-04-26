@@ -286,10 +286,12 @@ inline bool migration(const uint8_t bead_index, DPDState *s) {
     return migrating;
 }
 
-#ifndef SINGLE_FORCE_LOOP
+#if !defined(SINGLE_FORCE_LOOP) && !defined(SEND_TO_SELF)
+// Single force loop has its own local calcs
+// Send to self performs local calculations when receiving a local bead like any neighbour bead
 #ifdef ONE_BY_ONE
 inline void local_calcs(uint8_t ci, const uint16_t bslot, DPDState *s) {
-#else
+#else // LOCAL CALCS ARE PERFORMED IN STEP()
 inline void local_calcs(const uint16_t bslot, DPDState *s) {
 
         uint16_t i = bslot;
