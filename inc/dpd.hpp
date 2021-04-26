@@ -290,18 +290,37 @@ inline bool migration(const uint8_t bead_index, DPDState *s) {
 // Single force loop has its own local calcs
 // Send to self performs local calculations when receiving a local bead like any neighbour bead
 #ifdef ONE_BY_ONE
-inline void local_calcs(uint8_t ci, const uint16_t bslot, DPDState *s) {
-#else // LOCAL CALCS ARE PERFORMED IN STEP()
-inline void local_calcs(const uint16_t bslot, DPDState *s) {
+// We're interested in the forces from one bead
+inline void local_calcs(uint8_t ci, const uint16_t calc_map, DPDState *s) {
+#else
+// Local calcs are performed in step after the update mode. At this point we
+// want to (outer) loop through every bead and get the force acting on every
+// other (inner) local bead.
+inline void local_calcs(DPDState *s) {
 
-        uint16_t i = bslot;
-        while (i) {
-            uint8_t ci = get_next_slot(i);
+        uint16_t all_bead_map = s->bslot;
+        // Get all the beads this cell has
+        uint16_t i = all_bead_map;
+        while (i) { // While we are looping through these beads
+            uint8_t ci = get_next_slot(i); // Get the index of the next bead
+
+        #ifdef REDUCE_LOCAL_CALCS
+            // Clear the slot, and then we perform calculations only on beads
+            // later in the map, and subtract the force from one bead, adding
+            // it to the other
+            uint16_t calc_map = clear_slot(i, ci);
+        #else
+            // This will be all the beads not yet calculated, including ci.
+            // We will loop through all of them finding ci's force on them.
+            uint16_t calc_map = all_bead_map;
+        #endif
 #endif
-            uint16_t j = bslot;
+            uint16_t j = calc_map;
             while(j) {
                 uint8_t cj = get_next_slot(j);
+              #ifndef REDUCE_LOCAL_CALCS
                 if(ci != cj) {
+              #endif
 
                 #ifndef ACCELERATE
                     Vector3D<ptype> f = force_update(&s->bead_slot[ci], &s->bead_slot[cj], s);
@@ -328,7 +347,10 @@ inline void local_calcs(const uint16_t bslot, DPDState *s) {
                     s->force_slot[cj] = s->force_slot[cj] - f;
                   #endif
                 #endif
+              #ifndef REDUCE_LOCAL_CALCS
                 }
+              #endif
+
                 j = clear_slot(j, cj);
             }
     #ifndef ONE_BY_ONE

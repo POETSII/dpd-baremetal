@@ -5,24 +5,24 @@
 // and so can add traces and debugging to determine any issues with the POETS
 // DPD code.
 
-#include "serial.hpp"
+#include "SerialSimulator.hpp"
 
 /************** Setup functions ***************/
 // Create a new cell
 // Return the ID of this cell
-PDeviceId SerialSim::newCell() {
+PDeviceId SerialSimulator::newCell() {
     DPDState s;
     _cells.push_back(s);
     return _num_cells++;
 }
 
 // Get a pointer to a cell
-DPDState* SerialSim::getCell(PDeviceId id) {
+DPDState* SerialSimulator::getCell(PDeviceId id) {
     return &_cells.at(id);
 }
 
 // Add cell b as a neighbour to cell a
-void SerialSim::addEdge(PDeviceId a, PDeviceId b) {
+void SerialSimulator::addEdge(PDeviceId a, PDeviceId b) {
     // Get cell a's state
     DPDState *state_a = getCell(a);
     // In the next array slot put cell b's ID
@@ -31,38 +31,34 @@ void SerialSim::addEdge(PDeviceId a, PDeviceId b) {
 }
 
 // Set the start timestep
-void SerialSim::setTimestep(uint32_t timestep) {
+void SerialSimulator::setTimestep(uint32_t timestep) {
     _timestep = timestep;
 }
 
 // Set the max timestep
-void SerialSim::setMaxTimestep(uint32_t maxTimestep) {
+void SerialSimulator::setMaxTimestep(uint32_t maxTimestep) {
     _max_timestep = maxTimestep;
 }
 
 // Set the cell size
-void SerialSim::setCellsPerDimension(uint32_t cells_per_dimension) {
+void SerialSimulator::setCellsPerDimension(uint32_t cells_per_dimension) {
     _cells_per_dimension = cells_per_dimension;
 }
 
-void SerialSim::setCellLength(ptype cell_length) {
-    _cell_length = cell_length;
-}
-
-void SerialSim::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {
+void SerialSimulator::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {
     _queue = queue;
 }
 
 /************** DPD Functions ***************/
 // Initialise each cell
-void SerialSim::init(DPDState *s) {
+void SerialSimulator::init(DPDState *s) {
     // Generate first global random number
     s->grand = p_rand(&s->rngstate);
     s->grand = p_rand(&s->rngstate);
 }
 
 // Calculate forces of neighbour cell's beads acting on this cells beads
-void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
+void SerialSimulator::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
     // Get the local bead map
     uint16_t i = local_state->bslot;
     // For each local bead calculate its interaction with neighbouring beads
@@ -92,11 +88,7 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
             b.pos.y(b.pos.y() + ptype(y_rel));
             b.pos.z(b.pos.z() + ptype(z_rel));
             // Calculate the forces acting on the local bead
-          #ifdef SMALL_DT_EARLY
-            Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, local_state->inv_sqrt_dt);
-          #else
-            Vector3D<ptype> f = force_update(local_bead, b, local_state->grand, inv_sqrt_dt);
-          #endif
+            Vector3D<ptype> f = force_update(local_bead, &b, local_state);
             // Convert this force to fixed point to make it deterministic
         #ifndef FLOAT_ONLY
             Vector3D<int32_t> x = f.floatToFixed();
@@ -113,7 +105,7 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
     }
 }
 
-void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId *neighbours) {
+void SerialSimulator::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId *neighbours) {
     // Find which neighbour this is going to
     for (uint8_t i = 0; i < NEIGHBOURS; i++) {
         // Get the neighbour state
@@ -145,11 +137,7 @@ void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, co
             // Store old velocity
             n_s->old_velo[ni].set(migrating_bead->velo.x(), migrating_bead->velo.y(), migrating_bead->velo.z());
             // Update velocity
-          #ifndef SMALL_DT_EARLY
-            update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], dt);
-          #else
-            update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], n_s->dt);
-          #endif
+            update_velocity(ni, n_s);
         #endif
             // We've migrated the bead, no need to keep looping
             return;
@@ -158,19 +146,19 @@ void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, co
 }
 /************** Runtime functions ***************/
 // Send a message from the thread to the host
-void SerialSim::sendMessage(DPDMessage *msg) {
+void SerialSimulator::sendMessage(DPDMessage *msg) {
     while (!_queue->try_enqueue(*msg)) { };
 }
 
 // Host receive a message from the thread
-DPDMessage SerialSim::receiveMessage() {
+DPDMessage SerialSimulator::receiveMessage() {
     DPDMessage msg;
     while (!_queue->try_dequeue(msg)) { };
     return msg;
 }
 
 // Run the simulator
-void SerialSim::run() {
+void SerialSimulator::run() {
     // Initialise the system
     for (uint32_t c = 0; c < _cells.size(); c++) {
         DPDState *s = getCell(c);
@@ -183,12 +171,35 @@ void SerialSim::run() {
         // For each cell
         for (uint32_t c = 0; c < _cells.size(); c++) {
             DPDState *s = getCell(c);
-            // Calculate forces of beads within this cell
-          #ifdef SMALL_DT_EARLY
-            local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-          #else
-            local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-          #endif
+
+        uint16_t bead_map = s->bslot; //All the beads in this cell
+        while(bead_map) {
+            // The bead (index) we want to calculate forces on
+            uint8_t ci = get_next_slot(bead_map);
+
+        #ifdef REDUCE_LOCAL_CALCS
+            // Clear ci from the bead map, store it in another variable.
+            // This variable now holds all the beads that haven't had their
+            // force calculated yet, but forces are equal and opposite so we
+            // can add the force to all beads in calc_map and subtract the
+            // forces from ci.
+            uint16_t calc_map = clear_slot(bead_map, ci);
+           #ifndef SINGLE_FORCE_LOOP
+            local_calcs(ci, calc_map, s);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], calc_map, s, ci);
+           #endif
+        #else
+           #ifndef SINGLE_FORCE_LOOP
+            local_calcs(ci, bead_map, s);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], bead_map, s);
+           #endif
+        #endif
+
+            bead_map = clear_slot(bead_map, ci);
+        }
+
 
             // Calculate forces acting on beads in this cell from beads in
             // neighbouring cells
@@ -241,26 +252,10 @@ void SerialSim::run() {
                 uint8_t ci = get_next_slot(i);
                 // Perform velocity Verlet on this bead to update its
                 // velocity, position and acceleration
-            #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt);
-            #elif defined(SMALL_DT_EARLY)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], s->dt);
-            #elif defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], dt);
-            #else
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], dt);
-            #endif
+                velocity_Verlet(ci, s);
 
                 // Now check if ant beads are migrating, and state this in the migrateslot
-            #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci]);
-            #elif defined(SMALL_DT_EARLY)
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], s->dt);
-            #elif defined(BETTER_VERLET)
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci]);
-            #else
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], dt);
-            #endif
+                migration(ci, s);
 
                 // Clear this bead from the temporary bead map
                 i = clear_slot(i, ci);

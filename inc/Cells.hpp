@@ -17,7 +17,7 @@
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
-#include "serial.hpp"
+#include "SerialSimulator.hpp"
 #elif defined(RDF)
 #else
 #include "sync.h"

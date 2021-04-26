@@ -1,6 +1,12 @@
 
 #include "Vector3D.hpp"
 #include "BeadMap.hpp"
+#include "POLite.h"
+
+// Number of neighbours
+// If we change this to implement more of POLites operation it will come in
+// handy to allow this to be defined as different values.
+const uint8_t NEIGHBOURS = 26;
 
 typedef float ptype;
 
@@ -117,6 +123,9 @@ struct DPDMessage {
 }; // 40 Bytes - 52 Bytes with BETTER_VERLET
 
 struct DPDState {
+    float cell_length = 1.0; // Length of a cell in each dimension
+    uint8_t cells_per_dimension = 3; // Length of each dimension of the volume in cells.
+
     PDeviceId neighbours[NEIGHBOURS]; // Holds a list of the neighbours of this cell
     uint8_t num_neighbours = 0; // Holds how many neighbours this cell currently has
     cell_t loc; // the location of this cube

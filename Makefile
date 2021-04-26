@@ -141,10 +141,10 @@ $(DPD_BIN)/gals.elf: $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/gals.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
 # ----------------- Serial simulator ------------------------------
-$(DPD_BIN)/serial.o: DFLAGS+=-DSERIAL
-$(DPD_BIN)/serial.o: $(DPD_SRC)/serial.cpp $(DPD_INC)/serial.hpp
+$(DPD_BIN)/SerialSimulator.o: DFLAGS+=-DSERIAL
+$(DPD_BIN)/SerialSimulator.o: $(DPD_SRC)/SerialSimulator.cpp $(DPD_INC)/SerialSimulator.hpp
 	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/serial.o $(DPD_SRC)/serial.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/SerialSimulator.o $(DPD_SRC)/SerialSimulator.cpp
 
 # Base GALS recipe which is used by all GALS recipes
 # Improved gals and one by one make the best version of GALS
@@ -942,8 +942,8 @@ visual-sync-oil-water-bonds-dram: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ON
 visual-sync-oil-water-bonds-dram: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-serial-oil-water-bonds: DFLAGS=-DSERIAL -DBONDS -DVISUALISE -DBETTER_VERLET -DSMALL_DT_EARLY
-visual-serial-oil-water-bonds: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-visual-serial-oil-water-bonds: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS) oil-water-bonds
+visual-serial-oil-water-bonds: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+visual-serial-oil-water-bonds: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS) oil-water-bonds
 
 timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
@@ -972,17 +972,17 @@ serial-objs:
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Vector3D.o $(DPD_SRC)/Vector3D.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/utils.o $(DPD_SRC)/utils.cpp
 
-timed-serial-oil-water: DFLAGS=-DSERIAL -DTIMER
-timed-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-timed-serial-oil-water: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS) oil-water
+timed-serial-oil-water: DFLAGS=-DSERIAL -DTIMER -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+timed-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+timed-serial-oil-water: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS) oil-water
 
 visual-serial-oil-water: DFLAGS=-DSERIAL -DVISUALISE
-visual-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-visual-serial-oil-water: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS) oil-water
+visual-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+visual-serial-oil-water: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS) oil-water
 
 test-serial: DFLAGS+=-DTESTING -DSERIAL
-test-serial: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-test-serial: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS)
+test-serial: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+test-serial: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
