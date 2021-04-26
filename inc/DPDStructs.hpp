@@ -6,7 +6,7 @@
 // Number of neighbours
 // If we change this to implement more of POLites operation it will come in
 // handy to allow this to be defined as different values.
-const uint8_t NEIGHBOURS = 26;
+// const uint8_t NEIGHBOURS = 26;
 
 typedef float ptype;
 

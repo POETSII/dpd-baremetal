@@ -495,11 +495,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                         i = clear_slot(i, ci);
                     }
                 #else
-                  #ifdef SMALL_DT_EARLY
-                    calc_bead_force_on_beads(&b, s->bslot, s->inv_sqrt_dt, s);
-                  #else
-                    calc_bead_force_on_beads(&b, s->bslot, inv_sqrt_dt, s);
-                  #endif
+                    calc_bead_force_on_beads(&b, s->bslot, s);
                 #endif
 
                     s->total_update_beads--;
@@ -566,11 +562,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                             // Store old velocity
                             s->old_velo[ni].set(msg->beads[0].velo.x(), msg->beads[0].velo.y(), msg->beads[0].velo.z());
                             // Update velocity
-                          #ifndef SMALL_DT_EARLY
-                            update_velocity(ni, dt, s);
-                          #else
-                            update_velocity(ni, s->dt, s);
-                          #endif
+                            update_velocity(ni, s);
                         #endif
                         }
                     }
