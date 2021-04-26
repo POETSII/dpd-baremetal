@@ -45,26 +45,6 @@ typedef float ptype;
   #endif
 #endif
 
-
-// ------------------------- SIMULATION PARAMETERS --------------------------------------
-
-// Timestep and inverse sqrt of timestep
-#ifndef SMALL_DT_EARLY
-const ptype dt = 0.02;
-// Inverse square root of dt - dt^(-1/2)
-const ptype inv_sqrt_dt = 7.071067812;
-#else
-const ptype normal_dt = 0.02;
-const ptype early_dt = 0.002;
-// Inverse square root of dt - dt^(-1/2)
-const ptype normal_inv_sqrt_dt = 7.071067812;
-const ptype early_inv_sqrt_dt = 22.360679775;
-#endif
-
-#ifdef VISUALISE
-const uint32_t emitperiod = 1;
-#endif
-
 // ---------------------------------------------------------------------------------------
 
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
