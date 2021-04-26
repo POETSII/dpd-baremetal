@@ -57,9 +57,10 @@ class Vector3D {
 
        // Euclidian distance squared (less time in sqrt hopefully)
        S sq_dist(Vector3D<S> a);
-
+#ifndef FLOAT_ONLY
        Vector3D<int32_t> floatToFixed();
        Vector3D<float> fixedToFloat();
+#endif
 
    private:
        S _x;

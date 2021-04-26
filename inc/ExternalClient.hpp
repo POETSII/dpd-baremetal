@@ -9,10 +9,11 @@
 #include <fstream>
 #include <boost/asio.hpp>
 #include <cstdint>
-#ifndef GALS
-#include "dpd.h"
+#ifdef GALS
+#include "gals.h"
+#elif defined(SERIAL)
 #else
-#include "dpdGALS.h"
+#include "sync.h"
 #endif
 #include "externals-common.h"
 

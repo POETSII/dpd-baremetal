@@ -4,10 +4,12 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <HostLink.h>
-#ifndef GALS
-#include "dpd.h"
+#ifdef GALS
+#include "gals.h"
+#elif defined(SERIAL)
+#include "serial.hpp"
 #else
-#include "dpdGALS.h"
+#include "sync.h"
 #endif
 #include "universe.hpp"
 #include <map>
@@ -126,7 +128,7 @@ int main(int argc, char *argv[]) {
     printf("Running a water only simulation\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
-    Universe<ptype> uni(problem_size, N, max_time);
+    Universe<ptype> uni(problem_size, N, 0, max_time);
 
     printf("Universe setup -- adding beads\n");
 
@@ -213,12 +215,14 @@ int main(int argc, char *argv[]) {
 
     uni.set_beads_added(beads_added);
 
+#ifndef SERIAL
     uni.write(); // write the universe into the POETS memory
+#endif
 
     // uni.print_occupancy();
 
     printf("running...\n");
-    uni.run(max_time); // start the simulation
+    uni.run(); // start the simulation
 
     return 0;
 }

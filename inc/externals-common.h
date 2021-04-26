@@ -1,14 +1,16 @@
 #ifndef _EXTERNALS_COMMON_H
 #define _EXTERNALS_COMMON_H
-#ifndef GALS
-#include "dpd.h"
+#ifdef GALS
+#include "gals.h"
+#elif defined(SERIAL)
+#include "serial.hpp"
 #else
-#include "dpdGALS.h"
+#include "sync.h"
 #endif
 
 typedef struct _pts_to_extern_t {
    uint32_t timestep;
-   unit_t from;
+   cell_t from;
    bead_t bead;
 } pts_to_extern_t;
 

@@ -4,8 +4,10 @@
 #ifndef _VECTOR_3D_IMPL
 #define _VECTOR_3D_IMPL
 
+#ifndef FLOAT_ONLY
 const float FIXED = (1<<20);
 const float FLOAT = 1/FIXED;
+#endif
 
 // constructor
 template<class S>
@@ -199,6 +201,7 @@ S Vector3D<S>::sq_dist(Vector3D<S> a) {
    return (c.x()*c.x() + c.y()*c.y() + c.z()*c.z());
 }
 
+#ifndef FLOAT_ONLY
 //Floating-point Vector to fixed-point Vector
 template<class S>
 Vector3D<int32_t> Vector3D<S>::floatToFixed() {
@@ -220,5 +223,6 @@ Vector3D<float> Vector3D<S>::fixedToFloat() {
   c.set(x, y, z);
   return c;
 }
+#endif
 
 #endif /* _VECTOR_3D_IMPL */
