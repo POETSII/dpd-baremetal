@@ -892,6 +892,7 @@ timed-improved-gals-obo-new-verlet-single-force-loop-reduced-local-calcs: DFLAGS
 timed-improved-gals-obo-new-verlet-single-force-loop-reduced-local-calcs: base-gals oil-water
 
 stats-gals: DFLAGS=-DSTATS
+
 stats-gals: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
 stats-gals: clean clean-tinsel $(TINSEL_LIB)/lib.o base-gals oil-water
 

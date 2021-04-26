@@ -9,7 +9,7 @@
 #include <math.h>
 #include "Vector3D.hpp"
 
-#define MAX_BEADS 31
+#define MAX_BEADS 16
 #define VOL_SIZE 3
 #define BEAD_DENSITY 3
 #define TEST_LENGTH 10
