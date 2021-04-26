@@ -169,12 +169,12 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
     force.set(s->force_slot[bead_index].x(), s->force_slot[bead_index].y(), s->force_slot[bead_index].z());
 #endif
 
-#ifndef BETTER_VERLET
-    // Vector3D<ptype> acceleration = force / p_mass;
-
   #ifdef SMALL_DT_EARLY
     const ptype dt = s->dt;
   #endif
+
+#ifndef BETTER_VERLET
+    // Vector3D<ptype> acceleration = force / p_mass;
 
     Vector3D<ptype> delta_v = force * dt;
 
