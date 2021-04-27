@@ -289,12 +289,7 @@ test-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
 test-bonds-new-verlet-dt-change: test
 
 test-reduced-local-calcs: DFLAGS+=-DTESTING -DONE_BY_ONE -DREDUCE_LOCAL_CALCS
-test-reduced-local-calcs: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-reduced-local-calcs: test
 
 # Larger test
 test-large-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DREDUCE_LOCAL_CALCS
@@ -388,7 +383,7 @@ test-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: t
 test-gals: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE
 test-gals: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-gals
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
            -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
