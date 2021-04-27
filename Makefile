@@ -380,6 +380,7 @@ test-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: t
 # --------------------------- GALS TESTING ---------------------------
 # Base for testing GALS application
 # Improved gals and one by one make for the best GALS version
+test-gals: OBJS=$(POLITE_OBJS)
 test-gals: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE
 test-gals: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-gals
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
