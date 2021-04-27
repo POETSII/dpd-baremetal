@@ -37,6 +37,8 @@ void SerialSimulator::init(DPDState *s) {
     // Generate first global random number
     s->grand = p_rand(&s->rngstate);
     s->grand = p_rand(&s->rngstate);
+
+    std::cout << "Number of beads = " << (uint32_t) get_num_beads(s->bslot) << "\n";
 }
 
 // Calculate forces of neighbour cell's beads acting on this cells beads

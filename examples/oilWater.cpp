@@ -9,6 +9,7 @@ and two types of oil*/
 #include <random>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 #ifndef SERIAL
 #include "POLiteSimulator.hpp"
@@ -217,7 +218,27 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    std::string init_state_file = "/home/jrbeaumont/polite-dpd-states/state_0.json";
+    char cwd_buffer[PATH_MAX], *unused;
+    unused = getcwd(cwd_buffer, sizeof(cwd_buffer));
+    std::cout << cwd_buffer << "\n";
+
+  #ifndef SERIAL
+    std::string init_state_file = std::string(cwd_buffer) + "/../polite-dpd-states/";
+  #else
+    std::string init_state_file = std::string(cwd_buffer) + "/../serial-dpd-states/";
+  #endif
+
+    fflush(stdout);
+    if (!boost::filesystem::exists(init_state_file)){
+        fflush(stdout);
+        std::cerr << "Error: Can't write initial state. \n";
+        std::cerr << "Please ensure there is a directory in your dpd-baremetal to store the initial state file with the path: \n";
+        std::cerr << init_state_file << "\n";
+        return 1;
+    }
+
+    init_state_file += "state_0.json";
+
     FILE* f = fopen(init_state_file.c_str(), "w+");
     fprintf(f, "{\n\t\"beads\":[\n");
     bool first_bead = true;
