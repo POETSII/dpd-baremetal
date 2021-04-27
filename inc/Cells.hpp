@@ -12,17 +12,17 @@
 #include "DPDConstants.hpp"
 #endif
 
-// Include the correct POLite device code.
-#ifndef XML
-#ifdef GALS
-#include "gals.h"
-#elif defined(SERIAL)
-#include "SerialSimulator.hpp"
-#elif defined(RDF)
-#else
-#include "sync.h"
-#endif
-#endif // XML
+// // Include the correct POLite device code.
+// #ifndef XML
+// #ifdef GALS
+// #include "gals.h"
+// #elif defined(SERIAL)
+// #include "SerialSimulator.hpp"
+// #elif defined(RDF)
+// #else
+// #include "sync.h"
+// #endif
+// #endif // XML
 
 #if !defined(SERIAL) && !defined(RDF) && !defined(XML)
 #include "POLite.h"

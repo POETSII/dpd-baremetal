@@ -3,7 +3,7 @@
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
-#include "serial.hpp"
+#include "SerialSimulator.hpp"
 #else
 #include "sync.h"
 #endif

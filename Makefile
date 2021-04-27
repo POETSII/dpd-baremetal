@@ -20,8 +20,10 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POLITE_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLiteCells.o \
-              $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/Simulator.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+COMMON_OBJS = $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o \
+			  $(DPD_BIN)/Simulator.o
+POLITE_OBJS = $(COMMON_OBJS) $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -48,7 +50,7 @@ client_run: bridge
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN)
 
-# -------------- Host Object files --------------------------
+# -------------- Common object files --------------------------
 $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp
@@ -56,6 +58,14 @@ $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalCl
 $(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
+
+$(DPD_BIN)/Cells.o: $(DPD_SRC)/Cells.cpp $(DPD_INC)/Cells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Cells.o $(DPD_SRC)/Cells.cpp
+
+$(DPD_BIN)/SimulationCells.o: $(DPD_SRC)/SimulationCells.cpp $(DPD_INC)/SimulationCells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/SimulationCells.o $(DPD_SRC)/SimulationCells.cpp
 
 $(DPD_BIN)/Volume.o: $(DPD_SRC)/Volume.cpp $(DPD_INC)/Volume.hpp
 	mkdir -p $(DPD_BIN)
@@ -65,6 +75,15 @@ $(DPD_BIN)/SimulationVolume.o: $(DPD_SRC)/SimulationVolume.cpp $(DPD_INC)/Simula
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/SimulationVolume.o $(DPD_SRC)/SimulationVolume.cpp
 
+$(DPD_BIN)/Executor.o: $(DPD_SRC)/Executor.cpp $(DPD_INC)/Executor.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Executor.o $(DPD_SRC)/Executor.cpp
+
+$(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
+
+# -------------- POLite Object files --------------------------
 $(DPD_BIN)/POLiteCells.o: $(DPD_SRC)/POLiteCells.cpp $(DPD_INC)/POLiteCells.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteCells.o $(DPD_SRC)/POLiteCells.cpp
@@ -77,14 +96,6 @@ $(DPD_BIN)/POLiteSimulator.o: $(DPD_SRC)/POLiteSimulator.cpp $(DPD_INC)/POLiteSi
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteSimulator.o $(DPD_SRC)/POLiteSimulator.cpp
 
-$(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
-
-$(DPD_BIN)/Executor.o: $(DPD_SRC)/Executor.cpp $(DPD_INC)/Executor.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Executor.o $(DPD_SRC)/Executor.cpp
-
 # -------------- Tinsel Object files --------------------------
 $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 	mkdir -p $(DPD_BIN)
@@ -93,6 +104,19 @@ $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
+
+# ------------- Serial simulation object files ---------------------------
+$(DPD_BIN)/SerialCells.o: $(DPD_SRC)/SerialCells.cpp $(DPD_INC)/SerialCells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialCells.o $(DPD_SRC)/SerialCells.cpp
+
+$(DPD_BIN)/SerialVolume.o: $(DPD_SRC)/SerialVolume.cpp $(DPD_INC)/SerialVolume.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialVolume.o $(DPD_SRC)/SerialVolume.cpp
+
+$(DPD_BIN)/SerialSimulator.o: $(DPD_SRC)/SerialSimulator.cpp $(DPD_INC)/SerialSimulator.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialSimulator.o $(DPD_SRC)/SerialSimulator.cpp
 
 # The external client
 $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(POLITE_OBJS)
@@ -140,12 +164,6 @@ $(DPD_BIN)/gals.elf: $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/gals.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/gals.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
-# ----------------- Serial simulator ------------------------------
-$(DPD_BIN)/SerialSimulator.o: DFLAGS+=-DSERIAL
-$(DPD_BIN)/SerialSimulator.o: $(DPD_SRC)/SerialSimulator.cpp $(DPD_INC)/SerialSimulator.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/SerialSimulator.o $(DPD_SRC)/SerialSimulator.cpp
-
 # Base GALS recipe which is used by all GALS recipes
 # Improved gals and one by one make the best version of GALS
 base-gals: DFLAGS+=-DGALS -DIMPROVED_GALS -DONE_BY_ONE
@@ -159,7 +177,7 @@ base-gals: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 # used alone. A backend must be compiled also and these included
 
 # Oil and water
-oil-water: $(DPD_EXAMPLES)/oilWater.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
+oil-water: $(DPD_EXAMPLES)/oilWater.cpp $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_EXAMPLES)/oilWater.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
@@ -826,7 +844,7 @@ pobov: DFLAGS=-DVISUALISE -DONE_BY_ONE
 pobov: $(DPD_BIN) $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
 
 visual-gals: DFLAGS=-DVISUALISE
-visual-gals: base-gals oil-water
+visual-gals: base-gals $(DPD_INC)/gals.h $(HL)/*.o $(POLITE_OBJS) oil-water
 
 gals-obo: DFLAGS=-DVISUALISE -DGALS -DONE_BY_ONE
 gals-obo: base-gals oil-water
@@ -942,8 +960,7 @@ visual-sync-oil-water-bonds-dram: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ON
 visual-sync-oil-water-bonds-dram: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-serial-oil-water-bonds: DFLAGS=-DSERIAL -DBONDS -DVISUALISE -DBETTER_VERLET -DSMALL_DT_EARLY
-visual-serial-oil-water-bonds: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-visual-serial-oil-water-bonds: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS) oil-water-bonds
+visual-serial-oil-water-bonds: $(SERIAL_OBJS) oil-water-bonds
 
 timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
@@ -966,23 +983,15 @@ visual-vesicle-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-vesicle-restart: $(DPD_BIN) base-gals restart
 
 # ---------------------------- x86 SERIAL SIMULATOR --------------------------------
-serial-objs: $(DPD_INC)/Vector3D.hpp $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/utils.hpp $(DPD_SRC)/utils.cpp
-serial-objs:
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Vector3D.o $(DPD_SRC)/Vector3D.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/utils.o $(DPD_SRC)/utils.cpp
-
 timed-serial-oil-water: DFLAGS=-DSERIAL -DTIMER -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
-timed-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-timed-serial-oil-water: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS) oil-water
+timed-serial-oil-water: $(SERIAL_OBJS) oil-water
 
 visual-serial-oil-water: DFLAGS=-DSERIAL -DVISUALISE
-visual-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-visual-serial-oil-water: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS) oil-water
+visual-serial-oil-water: $(SERIAL_OBJS) $(DPD_BIN)/SerialSimulator.o oil-water
 
 test-serial: DFLAGS+=-DTESTING -DSERIAL
 test-serial: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-test-serial: serial-objs $(DPD_BIN)/SerialSimulator.o $(POLITE_OBJS)
+test-serial: $(SERIAL_OBJS) $(DPD_BIN)/SerialSimulator.o
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
