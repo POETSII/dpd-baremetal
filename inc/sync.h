@@ -22,21 +22,6 @@
 #ifndef _DPD_H_
 #define _DPD_H_
 
-#define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
-#define PADDING 0
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
-#define UPDATE 0
-#define MIGRATION 1
-
-#if defined(VISUALISE) || defined(TESTING)
-#define EMIT 2
-#endif
-
-typedef float ptype;
-
 // ---------------------------------------------------------------------------------------
 
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many

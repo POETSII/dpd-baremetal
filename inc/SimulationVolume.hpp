@@ -14,7 +14,7 @@ public:
 
     // Constructors and destructors
     SimulationVolume(const float volume_length, const unsigned cells_per_dimension);
-    ~SimulationVolume();
+    // ~SimulationVolume();
 
     // Simulation setup
     // Write the volume data into the respective way for simulation

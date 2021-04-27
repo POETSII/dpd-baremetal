@@ -121,7 +121,10 @@ struct DPDState {
     float cell_length = 1.0; // Length of a cell in each dimension
     uint8_t cells_per_dimension = 3; // Length of each dimension of the volume in cells.
 
-    PDeviceId neighbours[NEIGHBOURS]; // Holds a list of the neighbours of this cell
+    uint32_t timestep; // The timestep this cell is currently in
+    uint32_t max_timestep; // Maximum timestep for this run
+
+    std::vector<PDeviceId> neighbours; // Holds a list of the neighbours of this cell
     uint8_t num_neighbours = 0; // Holds how many neighbours this cell currently has
     cell_t loc; // the location of this cube
     uint16_t bslot = 0; // a bitmap of which bead slot is occupied

@@ -22,21 +22,6 @@
 #ifndef _DPD_H_
 #define _DPD_H_
 
-#define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
-#define PADDING 0
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
-#define UPDATE 0
-#define UPDATE_COMPLETE 1
-#define MIGRATION 2
-#define MIGRATION_COMPLETE 3
-#define EMIT 4
-#define EMIT_COMPLETE 5
-#define START 6
-#define END 7
-
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 

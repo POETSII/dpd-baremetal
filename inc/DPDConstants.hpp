@@ -10,6 +10,29 @@ typedef float ptype;
 
 #define DT10_RAND_MAX 4294967295
 
+#define UNIT_SPACE 1.0 // a cube 1.0 x 1.0 x 1.0
+#define PADDING 0
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
+#ifdef GALS
+  #define UPDATE 0
+  #define UPDATE_COMPLETE 1
+  #define MIGRATION 2
+  #define MIGRATION_COMPLETE 3
+  #define EMIT 4
+  #define EMIT_COMPLETE 5
+  #define START 6
+  #define END 7
+#else // SYNC or SERIAL
+  #define UPDATE 0
+  #define MIGRATION 1
+  #if defined(VISUALISE) || defined(TESTING)
+  #define EMIT 2
+  #endif
+#endif
+
 /********************* SIMULATION PARAMETERS *********************/
 
 // Timestep and inverse sqrt of timestep
