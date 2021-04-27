@@ -12,10 +12,11 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <HostLink.h>
-
+#ifndef SERIAL
 #include "POLiteSimulator.hpp"
 #include "POLiteVolume.hpp"
+#endif
+
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
