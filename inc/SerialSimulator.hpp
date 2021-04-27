@@ -18,6 +18,7 @@
 #include "BeadMap.hpp"
 #include "Simulator.hpp"
 #include "SerialVolume.hpp"
+#include "utils.hpp"
 
 /********************* CLASS DEFINITION **************************/
 

@@ -10,6 +10,22 @@
 #ifndef _SERIAL_SIM_IMPL
 #define _SERIAL_SIM_IMPL
 
+/************** Constructor functions ***************/
+SerialSimulator::SerialSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+    this->volume = new SerialVolume(volume_length, cells_per_dimension);
+
+#ifdef VISUALISE
+    std::cout << "Preparing server for external connections...\r";
+    _extern = new ExternalServer("_external.sock");
+    std::cout << "External server ready.\n";
+#endif
+
+    SerialCells *cells = (SerialCells *)volume->get_cells();
+    cells->set_start_timestep(start_timestep);
+    cells->set_end_timestep(max_timestep);
+
+}
+
 /************** Setup functions ***************/
 void SerialSimulator::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {
     _queue = queue;
@@ -121,6 +137,10 @@ DPDMessage SerialSimulator::receiveMessage() {
     DPDMessage msg;
     while (!_queue->try_dequeue(msg)) { };
     return msg;
+}
+
+void SerialSimulator::write() {
+    //Dummy function, there is nothing to write with the serial simulator
 }
 
 // Run the simulator
@@ -314,6 +334,10 @@ void SerialSimulator::run() {
     #endif
     }
     std::cout << "COMPLETE         \n";
+}
+
+void SerialSimulator::test(void *result) {
+    // Blank for now
 }
 
 #endif /*_SERIAL_SIM_IMPL */
