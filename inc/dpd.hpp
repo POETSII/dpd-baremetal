@@ -10,7 +10,6 @@
 #include <cstdint>
 
 #include "DPDStructs.hpp"
-#include "DPDConstants.hpp"
 #include "BeadMap.hpp"
 #ifdef SERIAL
 #include <iostream>

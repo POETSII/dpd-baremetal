@@ -37,14 +37,6 @@
 
 typedef float ptype;
 
-#ifdef MESSAGE_MANAGEMENT
-  #ifndef SEND_TO_SELF
-    const uint8_t NEIGHBOURS = 26;
-  #else
-    const uint8_t NEIGHBOURS = 27;
-  #endif
-#endif
-
 // ---------------------------------------------------------------------------------------
 
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many

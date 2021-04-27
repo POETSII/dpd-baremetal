@@ -1,14 +1,9 @@
 
 #include "Vector3D.hpp"
 #include "BeadMap.hpp"
+#include "DPDConstants.hpp"
+
 #include "POLite.h"
-
-// Number of neighbours
-// If we change this to implement more of POLites operation it will come in
-// handy to allow this to be defined as different values.
-// const uint8_t NEIGHBOURS = 26;
-
-typedef float ptype;
 
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
 

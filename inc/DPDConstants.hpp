@@ -3,6 +3,9 @@
 // Some are different based on the type of simulation, i.e. Oil and water
 // or Vesicle self-assembly. These are chosen by compiler flags.
 
+/********************* Typedefs **************************/
+typedef float ptype;
+
 /********************* DEFINES **************************/
 
 #define DT10_RAND_MAX 4294967295
@@ -24,6 +27,24 @@ const ptype early_inv_sqrt_dt = 22.360679775;
 
 #ifdef VISUALISE
 const uint32_t emitperiod = 1;
+#endif
+
+#ifdef SERIAL
+const uint8_t NEIGHBOURS = 26;
+#elif defined(GALS)
+ #ifndef ONE_BY_ONE
+    const uint8_t NEIGHBOURS = 27;
+ #else
+    const uint8_t NEIGHBOURS = 26;
+ #endif
+#else
+ #ifdef MESSAGE_MANAGEMENT
+   #ifndef SEND_TO_SELF
+    const uint8_t NEIGHBOURS = 26;
+   #else
+    const uint8_t NEIGHBOURS = 27;
+   #endif
+ #endif
 #endif
 
 /********************* DPD CONSTANTS **************************/

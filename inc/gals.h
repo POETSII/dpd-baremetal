@@ -37,12 +37,6 @@
 #define START 6
 #define END 7
 
-#ifndef ONE_BY_ONE
-const uint8_t NEIGHBOURS = 27;
-#else
-const uint8_t NEIGHBOURS = 26;
-#endif
-
 // DPD Device code
 struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 
