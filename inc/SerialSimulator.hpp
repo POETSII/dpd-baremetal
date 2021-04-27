@@ -57,4 +57,6 @@ class SerialSimulator : public Simulator<SerialVolume> {
 
 };
 
+// #include "../src/SerialSimulator.cpp"
+
 #endif // _SERIAL_SIM_H

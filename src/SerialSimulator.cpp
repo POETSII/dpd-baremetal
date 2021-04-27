@@ -7,44 +7,10 @@
 
 #include "SerialSimulator.hpp"
 
+#ifndef _SERIAL_SIM_IMPL
+#define _SERIAL_SIM_IMPL
+
 /************** Setup functions ***************/
-// Create a new cell
-// Return the ID of this cell
-PDeviceId SerialSimulator::newCell() {
-    DPDState s;
-    _cells.push_back(s);
-    return _num_cells++;
-}
-
-// Get a pointer to a cell
-DPDState* SerialSimulator::getCell(PDeviceId id) {
-    return &_cells.at(id);
-}
-
-// Add cell b as a neighbour to cell a
-void SerialSimulator::addEdge(PDeviceId a, PDeviceId b) {
-    // Get cell a's state
-    DPDState *state_a = getCell(a);
-    // In the next array slot put cell b's ID
-    // Increment the number of neighbours a has
-    state_a->neighbours[state_a->num_neighbours++] = b;
-}
-
-// Set the start timestep
-void SerialSimulator::setTimestep(uint32_t timestep) {
-    _timestep = timestep;
-}
-
-// Set the max timestep
-void SerialSimulator::setMaxTimestep(uint32_t maxTimestep) {
-    _max_timestep = maxTimestep;
-}
-
-// Set the cell size
-void SerialSimulator::setCellsPerDimension(uint32_t cells_per_dimension) {
-    _cells_per_dimension = cells_per_dimension;
-}
-
 void SerialSimulator::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {
     _queue = queue;
 }
@@ -105,11 +71,11 @@ void SerialSimulator::neighbour_forces(DPDState *local_state, DPDState *neighbou
     }
 }
 
-void SerialSimulator::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId *neighbours) {
+void SerialSimulator::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const std::vector<PDeviceId> neighbours) {
     // Find which neighbour this is going to
     for (uint8_t i = 0; i < NEIGHBOURS; i++) {
         // Get the neighbour state
-        DPDState *n_s = getCell(neighbours[i]);
+        DPDState *n_s = ((SerialCells *)this->volume->get_cells())->get_cell_state(neighbours.at(i));
         // Check whether this cell is the destination of the migrating bead
         if (n_s->loc.x == dest.x && n_s->loc.y == dest.y && n_s->loc.z == dest.z) {
             // Get the neighbours next available bead slot
@@ -160,8 +126,8 @@ DPDMessage SerialSimulator::receiveMessage() {
 // Run the simulator
 void SerialSimulator::run() {
     // Initialise the system
-    for (uint32_t c = 0; c < _cells.size(); c++) {
-        DPDState *s = getCell(c);
+    for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+        DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
         init(s);
     }
 
@@ -169,8 +135,8 @@ void SerialSimulator::run() {
     while(1) {
         // UPDATE PHASE
         // For each cell
-        for (uint32_t c = 0; c < _cells.size(); c++) {
-            DPDState *s = getCell(c);
+        for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+            DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
 
         uint16_t bead_map = s->bslot; //All the beads in this cell
         while(bead_map) {
@@ -205,22 +171,24 @@ void SerialSimulator::run() {
             // neighbouring cells
             // For each neighbour
             for (PDeviceId n : s->neighbours) {
-                DPDState *n_s = getCell(n);
+                DPDState *n_s = ((SerialCells *)this->volume->get_cells())->get_cell_state(n);
                 neighbour_forces(s, n_s);
             }
         }
 
         // UPDATE COMPLETE
         // Increment timestep
-        _timestep++;
-        std::cout << "Timestep " << _timestep << "\r";
+        ((SerialCells *)this->volume->get_cells())->increment_timestep();
+        // Print to the screen (because we can do this in a serial simulator)
+        std::cout << "Timestep " << ((SerialCells *)this->volume->get_cells())->get_timestep() << "\r";
+        fflush(stdout);
 
     #ifdef TIMER
         // Timed run has ended
-        if (_timestep >= _max_timestep) {
+        if (((SerialCells *)this->volume->get_cells())->reached_max_timestep()) {
             // Send a message to the host to indicate the end of a run
             DPDMessage msg;
-            msg.timestep = _timestep;
+            msg.timestep = ((SerialCells *)this->volume->get_cells())->get_timestep();
             msg.type = 0xAA; // Indicates end of run
             // Emit this (add it to the queue)
             sendMessage(&msg);
@@ -231,11 +199,12 @@ void SerialSimulator::run() {
 
         // Velocity verlet and finding beads which are to be migrated
         // For each cell
-        for (uint32_t c = 0; c < _cells.size(); c++) {
-            DPDState *s = getCell(c);
+        for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+            DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
+
         #ifdef SMALL_DT_EARLY
             // If the timestep is 1000, we can increase the dt value
-            if (_timestep == 1000) {
+            if (((SerialCells *)this->volume->get_cells())->get_timestep() == 1000) {
                 s->dt = normal_dt;
                 s->inv_sqrt_dt = normal_inv_sqrt_dt;
             }
@@ -270,9 +239,9 @@ void SerialSimulator::run() {
             // Set this to false for each pass
             beads_to_migrate = false;
             // For each cell
-            for (uint32_t c = 0; c < _cells.size(); c++) {
+            for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
                 // Get the cell state
-                DPDState *s = getCell(c);
+                DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
                 // For each migrating bead
                 if (s->migrateslot) {
                     beads_to_migrate = true;
@@ -346,3 +315,5 @@ void SerialSimulator::run() {
     }
     std::cout << "COMPLETE         \n";
 }
+
+#endif /*_SERIAL_SIM_IMPL */

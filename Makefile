@@ -166,6 +166,7 @@ $(DPD_BIN)/gals.elf: $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(
 
 # Base GALS recipe which is used by all GALS recipes
 # Improved gals and one by one make the best version of GALS
+base-gals: OBJS=$(POLITE_OBJS) $(HL)/*.o
 base-gals: DFLAGS+=-DGALS -DIMPROVED_GALS -DONE_BY_ONE
 base-gals: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 	mv $(DPD_BIN)/galsCode.v $(DPD_BIN)/code.v
@@ -179,9 +180,9 @@ base-gals: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 # Oil and water
 oil-water: $(DPD_EXAMPLES)/oilWater.cpp $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_EXAMPLES)/oilWater.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
-      -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
 	  -L$(QUARTUS_ROOTDIR)/linux64 \
       -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
