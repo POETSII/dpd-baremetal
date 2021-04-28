@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
   #ifndef SERIAL
     // Default box numbers are x = 1, y = 1.
     // These can be set at run time, or hard coded.
-    POLiteSimulator simulator(problem_size, N, 0, max_time, boxes_x, boxes_y);
+    POLiteSimulator simulator(problem_size, N, 0, max_time, state_dir, boxes_x, boxes_y);
     POLiteVolume *volume = simulator.get_volume();
   #else
     SerialSimulator simulator(problem_size, N, 0, max_time, state_dir);
