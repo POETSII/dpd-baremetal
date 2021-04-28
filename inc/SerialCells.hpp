@@ -28,6 +28,9 @@ public:
     DPDState *get_cell_state(PDeviceId id);
     uint32_t get_timestep();
     void increment_timestep();
+  #ifdef VISUALISE
+    void increment_emitcnt();
+  #endif
 
     uint8_t get_cell_bslot(cell_t loc) override;
     uint8_t get_device_bslot(PDeviceId loc) override;
@@ -40,6 +43,9 @@ public:
 
     // Condition functions
     bool reached_max_timestep();
+  #ifdef VISUALISE
+    bool emitting();
+  #endif
 
 protected:
 
@@ -59,7 +65,7 @@ protected:
     uint32_t max_timestep = 10000;
     uint8_t error = 0; // If this is not 0 it ends early. Can be used to identify which error is wrong
     #ifdef VISUALISE
-    uint32_t emitcnt = 0;
+    uint32_t emitcnt = 1;
     #endif
 
 };

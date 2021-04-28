@@ -28,7 +28,7 @@ class RDFCalculator : public Executor<RDFVolume> {
     RDFCalculator(double volume_length, unsigned cells_per_dimension, uint32_t timestep, uint8_t number_density, uint8_t number_bead_types, std::vector<std::vector<std::vector<double>>> *results, moodycamel::BlockingConcurrentQueue<RDFMessage> *message_queue);
     ~RDFCalculator() { };
 
-    // Simulation control
+    // Calculator control
     void run() override;
     void test(void *result) override;
 

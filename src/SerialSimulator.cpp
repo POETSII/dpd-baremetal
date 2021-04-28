@@ -6,29 +6,30 @@
 // DPD code.
 
 #include "SerialSimulator.hpp"
+#include "SerialMessenger.hpp"
 
 #ifndef _SERIAL_SIM_IMPL
 #define _SERIAL_SIM_IMPL
 
 /************** Constructor functions ***************/
-SerialSimulator::SerialSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+SerialSimulator::SerialSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string state_dir) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep, state_dir) {
+    // Generate the volume
     this->volume = new SerialVolume(volume_length, cells_per_dimension);
 
-#ifdef VISUALISE
-    std::cout << "Preparing server for external connections...\r";
-    _extern = new ExternalServer("_external.sock");
-    std::cout << "External server ready.\n";
-#endif
+// #ifdef VISUALISE
+//     std::cout << "Preparing server for external connections...\r";
+//     _extern = new ExternalServer("_external.sock");
+//     std::cout << "External server ready.\n";
+// #endif
 
+    // Get the cells and set their start and end timestep
     SerialCells *cells = (SerialCells *)volume->get_cells();
     cells->set_start_timestep(start_timestep);
     cells->set_end_timestep(max_timestep);
 
-}
+    // This thread will deal with messages from the simulator
+    this->messenger = new SerialMessenger(&queue, state_dir, cells_per_dimension, max_timestep);
 
-/************** Setup functions ***************/
-void SerialSimulator::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {
-    _queue = queue;
 }
 
 /************** DPD Functions ***************/
@@ -37,8 +38,6 @@ void SerialSimulator::init(DPDState *s) {
     // Generate first global random number
     s->grand = p_rand(&s->rngstate);
     s->grand = p_rand(&s->rngstate);
-
-    std::cout << "Number of beads = " << (uint32_t) get_num_beads(s->bslot) << "\n";
 }
 
 // Calculate forces of neighbour cell's beads acting on this cells beads
@@ -103,7 +102,9 @@ void SerialSimulator::migrate_bead(const bead_t *migrating_bead, const cell_t de
                 exit(0xFF);
             }
             // Set this slot in the bead map
+            uint16_t before_slot = n_s->bslot;
             n_s->bslot = set_slot(n_s->bslot, ni);
+
             // Welcome the new  bead
         #ifndef BETTER_VERLET
             n_s->bead_slot[ni].type = migrating_bead->type;
@@ -131,13 +132,13 @@ void SerialSimulator::migrate_bead(const bead_t *migrating_bead, const cell_t de
 /************** Runtime functions ***************/
 // Send a message from the thread to the host
 void SerialSimulator::sendMessage(DPDMessage *msg) {
-    while (!_queue->try_enqueue(*msg)) { };
+    while (!queue.try_enqueue(*msg)) { };
 }
 
 // Host receive a message from the thread
 DPDMessage SerialSimulator::receiveMessage() {
     DPDMessage msg;
-    while (!_queue->try_dequeue(msg)) { };
+    while (!queue.try_dequeue(msg)) { };
     return msg;
 }
 
@@ -147,11 +148,22 @@ void SerialSimulator::write() {
 
 // Run the simulator
 void SerialSimulator::run() {
+    // Set the number of beads in the host messenger so it can use this to determine termination
+    this->messenger->set_number_of_beads(this->volume->get_number_of_beads());
+
+    // Spawn a thread that handles the messages from this
+    std::thread messaging_thread = std::thread(&SerialMessenger::run_wrapper, this->messenger);
+
+    std::cout << "Running...\n";
+
+    uint32_t total_beads = 0;
     // Initialise the system
     for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
         DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
         init(s);
+        total_beads += get_num_beads(s->bslot);
     }
+
 
     // Main loop. Continues until an end point is reached
     while(1) {
@@ -188,7 +200,6 @@ void SerialSimulator::run() {
             bead_map = clear_slot(bead_map, ci);
         }
 
-
             // Calculate forces acting on beads in this cell from beads in
             // neighbouring cells
             // For each neighbour
@@ -215,7 +226,7 @@ void SerialSimulator::run() {
             // Emit this (add it to the queue)
             sendMessage(&msg);
             // Exit the simulation
-            return;
+            break;
         }
     #endif
 
@@ -286,13 +297,13 @@ void SerialSimulator::run() {
         // Do we want to emit the beads?
         bool emit = false;
     #ifdef VISUALISE
-        if (_emitcnt >= emitperiod) {
+        if (((SerialCells *)this->volume->get_cells())->emitting()) {
             emit = true;
         } else {
-            _emitcnt++;
+            ((SerialCells *)this->volume->get_cells())->increment_emitcnt();
         }
     #elif defined(TESTING)
-        if (_timestep >= _max_timestep) {
+        if (((SerialCells *)this->volume->get_cells())->reached_max_timestep()) {
             emit = true;
         }
     #endif
@@ -301,15 +312,15 @@ void SerialSimulator::run() {
         // EMIT MODE
         if (emit) {
             // For each cell
-            for (uint32_t c = 0; c < _cells.size(); c++) {
-                DPDState *s = getCell(c);
+            for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+                DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
                 uint16_t i = s->bslot;
                 while (i) {
                     uint8_t ci = get_next_slot(i);
                     bead_t *bead = &s->bead_slot[ci];
                     DPDMessage msg;
                     msg.type = 0;
-                    msg.timestep = _timestep;
+                    msg.timestep = ((SerialCells *)this->volume->get_cells())->get_timestep();
                     msg.from = s->loc;
                     msg.beads[0].id = bead->id;
                     msg.beads[0].type = bead->type;
@@ -328,7 +339,7 @@ void SerialSimulator::run() {
         #ifdef TESTING
             break;
         #elif defined(VISUALISE)
-            if (_timestep >= _max_timestep) {
+            if (((SerialCells *)this->volume->get_cells())->reached_max_timestep()) {
                 break;
             }
         #endif
@@ -336,6 +347,7 @@ void SerialSimulator::run() {
     #endif
     }
     std::cout << "COMPLETE         \n";
+    messaging_thread.join();
 }
 
 void SerialSimulator::test(void *result) {

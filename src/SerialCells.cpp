@@ -81,6 +81,12 @@ void SerialCells::increment_timestep() {
     this->timestep++;
 }
 
+#ifdef VISUALISE
+void SerialCells::increment_emitcnt() {
+    this->emitcnt++;
+}
+#endif
+
 uint8_t SerialCells::get_cell_bslot(cell_t loc) {
     return cells->at(locToId[loc]).bslot;
 }
@@ -118,6 +124,16 @@ bool SerialCells::reached_max_timestep() {
     return this->timestep >= this->max_timestep;
 }
 
+#ifdef VISUALISE
+bool SerialCells::emitting() {
+    if (this->emitcnt >= emitperiod) {
+        this->emitcnt = 1;
+        return true;
+    }
+    return false;
+}
+#endif
+
 // *************** Protected functions ***********
 
 PDeviceId SerialCells::newDevice() {
@@ -128,7 +144,7 @@ PDeviceId SerialCells::newDevice() {
 
 void SerialCells::addNeighbour(PDeviceId a, PDeviceId b) {
     // Push b's device ID onto a's neighbour vector
-    this->cells->at(a).neighbours.push_back(a);
+    this->cells->at(a).neighbours.push_back(b);
     assert(this->cells->at(a).neighbours.size() <= NEIGHBOURS);
 }
 

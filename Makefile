@@ -20,10 +20,10 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-COMMON_OBJS = $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o \
-			  $(DPD_BIN)/Simulator.o
+COMMON_OBJS = $(DPD_BIN)/HostMessenger.o $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o \
+ 			  $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/Simulator.o
 POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
-SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
+SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -58,6 +58,10 @@ $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalCl
 $(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
+
+$(DPD_BIN)/HostMessenger.o: $(DPD_SRC)/HostMessenger.cpp $(DPD_INC)/HostMessenger.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/HostMessenger.o $(DPD_SRC)/HostMessenger.cpp
 
 $(DPD_BIN)/Cells.o: $(DPD_SRC)/Cells.cpp $(DPD_INC)/Cells.hpp
 	mkdir -p $(DPD_BIN)
@@ -106,6 +110,10 @@ $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
 # ------------- Serial simulation object files ---------------------------
+$(DPD_BIN)/SerialMessenger.o: $(DPD_SRC)/SerialMessenger.cpp $(DPD_INC)/SerialMessenger.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialMessenger.o $(DPD_SRC)/SerialMessenger.cpp
+
 $(DPD_BIN)/SerialCells.o: $(DPD_SRC)/SerialCells.cpp $(DPD_INC)/SerialCells.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialCells.o $(DPD_SRC)/SerialCells.cpp
@@ -962,12 +970,6 @@ visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DP
 visual-sync-oil-water-bonds-dram: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS -DDRAM
 visual-sync-oil-water-bonds-dram: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
-visual-serial-oil-water-bonds: DFLAGS=-DSERIAL -DBONDS -DVISUALISE -DBETTER_VERLET -DSMALL_DT_EARLY
-visual-serial-oil-water-bonds: $(SERIAL_OBJS) oil-water-bonds
-
-timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
-
 # -------------- WATER ONLY SIMULATION ------------------------------------------------------
 timed-water-only: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
 timed-water-only: $(DPD_BIN) base-gals water-only
@@ -986,12 +988,17 @@ visual-vesicle-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-vesicle-restart: $(DPD_BIN) base-gals restart
 
 # ---------------------------- x86 SERIAL SIMULATOR --------------------------------
-timed-serial-oil-water: OBJS=$(SERIAL_OBJS)
-timed-serial-oil-water: DFLAGS=-DSERIAL -DTIMER -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
-timed-serial-oil-water: $(SERIAL_OBJS) oil-water
+serial: $(SERIAL_OBJS)
 
-visual-serial-oil-water: DFLAGS=-DSERIAL -DVISUALISE
-visual-serial-oil-water: $(SERIAL_OBJS) $(DPD_BIN)/SerialSimulator.o oil-water
+serial-oil-water: OBJS=$(SERIAL_OBJS)
+serial-oil-water: DFLAGS+=-DSERIAL
+serial-oil-water: serial oil-water
+
+timed-serial-oil-water: DFLAGS=-DTIMER -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+timed-serial-oil-water: serial-oil-water
+
+visual-serial-oil-water: DFLAGS=-DVISUALISE -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+visual-serial-oil-water: serial-oil-water
 
 test-serial: DFLAGS+=-DTESTING -DSERIAL
 test-serial: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o

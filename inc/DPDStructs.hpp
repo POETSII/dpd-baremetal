@@ -1,4 +1,7 @@
 
+#ifndef DPDSTRUCTS_H
+#define DPDSTRUCTS_H
+
 #include "Vector3D.hpp"
 #include "BeadMap.hpp"
 #include "DPDConstants.hpp"
@@ -320,3 +323,5 @@ struct DPDState {
     uint8_t error;
 };
 #endif
+
+#endif // DPDSTRUCTS_H

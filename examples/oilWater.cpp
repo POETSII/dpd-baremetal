@@ -143,13 +143,24 @@ int main(int argc, char *argv[]) {
     printf("Generating a DPD XML\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
+    // Get the directory to store simulation states
+    char cwd_buffer[PATH_MAX], *unused;
+    unused = getcwd(cwd_buffer, sizeof(cwd_buffer));
+    std::cout << cwd_buffer << "\n";
+
+  #ifndef SERIAL
+    std::string state_dir = std::string(cwd_buffer) + "/../polite-dpd-states/";
+  #else
+    std::string state_dir = std::string(cwd_buffer) + "/../serial-dpd-states/";
+  #endif
+
   #ifndef SERIAL
     // Default box numbers are x = 1, y = 1.
     // These can be set at run time, or hard coded.
     POLiteSimulator simulator(problem_size, N, 0, max_time, boxes_x, boxes_y);
     POLiteVolume *volume = simulator.get_volume();
   #else
-    SerialSimulator simulator(problem_size, N, 0, max_time);
+    SerialSimulator simulator(problem_size, N, 0, max_time, state_dir);
     SerialVolume *volume = simulator.get_volume();
   #endif
 
@@ -218,26 +229,16 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    char cwd_buffer[PATH_MAX], *unused;
-    unused = getcwd(cwd_buffer, sizeof(cwd_buffer));
-    std::cout << cwd_buffer << "\n";
-
-  #ifndef SERIAL
-    std::string init_state_file = std::string(cwd_buffer) + "/../polite-dpd-states/";
-  #else
-    std::string init_state_file = std::string(cwd_buffer) + "/../serial-dpd-states/";
-  #endif
-
     fflush(stdout);
-    if (!boost::filesystem::exists(init_state_file)){
+    if (!boost::filesystem::exists(state_dir)){
         fflush(stdout);
         std::cerr << "Error: Can't write initial state. \n";
         std::cerr << "Please ensure there is a directory in your dpd-baremetal to store the initial state file with the path: \n";
-        std::cerr << init_state_file << "\n";
+        std::cerr << state_dir << "\n";
         return 1;
     }
 
-    init_state_file += "state_0.json";
+    std::string init_state_file = state_dir + "state_0.json";
 
     FILE* f = fopen(init_state_file.c_str(), "w+");
     fprintf(f, "{\n\t\"beads\":[\n");

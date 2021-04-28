@@ -10,14 +10,13 @@
 
 #include <vector>
 #include <iostream>
-#include "blockingconcurrentqueue.h"
 #include <thread>
 #include <map>
 
-#include "dpd.hpp"
 #include "BeadMap.hpp"
 #include "Simulator.hpp"
 #include "SerialVolume.hpp"
+#include "SerialMessenger.hpp"
 #include "utils.hpp"
 
 /********************* CLASS DEFINITION **************************/
@@ -26,7 +25,7 @@ class SerialSimulator : public Simulator<SerialVolume> {
 
     public:
 
-    SerialSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep);
+    SerialSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string state_dir);
     ~SerialSimulator() {}
 
 /************** Runtime functions ***************/
@@ -35,10 +34,7 @@ class SerialSimulator : public Simulator<SerialVolume> {
     void run() override;
     void test(void *result) override;
 
-    private:
-
-/************** Setup functions ***************/
-    void setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage>* queue);
+    protected:
 
 /************** DPD Functions ***************/
     // Initialise each cell
@@ -54,7 +50,10 @@ class SerialSimulator : public Simulator<SerialVolume> {
     // Send a message from thread to host
     void sendMessage(DPDMessage *msg);
 
-    moodycamel::BlockingConcurrentQueue<DPDMessage> *_queue;
+    // Queue for communication with host
+    moodycamel::BlockingConcurrentQueue<DPDMessage> queue;
+    // Host message manager
+    SerialMessenger *messenger;
 
 };
 

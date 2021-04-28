@@ -20,11 +20,11 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
     }
     std::cout << ".\n";
 
-#ifdef VISUALISE
-    std::cout << "Preparing server for external connections...\r";
-    _extern = new ExternalServer("_external.sock");
-    std::cout << "External server ready.\n";
-#endif
+// #ifdef VISUALISE
+//     std::cout << "Preparing server for external connections...\r";
+//     _extern = new ExternalServer("_external.sock");
+//     std::cout << "External server ready.\n";
+// #endif
 
     POLiteCells *cells = (POLiteCells *)volume->get_cells();
     cells->set_start_timestep(start_timestep);
@@ -92,9 +92,6 @@ void POLiteSimulator::run() {
     std::map<uint32_t, uint32_t> bead_print_map;
 #endif
 
-#ifdef MESSAGE_COUNTER
-    std::map<cell_t, uint32_t> cell_messages;
-#endif
     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
     bool first = true;
     // enter the main loop
@@ -157,15 +154,6 @@ void POLiteSimulator::run() {
         if (msg.type == 0xAB) {
             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
             return;
-        }
-    #elif defined(MESSAGE_COUNTER)
-        if (msg.type != 0xBB) {
-            devices++;
-            cell_messages[msg.from] = msg.timestep;
-            if (devices >= total_cells) {
-                calculateMessagesPerLink(cell_messages);
-                return;
-            }
         }
     #elif defined(VISUALISE)
         if (timestep < msg.timestep) {
