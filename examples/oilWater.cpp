@@ -229,20 +229,13 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    fflush(stdout);
-    if (!boost::filesystem::exists(state_dir)){
-        fflush(stdout);
-        std::cerr << "Error: Can't write initial state. \n";
-        std::cerr << "Please ensure there is a directory in your dpd-baremetal to store the initial state file with the path: \n";
-        std::cerr << state_dir << "\n";
-        return 1;
-    }
-
     std::string init_state_file = state_dir + "state_0.json";
 
     FILE* f = fopen(init_state_file.c_str(), "w+");
     fprintf(f, "{\n\t\"beads\":[\n");
     bool first_bead = true;
+
+
     // Add water beads
     uint32_t b_uid = 0;
     for(int i=0; i<w; i++) {

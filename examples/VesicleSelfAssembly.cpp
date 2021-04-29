@@ -133,6 +133,17 @@ int main(int argc, char *argv[]) {
     printf("starting the DPD application\n");
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
+    // Get the directory to store simulation states
+    char cwd_buffer[PATH_MAX], *unused;
+    unused = getcwd(cwd_buffer, sizeof(cwd_buffer));
+    std::cout << cwd_buffer << "\n";
+
+  #ifndef SERIAL
+    std::string state_dir = std::string(cwd_buffer) + "/../polite-dpd-states/";
+  #else
+    std::string state_dir = std::string(cwd_buffer) + "/../serial-dpd-states/";
+  #endif
+
   #ifndef SERIAL
     // Default box numbers are x = 1, y = 1.
     // These can be set at run time, or hard coded.
