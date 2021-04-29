@@ -9,7 +9,6 @@
 #include "dpd.hpp"
 #else
 #include "DPDStructs.hpp"
-#include "DPDConstants.hpp"
 #endif
 
 // // Include the correct POLite device code.

@@ -6,7 +6,7 @@
 #include "BeadMap.hpp"
 #include "DPDConstants.hpp"
 
-#ifndef SERIAL
+#if !defined(SERIAL) && !defined(XML)
 #include "POLite.h"
 #else
 #include <vector>

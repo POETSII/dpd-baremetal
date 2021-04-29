@@ -3,6 +3,9 @@
 // Some are different based on the type of simulation, i.e. Oil and water
 // or Vesicle self-assembly. These are chosen by compiler flags.
 
+#ifndef DPD_CONSTANTS_H
+#define DPD_CONSTANTS_H
+
 /********************* Typedefs **************************/
 typedef float ptype;
 
@@ -25,7 +28,7 @@ typedef float ptype;
   #define EMIT_COMPLETE 5
   #define START 6
   #define END 7
-#else // SYNC or SERIAL
+#elif !defined(XML) // SYNC or SERIAL
   #define UPDATE 0
   #define MIGRATION 1
   #if defined(VISUALISE) || defined(TESTING)
@@ -117,3 +120,5 @@ const ptype bond_r0 = 0.5;
 const ptype bond_kappa = 128.0;
 #endif
 #endif
+
+#endif // DPD_CONSTANTS_H

@@ -5,7 +5,7 @@
 #ifndef __XMLGENERATOR_IMPL
 #define __XMLGENERATOR_IMPL
 
-XMLGenerator::XMLGenerator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string out_path, bool timed) : Simulator<XMLVolume>(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+XMLGenerator::XMLGenerator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string out_path, bool timed) : Simulator<XMLVolume>(volume_length, cells_per_dimension, start_timestep, max_timestep, "") {
     this->volume = new XMLVolume(volume_length, cells_per_dimension);
     this->out_path = out_path;
     this->timed = timed;
