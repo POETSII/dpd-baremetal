@@ -252,36 +252,36 @@ int main(int argc, char *argv[]) {
 
             bead_t *w1 = new bead_t;
             w1->id = b_uid++;
-            w1->type = 1;
+            w1->type = 3;
             w1->pos.set(0.25, 0.25, 0.25);
             volume->add_bead_to_cell(w1, cell);
-            if (first_bead) {
-                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
-                first_bead = false;
-            } else {
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
-            }
+            // if (first_bead) {
+            //     fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+            //     first_bead = false;
+            // } else {
+            //     fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+            // }
 
             bead_t *w2 = new bead_t;
             w2->id = b_uid++;
-            w2->type = 1;
+            w2->type = 3;
             w2->pos.set(0.25, 0.25, 0.75);
             volume->add_bead_to_cell(w2, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
 
             bead_t *w3 = new bead_t;
             w3->id = b_uid++;
-            w3->type = 1;
+            w3->type = 3;
             w3->pos.set(0.25, 0.75, 0.25);
             volume->add_bead_to_cell(w3, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
 
             bead_t *w4 = new bead_t;
             w4->id = b_uid++;
-            w4->type = 1;
+            w4->type = 3;
             w4->pos.set(0.25, 0.75, 0.75);
             volume->add_bead_to_cell(w4, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
         }
     }
 
@@ -292,31 +292,31 @@ int main(int argc, char *argv[]) {
 
             bead_t *w1 = new bead_t;
             w1->id = b_uid++;
-            w1->type = 1;
+            w1->type = 3;
             w1->pos.set(0.75, 0.25, 0.25);
             volume->add_bead_to_cell(w1, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
 
             bead_t *w2 = new bead_t;
             w2->id = b_uid++;
-            w2->type = 1;
+            w2->type = 3;
             w2->pos.set(0.75, 0.25, 0.75);
             volume->add_bead_to_cell(w2, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
 
             bead_t *w3 = new bead_t;
             w3->id = b_uid++;
-            w3->type = 1;
+            w3->type = 3;
             w3->pos.set(0.75, 0.75, 0.25);
             volume->add_bead_to_cell(w3, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
 
             bead_t *w4 = new bead_t;
             w4->id = b_uid++;
-            w4->type = 1;
+            w4->type = 3;
             w4->pos.set(0.75, 0.75, 0.75);
             volume->add_bead_to_cell(w4, cell);
-            fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
+            // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
         }
     }
 
@@ -328,33 +328,33 @@ int main(int argc, char *argv[]) {
             if (x != 0) {
                 bead_t *w1 = new bead_t;
                 w1->id = b_uid++;
-                w1->type = 1;
+                w1->type = 3;
                 w1->pos.set(0.25, 0.25, 0.25);
                 volume->add_bead_to_cell(w1, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
 
                 bead_t *w2 = new bead_t;
                 w2->id = b_uid++;
-                w2->type = 1;
+                w2->type = 3;
                 w2->pos.set(0.25, 0.25, 0.75);
                 volume->add_bead_to_cell(w2, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
             }
 
             if (x != problem_size) {
                 bead_t *w3 = new bead_t;
                 w3->id = b_uid++;
-                w3->type = 1;
+                w3->type = 3;
                 w3->pos.set(0.75, 0.25, 0.25);
                 volume->add_bead_to_cell(w3, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
 
                 bead_t *w4 = new bead_t;
                 w4->id = b_uid++;
-                w4->type = 1;
+                w4->type = 3;
                 w4->pos.set(0.75, 0.25, 0.75);
                 volume->add_bead_to_cell(w4, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
             }
         }
     }
@@ -367,33 +367,33 @@ int main(int argc, char *argv[]) {
             if (x != 0) {
                 bead_t *w1 = new bead_t;
                 w1->id = b_uid++;
-                w1->type = 1;
+                w1->type = 3;
                 w1->pos.set(0.25, 0.75, 0.25);
                 volume->add_bead_to_cell(w1, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
 
                 bead_t *w2 = new bead_t;
                 w2->id = b_uid++;
-                w2->type = 1;
+                w2->type = 3;
                 w2->pos.set(0.25, 0.75, 0.75);
                 volume->add_bead_to_cell(w2, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
             }
 
             if (x != problem_size) {
                 bead_t *w3 = new bead_t;
                 w3->id = b_uid++;
-                w3->type = 1;
+                w3->type = 3;
                 w3->pos.set(0.75, 0.75, 0.25);
                 volume->add_bead_to_cell(w3, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
 
                 bead_t *w4 = new bead_t;
                 w4->id = b_uid++;
-                w4->type = 1;
+                w4->type = 3;
                 w4->pos.set(0.75, 0.75, 0.75);
                 volume->add_bead_to_cell(w4, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
             }
 
         }
@@ -407,37 +407,37 @@ int main(int argc, char *argv[]) {
             if (x != 0 && y != 0) {
                 bead_t *w1 = new bead_t;
                 w1->id = b_uid++;
-                w1->type = 1;
+                w1->type = 3;
                 w1->pos.set(0.25, 0.25, 0.25);
                 volume->add_bead_to_cell(w1, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
             }
 
             if (x != 0 && y != problem_size) {
                 bead_t *w2 = new bead_t;
                 w2->id = b_uid++;
-                w2->type = 1;
+                w2->type = 3;
                 w2->pos.set(0.25, 0.75, 0.25);
                 volume->add_bead_to_cell(w2, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
             }
 
             if (x != problem_size && y != 0) {
                 bead_t *w3 = new bead_t;
                 w3->id = b_uid++;
-                w3->type = 1;
+                w3->type = 3;
                 w3->pos.set(0.75, 0.25, 0.25);
                 volume->add_bead_to_cell(w3, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
             }
 
             if (x != problem_size && y != problem_size) {
                 bead_t *w4 = new bead_t;
                 w4->id = b_uid++;
-                w4->type = 1;
+                w4->type = 3;
                 w4->pos.set(0.75, 0.75, 0.25);
                 volume->add_bead_to_cell(w4, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
             }
         }
     }
@@ -450,37 +450,37 @@ int main(int argc, char *argv[]) {
             if (x != 0 && y != 0) {
                 bead_t *w1 = new bead_t;
                 w1->id = b_uid++;
-                w1->type = 1;
+                w1->type = 3;
                 w1->pos.set(0.25, 0.25, 0.75);
                 volume->add_bead_to_cell(w1, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
             }
 
             if (x != 0 && y != problem_size) {
                 bead_t *w2 = new bead_t;
                 w2->id = b_uid++;
-                w2->type = 1;
+                w2->type = 3;
                 w2->pos.set(0.25, 0.75, 0.75);
                 volume->add_bead_to_cell(w2, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
             }
 
             if (x != problem_size && y != 0) {
                 bead_t *w3 = new bead_t;
                 w3->id = b_uid++;
-                w3->type = 1;
+                w3->type = 3;
                 w3->pos.set(0.75, 0.25, 0.75);
                 volume->add_bead_to_cell(w3, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
             }
 
             if (x != problem_size && y != problem_size) {
                 bead_t *w4 = new bead_t;
                 w4->id = b_uid++;
-                w4->type = 1;
+                w4->type = 3;
                 w4->pos.set(0.75, 0.75, 0.75);
                 volume->add_bead_to_cell(w4, cell);
-                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
+                // fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
             }
 
         }
@@ -488,79 +488,77 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Adding beads\n";
 
-    // // Add water beads
-    // for(int i=0; i<w; i++) {
-    //     bool added = false;
-    //     while(!added) {
-    //         bead_t *b1 = new bead_t;
-    //         b1->id = b_uid++;
-    //         b1->type = 0;
-    //         // Add 1 to each dimension as these only go in the centre. We don't want them in the edge cells as that's for walls only
-    //         b1->pos.set((rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1);
-    //         b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-    //       #ifdef BETTER_VERLET
-    //         b1->acc.set(0.0, 0.0, 0.0);
-    //       #endif
-    //         if(volume->space_for_bead(b1)) {
-    //             volume->add_bead(b1);
-    //             added = true;
-    //             beads_added++;
-    //             if (first_bead) {
-    //                 fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
-    //                 first_bead = false;
-    //             } else {
-    //                 fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
-    //             }
-    //         }
-    //     }
-    // }
+    // Add water beads
+    for(int i=0; i<w; i++) {
+        bool added = false;
+        while(!added) {
+            bead_t *b1 = new bead_t;
+            b1->id = b_uid++;
+            b1->type = 0;
+            // Add 1 to each dimension as these only go in the centre. We don't want them in the edge cells as that's for walls only
+            b1->pos.set((rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1);
+            b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+          #ifdef BETTER_VERLET
+            b1->acc.set(0.0, 0.0, 0.0);
+          #endif
+            if(volume->space_for_bead(b1)) {
+                volume->add_bead(b1);
+                added = true;
+                beads_added++;
+                if (first_bead) {
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                    first_bead = false;
+                } else {
+                    fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                }
+            }
+        }
+    }
 
-    // // Add oil 1 beads
-    // for(int i=0; i<r; i++) {
-    //     bool added = false;
-    //     while(!added) {
-    //         bead_t *b1 = new bead_t;
-    //         b1->id = b_uid++;
-    //         b1->type = 1;
-    //         b1->pos.set((rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1);
-    //         b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-    //       #ifdef BETTER_VERLET
-    //         b1->acc.set(0.0, 0.0, 0.0);
-    //       #endif
-    //         if(volume->space_for_bead(b1)) {
-    //             volume->add_bead(b1);
-    //             added = true;
-    //             beads_added++;
-    //             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
-    //         }
-    //     }
-    // }
+    // Add oil 1 beads
+    for(int i=0; i<r; i++) {
+        bool added = false;
+        while(!added) {
+            bead_t *b1 = new bead_t;
+            b1->id = b_uid++;
+            b1->type = 1;
+            b1->pos.set((rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1);
+            b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+          #ifdef BETTER_VERLET
+            b1->acc.set(0.0, 0.0, 0.0);
+          #endif
+            if(volume->space_for_bead(b1)) {
+                volume->add_bead(b1);
+                added = true;
+                beads_added++;
+                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+            }
+        }
+    }
 
-    // // Add oil 2 beads
-    // for(int i=0; i<o; i++) {
-    //     bool added = false;
-    //     while(!added) {
-    //         bead_t *b1 = new bead_t;
-    //         b1->id = b_uid++;
-    //         b1->type = 2;
-    //         b1->pos.set((rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1);
-    //         b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-    //       #ifdef BETTER_VERLET
-    //         b1->acc.set(0.0, 0.0, 0.0);
-    //       #endif
-    //         if(volume->space_for_bead(b1)) {
-    //             volume->add_bead(b1);
-    //             added = true;
-    //             beads_added++;
-    //             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
-    //         }
-    //     }
-    // }
+    // Add oil 2 beads
+    for(int i=0; i<o; i++) {
+        bool added = false;
+        while(!added) {
+            bead_t *b1 = new bead_t;
+            b1->id = b_uid++;
+            b1->type = 2;
+            b1->pos.set((rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1, (rand() / (float)RAND_MAX * problem_size) + 1);
+            b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
+          #ifdef BETTER_VERLET
+            b1->acc.set(0.0, 0.0, 0.0);
+          #endif
+            if(volume->space_for_bead(b1)) {
+                volume->add_bead(b1);
+                added = true;
+                beads_added++;
+                fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+            }
+        }
+    }
 
     fprintf(f, "\n\t]\n}");
     fclose(f);
-
-    return 0;
 
     simulator.write();
 

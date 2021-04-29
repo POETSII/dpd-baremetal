@@ -172,6 +172,15 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
     const ptype dt = s->dt;
   #endif
 
+#ifdef GRAVITY
+  // Wall beads (type 3) don't move
+  if (s->bead_slot[bead_index].type != 3) {
+    // Now let's add gravity (only to water)
+    if (s->bead_slot[bead_index].type == 0) {
+        force.y(force.y() - 0.98);
+    }
+#endif
+
 #ifndef BETTER_VERLET
     // Vector3D<ptype> acceleration = force / p_mass;
 
@@ -184,8 +193,6 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
 
     s->bead_slot[bead_index].pos = s->bead_slot[bead_index].pos + s->bead_slot[bead_index].velo * dt + force * ptype(0.5) * dt * dt;
 
-    // ----- clear the forces ---------------
-    s->force_slot[bead_index].clear();
 #else
     // Vector3D<ptype> force = force / p_mass;
     // ------ End of previous velocity Verlet -----
@@ -199,9 +206,14 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
     // Update position
     s->bead_slot[bead_index].pos = s->bead_slot[bead_index].pos + (s->bead_slot[bead_index].velo * dt) + (force * ptype(0.5) * dt * dt);
 
+#endif
+
+#ifdef GRAVITY
+  }
+  // Wall bead won't be moved. Just clear it's forces.
+#endif
     // ----- clear the forces ---------------
     s->force_slot[bead_index].clear();
-#endif
 }
 
 inline bool migration(const uint8_t bead_index, DPDState *s) {
