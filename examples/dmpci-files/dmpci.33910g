@@ -1,0 +1,70 @@
+dpd
+
+Title	" Vesicle self-assembly  "
+Date	12/04/11
+Comment	"  Single-tailed surfactant vesicle self-assembly.   " 
+
+State  random
+
+
+Bead    H
+        0.5
+        25
+        4.5
+ 
+Bead    T
+        0.5
+        50    25
+        4.5   4.5
+ 
+Bead    W
+        0.5
+        20    75     25
+        4.5   4.5     4.5
+
+Bead    T1
+        0.5
+        50    25     75    25
+        4.5   4.5    4.5   4.5
+
+
+
+Bond    H H   256.0  0.3
+Bond    H T   256.0  0.3
+Bond    H T1  256.0  0.3
+Bond    T T   256.0  0.3
+Bond    T T1  256.0  0.3
+
+ 
+Polymer	Water     0.985     " (W) "
+Polymer	Lipid     0.015     " (H H H T T T T T T1) "
+
+
+Processors      4   4   4
+Box		32  32  32       1 1 1
+Density		3
+Temp		1
+RNGSeed		-119093
+Lambda		0.5
+Step		0.015
+Time		10000000
+SamplePeriod	100
+AnalysisPeriod	10000000
+DensityPeriod   10000000
+DisplayPeriod	10000
+RestartPeriod	10000000
+Grid		1 1 1
+
+Command SetCurrentStateCamera       1  0.5  -1.0  -0.5   0.5 0.5 0.5
+Command ToggleBeadDisplay           1       W
+
+
+
+
+
+
+
+
+
+
+
