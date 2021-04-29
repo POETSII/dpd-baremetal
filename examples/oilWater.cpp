@@ -140,7 +140,9 @@ int main(int argc, char *argv[]) {
     }
 
     int beads_added = 0;
+#ifdef XML
     printf("Generating a DPD XML\n");
+#endif
     printf("Volume dimensions: %f, %f, %f\n", problem_size, problem_size, problem_size);
 
     // Get the directory to store simulation states

@@ -238,6 +238,14 @@ corner-tests: $(DPD_BIN) base-gals $(HL)/*.o $(POLITE_OBJS) $(DPD_EXAMPLES)/corn
            -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
+gravity: DFLAGS+=-DGRAVITY
+gravity: $(DPD_EXAMPLES)/GravityOilWater.cpp
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/GravityOilWater.o $(DPD_EXAMPLES)/GravityOilWater.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/GravityOilWater.o \
+	  -static-libgcc -static-libstdc++ \
+       -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
 # RESTART SIMULATION - Used to restart a simulation from a saved state
 restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
@@ -1021,6 +1029,13 @@ timed-serial-vesicle: serial-vesicle
 
 visual-serial-vesicle: DFLAGS+=-DVISUALISE
 visual-serial-vesicle: serial-vesicle
+
+serial-gravity: OBJS=$(SERIAL_OBJS)
+serial-gravity: DFLAGS+=-DSERIAL -DGRAVITY -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+serial-gravity: serial gravity
+
+visual-serial-gravity: DFLAGS+=-DVISUALISE
+visual-serial-gravity: serial-gravity
 
 # ---------------------------- x86 RDF Calculator --------------------------------
 RDF_OBJS = $(DPD_BIN)/RDFCells.o $(DPD_BIN)/RDFVolume.o $(DPD_BIN)/RDFCalculator.o
