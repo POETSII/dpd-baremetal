@@ -12,10 +12,11 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <HostLink.h>
-
+#ifndef SERIAL
 #include "POLiteSimulator.hpp"
 #include "POLiteVolume.hpp"
+#endif
+
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
@@ -94,7 +95,7 @@ int main() {
     printf("Volume dimensions: %f, %f, %f\n", volume_length, volume_length, volume_length);
 
     // Start at timestep 0, run until test_length timestep is reached
-    POLiteSimulator simulator(volume_length, cells_per_dimension, 0, test_length);
+    POLiteSimulator simulator(volume_length, cells_per_dimension, 0, test_length, "");
     POLiteVolume *volume = simulator.get_volume();
 
     std::cerr << "Volume setup -- loading beads from " << bead_file << "\n";

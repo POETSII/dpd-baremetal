@@ -3,8 +3,6 @@
 #ifndef _EXECUTOR_H
 #define _EXECUTOR_H
 
-// #include "dpd.hpp"
-
 template<class V>
 class Executor {
     public:

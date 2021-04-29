@@ -5,6 +5,11 @@
 #define __POLITECELLS_H
 
 #include "SimulationCells.hpp"
+#ifdef GALS
+ #include "gals.h"
+#else
+ #include "sync.h"
+#endif
 
 class POLiteCells : public SimulationCells<PGraph<DPDDevice, DPDState, None, DPDMessage> *> {
 

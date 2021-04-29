@@ -1,8 +1,20 @@
 
+#ifndef DPDSTRUCTS_H
+#define DPDSTRUCTS_H
+
 #include "Vector3D.hpp"
 #include "BeadMap.hpp"
+#include "DPDConstants.hpp"
 
-typedef float ptype;
+#ifndef SERIAL
+#include "POLite.h"
+#else
+#include <vector>
+#endif
+
+#ifdef SERIAL
+typedef uint32_t PDeviceId;
+#endif
 
 typedef uint8_t bead_class_t; // the type of the bead, we are not expecting too many
 
@@ -117,9 +129,12 @@ struct DPDMessage {
 }; // 40 Bytes - 52 Bytes with BETTER_VERLET
 
 struct DPDState {
-    PDeviceId neighbours[NEIGHBOURS]; // Holds a list of the neighbours of this cell
-    uint8_t num_neighbours = 0; // Holds how many neighbours this cell currently has
     cell_t loc; // the location of this cube
+    std::vector<PDeviceId> neighbours; // Holds a list of the neighbours of this cell
+
+    float cell_length = 1.0; // Length of a cell in each dimension
+    uint8_t cells_per_dimension = 3; // Length of each dimension of the volume in cells.
+
     uint16_t bslot = 0; // a bitmap of which bead slot is occupied
     uint16_t sentslot = 0; // a bitmap of which bead slot has not been sent from yet
     bead_t bead_slot[MAX_BEADS]; // at most we have five beads per device
@@ -308,3 +323,5 @@ struct DPDState {
     uint8_t error;
 };
 #endif
+
+#endif // DPDSTRUCTS_H

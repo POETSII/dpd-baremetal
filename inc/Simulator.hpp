@@ -12,8 +12,11 @@ class Simulator : public Executor<V> {
     public:
 
     // Constructors and destructors
-    Simulator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep);
+    Simulator(const float volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string state_dir);
     ~Simulator() {}
+
+    // Getters
+    uint32_t get_max_timestep();
 
     // Write the volume into the simulator memory
     virtual void write() = 0;
@@ -23,9 +26,7 @@ class Simulator : public Executor<V> {
     uint32_t start_timestep;
     uint32_t max_timestep;
 
-    // Runtime variables - So we can run until a given time is elapsed
-    uint32_t runtime_hours, runtime_minutes, runtime_seconds;
-    void calculate_runtime();
+    std::string state_dir;
 
 };
 

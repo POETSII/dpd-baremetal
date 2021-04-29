@@ -5,7 +5,9 @@
 #ifndef __POLITESIMULATOR_IMPL
 #define __POLITESIMULATOR_IMPL
 
-POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, uint32_t boxes_x, uint32_t boxes_y) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep) {
+POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep,
+                                 std::string state_dir, uint32_t boxes_x, uint32_t boxes_y)
+                               : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep, state_dir) {
     this->volume = new POLiteVolume(volume_length, cells_per_dimension, boxes_x, boxes_y);
 
     std::cout << "Acquiring Hostlink...\n";
@@ -20,11 +22,11 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
     }
     std::cout << ".\n";
 
-#ifdef VISUALISE
-    std::cout << "Preparing server for external connections...\r";
-    _extern = new ExternalServer("_external.sock");
-    std::cout << "External server ready.\n";
-#endif
+// #ifdef VISUALISE
+//     std::cout << "Preparing server for external connections...\r";
+//     _extern = new ExternalServer("_external.sock");
+//     std::cout << "External server ready.\n";
+// #endif
 
     POLiteCells *cells = (POLiteCells *)volume->get_cells();
     cells->set_start_timestep(start_timestep);
@@ -32,8 +34,9 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
 
 }
 
-POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep) : POLiteSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep, 1, 1) {
-}
+POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep,
+                                 std::string state_dir)
+                               : POLiteSimulator(volume_length, cells_per_dimension, start_timestep, max_timestep, state_dir, 1, 1) {};
 
 // Run the simulation
 void POLiteSimulator::run() {
@@ -92,9 +95,6 @@ void POLiteSimulator::run() {
     std::map<uint32_t, uint32_t> bead_print_map;
 #endif
 
-#ifdef MESSAGE_COUNTER
-    std::map<cell_t, uint32_t> cell_messages;
-#endif
     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
     bool first = true;
     // enter the main loop
@@ -157,15 +157,6 @@ void POLiteSimulator::run() {
         if (msg.type == 0xAB) {
             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
             return;
-        }
-    #elif defined(MESSAGE_COUNTER)
-        if (msg.type != 0xBB) {
-            devices++;
-            cell_messages[msg.from] = msg.timestep;
-            if (devices >= total_cells) {
-                calculateMessagesPerLink(cell_messages);
-                return;
-            }
         }
     #elif defined(VISUALISE)
         if (timestep < msg.timestep) {

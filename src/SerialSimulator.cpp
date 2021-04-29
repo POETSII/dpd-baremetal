@@ -5,64 +5,43 @@
 // and so can add traces and debugging to determine any issues with the POETS
 // DPD code.
 
-#include "serial.hpp"
+#include "SerialSimulator.hpp"
+#include "SerialMessenger.hpp"
 
-/************** Setup functions ***************/
-// Create a new cell
-// Return the ID of this cell
-PDeviceId SerialSim::newCell() {
-    DPDState s;
-    _cells.push_back(s);
-    return _num_cells++;
-}
+#ifndef _SERIAL_SIM_IMPL
+#define _SERIAL_SIM_IMPL
 
-// Get a pointer to a cell
-DPDState* SerialSim::getCell(PDeviceId id) {
-    return &_cells.at(id);
-}
+/************** Constructor functions ***************/
+SerialSimulator::SerialSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep, std::string state_dir) : Simulator(volume_length, cells_per_dimension, start_timestep, max_timestep, state_dir) {
+    // Generate the volume
+    this->volume = new SerialVolume(volume_length, cells_per_dimension);
 
-// Add cell b as a neighbour to cell a
-void SerialSim::addEdge(PDeviceId a, PDeviceId b) {
-    // Get cell a's state
-    DPDState *state_a = getCell(a);
-    // In the next array slot put cell b's ID
-    // Increment the number of neighbours a has
-    state_a->neighbours[state_a->num_neighbours++] = b;
-}
+// #ifdef VISUALISE
+//     std::cout << "Preparing server for external connections...\r";
+//     _extern = new ExternalServer("_external.sock");
+//     std::cout << "External server ready.\n";
+// #endif
 
-// Set the start timestep
-void SerialSim::setTimestep(uint32_t timestep) {
-    _timestep = timestep;
-}
+    // Get the cells and set their start and end timestep
+    SerialCells *cells = (SerialCells *)volume->get_cells();
+    cells->set_start_timestep(start_timestep);
+    cells->set_end_timestep(max_timestep);
 
-// Set the max timestep
-void SerialSim::setMaxTimestep(uint32_t maxTimestep) {
-    _max_timestep = maxTimestep;
-}
+    // This thread will deal with messages from the simulator
+    this->messenger = new SerialMessenger(&queue, state_dir, cells_per_dimension, max_timestep);
 
-// Set the cell size
-void SerialSim::setCellsPerDimension(uint32_t cells_per_dimension) {
-    _cells_per_dimension = cells_per_dimension;
-}
-
-void SerialSim::setCellLength(ptype cell_length) {
-    _cell_length = cell_length;
-}
-
-void SerialSim::setQueue(moodycamel::BlockingConcurrentQueue<DPDMessage> *queue) {
-    _queue = queue;
 }
 
 /************** DPD Functions ***************/
 // Initialise each cell
-void SerialSim::init(DPDState *s) {
+void SerialSimulator::init(DPDState *s) {
     // Generate first global random number
     s->grand = p_rand(&s->rngstate);
     s->grand = p_rand(&s->rngstate);
 }
 
 // Calculate forces of neighbour cell's beads acting on this cells beads
-void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
+void SerialSimulator::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
     // Get the local bead map
     uint16_t i = local_state->bslot;
     // For each local bead calculate its interaction with neighbouring beads
@@ -92,11 +71,7 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
             b.pos.y(b.pos.y() + ptype(y_rel));
             b.pos.z(b.pos.z() + ptype(z_rel));
             // Calculate the forces acting on the local bead
-          #ifdef SMALL_DT_EARLY
-            Vector3D<ptype> f = force_update(local_bead, &b, local_state->grand, local_state->inv_sqrt_dt);
-          #else
-            Vector3D<ptype> f = force_update(local_bead, b, local_state->grand, inv_sqrt_dt);
-          #endif
+            Vector3D<ptype> f = force_update(local_bead, &b, local_state);
             // Convert this force to fixed point to make it deterministic
         #ifndef FLOAT_ONLY
             Vector3D<int32_t> x = f.floatToFixed();
@@ -113,11 +88,11 @@ void SerialSim::neighbour_forces(DPDState *local_state, DPDState *neighbour_stat
     }
 }
 
-void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const PDeviceId *neighbours) {
+void SerialSimulator::migrate_bead(const bead_t *migrating_bead, const cell_t dest, const std::vector<PDeviceId> neighbours) {
     // Find which neighbour this is going to
     for (uint8_t i = 0; i < NEIGHBOURS; i++) {
         // Get the neighbour state
-        DPDState *n_s = getCell(neighbours[i]);
+        DPDState *n_s = ((SerialCells *)this->volume->get_cells())->get_cell_state(neighbours.at(i));
         // Check whether this cell is the destination of the migrating bead
         if (n_s->loc.x == dest.x && n_s->loc.y == dest.y && n_s->loc.z == dest.z) {
             // Get the neighbours next available bead slot
@@ -127,7 +102,9 @@ void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, co
                 exit(0xFF);
             }
             // Set this slot in the bead map
+            uint16_t before_slot = n_s->bslot;
             n_s->bslot = set_slot(n_s->bslot, ni);
+
             // Welcome the new  bead
         #ifndef BETTER_VERLET
             n_s->bead_slot[ni].type = migrating_bead->type;
@@ -145,11 +122,7 @@ void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, co
             // Store old velocity
             n_s->old_velo[ni].set(migrating_bead->velo.x(), migrating_bead->velo.y(), migrating_bead->velo.z());
             // Update velocity
-          #ifndef SMALL_DT_EARLY
-            update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], dt);
-          #else
-            update_velocity(&n_s->bead_slot[ni], &n_s->old_velo[ni], n_s->dt);
-          #endif
+            update_velocity(ni, n_s);
         #endif
             // We've migrated the bead, no need to keep looping
             return;
@@ -158,73 +131,113 @@ void SerialSim::migrate_bead(const bead_t *migrating_bead, const cell_t dest, co
 }
 /************** Runtime functions ***************/
 // Send a message from the thread to the host
-void SerialSim::sendMessage(DPDMessage *msg) {
-    while (!_queue->try_enqueue(*msg)) { };
+void SerialSimulator::sendMessage(DPDMessage *msg) {
+    while (!queue.try_enqueue(*msg)) { };
 }
 
 // Host receive a message from the thread
-DPDMessage SerialSim::receiveMessage() {
+DPDMessage SerialSimulator::receiveMessage() {
     DPDMessage msg;
-    while (!_queue->try_dequeue(msg)) { };
+    while (!queue.try_dequeue(msg)) { };
     return msg;
 }
 
+void SerialSimulator::write() {
+    //Dummy function, there is nothing to write with the serial simulator
+}
+
 // Run the simulator
-void SerialSim::run() {
+void SerialSimulator::run() {
+    // Set the number of beads in the host messenger so it can use this to determine termination
+    this->messenger->set_number_of_beads(this->volume->get_number_of_beads());
+
+    // Spawn a thread that handles the messages from this
+    std::thread messaging_thread = std::thread(&SerialMessenger::run_wrapper, this->messenger);
+
+    std::cout << "Running...\n";
+
+    uint32_t total_beads = 0;
     // Initialise the system
-    for (uint32_t c = 0; c < _cells.size(); c++) {
-        DPDState *s = getCell(c);
+    for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+        DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
         init(s);
+        total_beads += get_num_beads(s->bslot);
     }
+
 
     // Main loop. Continues until an end point is reached
     while(1) {
         // UPDATE PHASE
         // For each cell
-        for (uint32_t c = 0; c < _cells.size(); c++) {
-            DPDState *s = getCell(c);
-            // Calculate forces of beads within this cell
-          #ifdef SMALL_DT_EARLY
-            local_calcs(s->inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-          #else
-            local_calcs(inv_sqrt_dt, s->bslot, s->bead_slot, s->grand, s->force_slot);
-          #endif
+        for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+            DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
+
+        uint16_t bead_map = s->bslot; //All the beads in this cell
+        while(bead_map) {
+            // The bead (index) we want to calculate forces on
+            uint8_t ci = get_next_slot(bead_map);
+
+        #ifdef REDUCE_LOCAL_CALCS
+            // Clear ci from the bead map, store it in another variable.
+            // This variable now holds all the beads that haven't had their
+            // force calculated yet, but forces are equal and opposite so we
+            // can add the force to all beads in calc_map and subtract the
+            // forces from ci.
+            uint16_t calc_map = clear_slot(bead_map, ci);
+           #ifndef SINGLE_FORCE_LOOP
+            local_calcs(ci, calc_map, s);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], calc_map, s, ci);
+           #endif
+        #else
+           #ifndef SINGLE_FORCE_LOOP
+            local_calcs(ci, bead_map, s);
+           #else
+            calc_bead_force_on_beads(&s->bead_slot[ci], bead_map, s);
+           #endif
+        #endif
+
+            bead_map = clear_slot(bead_map, ci);
+        }
 
             // Calculate forces acting on beads in this cell from beads in
             // neighbouring cells
             // For each neighbour
             for (PDeviceId n : s->neighbours) {
-                DPDState *n_s = getCell(n);
+                DPDState *n_s = ((SerialCells *)this->volume->get_cells())->get_cell_state(n);
                 neighbour_forces(s, n_s);
             }
         }
 
         // UPDATE COMPLETE
         // Increment timestep
-        _timestep++;
-        std::cout << "Timestep " << _timestep << "\r";
+        ((SerialCells *)this->volume->get_cells())->increment_timestep();
+        // Print to the screen (because we can do this in a serial simulator)
+        std::cout << "Timestep " << ((SerialCells *)this->volume->get_cells())->get_timestep() << "\r";
+        fflush(stdout);
 
     #ifdef TIMER
         // Timed run has ended
-        if (_timestep >= _max_timestep) {
+        if (((SerialCells *)this->volume->get_cells())->reached_max_timestep()) {
             // Send a message to the host to indicate the end of a run
             DPDMessage msg;
-            msg.timestep = _timestep;
+            msg.timestep = ((SerialCells *)this->volume->get_cells())->get_timestep();
             msg.type = 0xAA; // Indicates end of run
             // Emit this (add it to the queue)
             sendMessage(&msg);
             // Exit the simulation
-            return;
+            break;
         }
     #endif
 
         // Velocity verlet and finding beads which are to be migrated
         // For each cell
-        for (uint32_t c = 0; c < _cells.size(); c++) {
-            DPDState *s = getCell(c);
+        for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+            DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
+
         #ifdef SMALL_DT_EARLY
             // If the timestep is 1000, we can increase the dt value
-            if (_timestep == 1000) {
+            if (((SerialCells *)this->volume->get_cells())->get_timestep() == 1000) {
                 s->dt = normal_dt;
                 s->inv_sqrt_dt = normal_inv_sqrt_dt;
             }
@@ -241,26 +254,10 @@ void SerialSim::run() {
                 uint8_t ci = get_next_slot(i);
                 // Perform velocity Verlet on this bead to update its
                 // velocity, position and acceleration
-            #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], s->dt);
-            #elif defined(SMALL_DT_EARLY)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], s->dt);
-            #elif defined(BETTER_VERLET)
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], &s->old_velo[ci], dt);
-            #else
-                velocity_Verlet(&s->bead_slot[ci], &s->force_slot[ci], dt);
-            #endif
+                velocity_Verlet(ci, s);
 
                 // Now check if ant beads are migrating, and state this in the migrateslot
-            #if defined(SMALL_DT_EARLY) && defined(BETTER_VERLET)
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], s->dt, &s->old_velo[ci]);
-            #elif defined(SMALL_DT_EARLY)
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], s->dt);
-            #elif defined(BETTER_VERLET)
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], dt, &s->old_velo[ci]);
-            #else
-                migration(ci, &s->bead_slot[ci], _cell_size, s->loc, _N, &s->migrateslot, &s->migrate_loc[ci], dt);
-            #endif
+                migration(ci, s);
 
                 // Clear this bead from the temporary bead map
                 i = clear_slot(i, ci);
@@ -275,9 +272,9 @@ void SerialSim::run() {
             // Set this to false for each pass
             beads_to_migrate = false;
             // For each cell
-            for (uint32_t c = 0; c < _cells.size(); c++) {
+            for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
                 // Get the cell state
-                DPDState *s = getCell(c);
+                DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
                 // For each migrating bead
                 if (s->migrateslot) {
                     beads_to_migrate = true;
@@ -300,13 +297,13 @@ void SerialSim::run() {
         // Do we want to emit the beads?
         bool emit = false;
     #ifdef VISUALISE
-        if (_emitcnt >= emitperiod) {
+        if (((SerialCells *)this->volume->get_cells())->emitting()) {
             emit = true;
         } else {
-            _emitcnt++;
+            ((SerialCells *)this->volume->get_cells())->increment_emitcnt();
         }
     #elif defined(TESTING)
-        if (_timestep >= _max_timestep) {
+        if (((SerialCells *)this->volume->get_cells())->reached_max_timestep()) {
             emit = true;
         }
     #endif
@@ -315,15 +312,15 @@ void SerialSim::run() {
         // EMIT MODE
         if (emit) {
             // For each cell
-            for (uint32_t c = 0; c < _cells.size(); c++) {
-                DPDState *s = getCell(c);
+            for (uint32_t c = 0; c < this->volume->get_number_of_cells(); c++) {
+                DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
                 uint16_t i = s->bslot;
                 while (i) {
                     uint8_t ci = get_next_slot(i);
                     bead_t *bead = &s->bead_slot[ci];
                     DPDMessage msg;
                     msg.type = 0;
-                    msg.timestep = _timestep;
+                    msg.timestep = ((SerialCells *)this->volume->get_cells())->get_timestep();
                     msg.from = s->loc;
                     msg.beads[0].id = bead->id;
                     msg.beads[0].type = bead->type;
@@ -342,7 +339,7 @@ void SerialSim::run() {
         #ifdef TESTING
             break;
         #elif defined(VISUALISE)
-            if (_timestep >= _max_timestep) {
+            if (((SerialCells *)this->volume->get_cells())->reached_max_timestep()) {
                 break;
             }
         #endif
@@ -350,4 +347,11 @@ void SerialSim::run() {
     #endif
     }
     std::cout << "COMPLETE         \n";
+    messaging_thread.join();
 }
+
+void SerialSimulator::test(void *result) {
+    // Blank for now
+}
+
+#endif /*_SERIAL_SIM_IMPL */

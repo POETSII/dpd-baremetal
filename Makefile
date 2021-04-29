@@ -20,8 +20,10 @@ CFLAGS = $(RV_CFLAGS) -O2 -I $(INC) -I $(QUEUE_INC) -std=c++11
 LDFLAGS = -melf32lriscv -G 0
 DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-POLITE_OBJS = $(DPD_BIN)/Volume.o $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/POLiteCells.o \
-              $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/Simulator.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+COMMON_OBJS = $(DPD_BIN)/HostMessenger.o $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o \
+ 			  $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/Simulator.o
+POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
 SOCAT_SCRIPT = ./scripts/socat_script
@@ -48,7 +50,7 @@ client_run: bridge
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN)
 
-# -------------- Host Object files --------------------------
+# -------------- Common object files --------------------------
 $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp
@@ -56,6 +58,18 @@ $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalCl
 $(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
+
+$(DPD_BIN)/HostMessenger.o: $(DPD_SRC)/HostMessenger.cpp $(DPD_INC)/HostMessenger.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/HostMessenger.o $(DPD_SRC)/HostMessenger.cpp
+
+$(DPD_BIN)/Cells.o: $(DPD_SRC)/Cells.cpp $(DPD_INC)/Cells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Cells.o $(DPD_SRC)/Cells.cpp
+
+$(DPD_BIN)/SimulationCells.o: $(DPD_SRC)/SimulationCells.cpp $(DPD_INC)/SimulationCells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/SimulationCells.o $(DPD_SRC)/SimulationCells.cpp
 
 $(DPD_BIN)/Volume.o: $(DPD_SRC)/Volume.cpp $(DPD_INC)/Volume.hpp
 	mkdir -p $(DPD_BIN)
@@ -65,6 +79,15 @@ $(DPD_BIN)/SimulationVolume.o: $(DPD_SRC)/SimulationVolume.cpp $(DPD_INC)/Simula
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/SimulationVolume.o $(DPD_SRC)/SimulationVolume.cpp
 
+$(DPD_BIN)/Executor.o: $(DPD_SRC)/Executor.cpp $(DPD_INC)/Executor.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Executor.o $(DPD_SRC)/Executor.cpp
+
+$(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
+
+# -------------- POLite Object files --------------------------
 $(DPD_BIN)/POLiteCells.o: $(DPD_SRC)/POLiteCells.cpp $(DPD_INC)/POLiteCells.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteCells.o $(DPD_SRC)/POLiteCells.cpp
@@ -77,14 +100,6 @@ $(DPD_BIN)/POLiteSimulator.o: $(DPD_SRC)/POLiteSimulator.cpp $(DPD_INC)/POLiteSi
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteSimulator.o $(DPD_SRC)/POLiteSimulator.cpp
 
-$(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
-
-$(DPD_BIN)/Executor.o: $(DPD_SRC)/Executor.cpp $(DPD_INC)/Executor.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Executor.o $(DPD_SRC)/Executor.cpp
-
 # -------------- Tinsel Object files --------------------------
 $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 	mkdir -p $(DPD_BIN)
@@ -93,6 +108,27 @@ $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
 $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
+
+# ------------- Serial simulation object files ---------------------------
+$(DPD_BIN)/SerialMessenger.o: $(DPD_SRC)/SerialMessenger.cpp $(DPD_INC)/SerialMessenger.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialMessenger.o $(DPD_SRC)/SerialMessenger.cpp
+
+$(DPD_BIN)/SerialCells.o: $(DPD_SRC)/SerialCells.cpp $(DPD_INC)/SerialCells.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialCells.o $(DPD_SRC)/SerialCells.cpp
+
+$(DPD_BIN)/SerialVolume.o: $(DPD_SRC)/SerialVolume.cpp $(DPD_INC)/SerialVolume.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialVolume.o $(DPD_SRC)/SerialVolume.cpp
+
+$(DPD_BIN)/SerialSimulator.o: $(DPD_SRC)/SerialSimulator.cpp $(DPD_INC)/SerialSimulator.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialSimulator.o $(DPD_SRC)/SerialSimulator.cpp
+
+$(DPD_BIN)/SerialUtils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialUtils.o $(DPD_SRC)/utils.cpp
 
 # The external client
 $(DPD_BIN)/dpd-bridge: $(DPD_SRC)/dpd-bridge.cpp $(POLITE_OBJS)
@@ -140,12 +176,6 @@ $(DPD_BIN)/gals.elf: $(DPD_SRC)/gals.cpp $(DPD_INC)/gals.h $(DPD_BIN)/link.ld $(
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/gals.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/gals.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
-# ----------------- Serial simulator ------------------------------
-$(DPD_BIN)/serial.o: DFLAGS+=-DSERIAL
-$(DPD_BIN)/serial.o: $(DPD_SRC)/serial.cpp $(DPD_INC)/serial.hpp
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/serial.o $(DPD_SRC)/serial.cpp
-
 # Base GALS recipe which is used by all GALS recipes
 # Improved gals and one by one make the best version of GALS
 base-gals: DFLAGS+=-DGALS -DIMPROVED_GALS -DONE_BY_ONE
@@ -159,11 +189,11 @@ base-gals: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/galsCode.v $(DPD_BIN)/galsData.v
 # used alone. A backend must be compiled also and these included
 
 # Oil and water
-oil-water: $(DPD_EXAMPLES)/oilWater.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
+oil-water: $(DPD_EXAMPLES)/oilWater.cpp $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_EXAMPLES)/oilWater.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/run.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/run.o \
 	  -static-libgcc -static-libstdc++ \
-      -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
 	  -L$(QUARTUS_ROOTDIR)/linux64 \
       -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
@@ -173,22 +203,23 @@ oil-water-bonds: $(DPD_SRC)/OilWaterBonds.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/OilWaterBonds.o $(DPD_SRC)/OilWaterBonds.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/OilWaterBonds.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+      -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
-vesicle: $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
+vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+vesicle: $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/VesicleSelfAssembly.o $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/VesicleSelfAssembly.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/VesicleSelfAssembly.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+       -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Only water beads
 water-only: $(DPD_SRC)/WaterOnly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/WaterOnly.o $(DPD_SRC)/WaterOnly.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/WaterOnly.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Simple example containing 3 pairs of bonded beads to test the bond force
@@ -196,7 +227,7 @@ bonds-only: $(DPD_EXAMPLES)/bondsOnly.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/bondsOnly.o $(DPD_EXAMPLES)/bondsOnly.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/bondsOnly.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 corner-tests: DFLAGS+=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
@@ -204,7 +235,7 @@ corner-tests: $(DPD_BIN) base-gals $(HL)/*.o $(POLITE_OBJS) $(DPD_EXAMPLES)/corn
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/corner-tests.o $(DPD_EXAMPLES)/corner-tests.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/corner-tests.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # RESTART SIMULATION - Used to restart a simulation from a saved state
@@ -212,7 +243,7 @@ restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/restart.o $(DPD_SRC)/restart.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/restart $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/restart.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # --------------------------- SYNCHRONOUS TESTING ---------------------------
@@ -221,10 +252,10 @@ restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(
 test: DFLAGS+=-DTESTING -DONE_BY_ONE
 test: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+      -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Larger test
 test-large: DFLAGS+=-DLARGE_TEST
@@ -265,12 +296,7 @@ test-bonds-new-verlet-dt-change: DFLAGS=-DBONDS -DBETTER_VERLET -DSMALL_DT_EARLY
 test-bonds-new-verlet-dt-change: test
 
 test-reduced-local-calcs: DFLAGS+=-DTESTING -DONE_BY_ONE -DREDUCE_LOCAL_CALCS
-test-reduced-local-calcs: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
-	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-          -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+test-reduced-local-calcs: test
 
 # Larger test
 test-large-reduced-local-calcs: DFLAGS+=-DLARGE_TEST -DREDUCE_LOCAL_CALCS
@@ -361,12 +387,13 @@ test-float-only-reduced-local-calcs-single-force-loop-better-verlet-dt-change: t
 # --------------------------- GALS TESTING ---------------------------
 # Base for testing GALS application
 # Improved gals and one by one make for the best GALS version
+test-gals: OBJS=$(POLITE_OBJS)
 test-gals: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS -DONE_BY_ONE
 test-gals: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-gals
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # Larger test
@@ -810,7 +837,7 @@ $(DPD_BIN)/parserRun: $(DPD_SRC)/parserRun.cpp $(PARSE_OBJS) $(DPD_SRC)/parseUni
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/parserRun.o $(DPD_SRC)/parserRun.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/parserRun $(PARSE_OBJS) $(HL)/*.o $(DPD_BIN)/parserRun.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 parse: DFLAGS=-DVISUALISE
@@ -826,7 +853,7 @@ pobov: DFLAGS=-DVISUALISE -DONE_BY_ONE
 pobov: $(DPD_BIN) $(DPD_BIN)/parsedCode.v $(DPD_BIN)/parsedData.v $(DPD_BIN)/parserRun
 
 visual-gals: DFLAGS=-DVISUALISE
-visual-gals: base-gals oil-water
+visual-gals: base-gals $(DPD_INC)/gals.h $(HL)/*.o $(POLITE_OBJS) oil-water
 
 gals-obo: DFLAGS=-DVISUALISE -DGALS -DONE_BY_ONE
 gals-obo: base-gals oil-water
@@ -873,8 +900,9 @@ timed-improved-gals-new-verlet: base-gals oil-water
 timed-improved-gals-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DDRAM -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-new-verlet-dram: base-gals oil-water
 
+timed-improved-gals-obo-new-verlet: OBJS=$(POLITE_OBJS)
 timed-improved-gals-obo-new-verlet: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
-timed-improved-gals-obo-new-verlet: base-gals oil-water
+timed-improved-gals-obo-new-verlet: base-gals $(POLITE_OBJS) oil-water
 
 timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-obo-new-verlet-dram: base-gals oil-water
@@ -903,14 +931,15 @@ $(DPD_BIN)/OilWaterBonds.o: $(DPD_SRC)/OilWaterBonds.cpp
 $(DPD_BIN)/bonds_run: $(DPD_BIN)/OilWaterBonds.o $(HL)/*.o $(DPD_BIN) $(POLITE_OBJS)
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/OilWaterBonds.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 visual-oil-water-bonds: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
 visual-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
+timed-gals-vesicle-fastest: OBJS=$(POLITE_OBJS)
 timed-gals-vesicle-fastest: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
-timed-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+timed-gals-vesicle-fastest: $(POLITE_OBJS) base-gals vesicle
 
 timed-gals-vesicle-fastest-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
 timed-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
@@ -941,13 +970,6 @@ visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DP
 visual-sync-oil-water-bonds-dram: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS -DDRAM
 visual-sync-oil-water-bonds-dram: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
-visual-serial-oil-water-bonds: DFLAGS=-DSERIAL -DBONDS -DVISUALISE -DBETTER_VERLET -DSMALL_DT_EARLY
-visual-serial-oil-water-bonds: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-visual-serial-oil-water-bonds: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS) oil-water-bonds
-
-timed-oil-water-bonds: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY
-timed-oil-water-bonds: $(DPD_BIN) base-gals $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
-
 # -------------- WATER ONLY SIMULATION ------------------------------------------------------
 timed-water-only: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
 timed-water-only: $(DPD_BIN) base-gals water-only
@@ -966,27 +988,25 @@ visual-vesicle-restart: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLE
 visual-vesicle-restart: $(DPD_BIN) base-gals restart
 
 # ---------------------------- x86 SERIAL SIMULATOR --------------------------------
-serial-objs: $(DPD_INC)/Vector3D.hpp $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/utils.hpp $(DPD_SRC)/utils.cpp
-serial-objs:
-	mkdir -p $(DPD_BIN)
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Vector3D.o $(DPD_SRC)/Vector3D.cpp
-	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/utils.o $(DPD_SRC)/utils.cpp
+serial: $(SERIAL_OBJS)
 
-timed-serial-oil-water: DFLAGS=-DSERIAL -DTIMER
-timed-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-timed-serial-oil-water: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS) oil-water
+serial-oil-water: OBJS=$(SERIAL_OBJS)
+serial-oil-water: DFLAGS+=-DSERIAL
+serial-oil-water: serial oil-water
 
-visual-serial-oil-water: DFLAGS=-DSERIAL -DVISUALISE
-visual-serial-oil-water: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-visual-serial-oil-water: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS) oil-water
+timed-serial-oil-water: DFLAGS=-DTIMER -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+timed-serial-oil-water: serial-oil-water
+
+visual-serial-oil-water: DFLAGS=-DVISUALISE -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+visual-serial-oil-water: serial-oil-water
 
 test-serial: DFLAGS+=-DTESTING -DSERIAL
-test-serial: POLITE_OBJS+=$(DPD_BIN)/serial.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
-test-serial: serial-objs $(DPD_BIN)/serial.o $(POLITE_OBJS)
+test-serial: POLITE_OBJS+=$(DPD_BIN)/SerialSimulator.o $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
+test-serial: $(SERIAL_OBJS) $(DPD_BIN)/SerialSimulator.o
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(HL)/*.o $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
-          -ljtag_atlantic -ljtag_client -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+           -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
           -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 test-serial-large: DFLAGS+=-DLARGE_TEST
@@ -1013,7 +1033,7 @@ rdf-calculator:
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(HL) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/RDF.o $(DPD_SRC)/RDF.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/rdf $(RDF_OBJS) $(HL)/*.o $(DPD_BIN)/RDF.o \
 	  -static-libgcc -static-libstdc++ \
-      -ljtag_atlantic -ljtag_client \
+       \
       -L$(QUARTUS_ROOTDIR)/linux64 \
 	  -L$(QUARTUS_ROOTDIR)/linux64 \
       -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp

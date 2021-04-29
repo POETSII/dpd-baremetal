@@ -42,10 +42,10 @@ SimulationVolume<V>::SimulationVolume(const float volume_length, const unsigned 
 }
 
 // deconstructor
-template<class V>
-SimulationVolume<V>::~SimulationVolume() {
-//    Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *>::~Volume();
-}
+// template<class V>
+// SimulationVolume<V>::~SimulationVolume() {
+// //    Volume<S, PGraph<DPDDevice, DPDState, None, DPDMessage> *>::~Volume();
+// }
 
 // Checks to see if a bead can be added to the volume
 template<class V>
