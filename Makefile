@@ -1012,6 +1012,16 @@ test-serial: $(SERIAL_OBJS) $(DPD_BIN)/SerialSimulator.o
 test-serial-large: DFLAGS+=-DLARGE_TEST
 test-serial-large: test-serial
 
+serial-vesicle: OBJS=$(SERIAL_OBJS)
+serial-vesicle: DFLAGS+=-DSERIAL -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+serial-vesicle: serial vesicle
+
+timed-serial-vesicle: DFLAGS+=-DTIMER
+timed-serial-vesicle: serial-vesicle
+
+visual-serial-vesicle: DFLAGS+=-DVISUALISE
+visual-serial-vesicle: serial-vesicle
+
 # ---------------------------- x86 RDF Calculator --------------------------------
 RDF_OBJS = $(DPD_BIN)/RDFCells.o $(DPD_BIN)/RDFVolume.o $(DPD_BIN)/RDFCalculator.o
 

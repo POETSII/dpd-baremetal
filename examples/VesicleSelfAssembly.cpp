@@ -338,12 +338,6 @@ int main(int argc, char *argv[]) {
     // fprintf(f, "]}");
     // fclose(f);
 
-#ifndef SERIAL
-//    POETSDPDSimulator *simulator = new POETSDPDSimulator(&volume, 0, max_time);
-#else
-    SerialDPDSimulator *simulator = new SerialDPDSimulator();
-#endif
-
     simulator.write(); // Write the volume to the simulator memory
 
     simulator.run(); // Start the simulation
