@@ -26,7 +26,7 @@ POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLit
 SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
-SOCAT_SCRIPT = ./scripts/socat_script
+SOCAT_SCRIPT = ./socat/socat_script
 
 # This should be kept up to date as the "best" POETS DPD version
 run: timed-improved-gals-obo-new-verlet

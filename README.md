@@ -221,6 +221,105 @@ Where `v` is an integer >=3 for the length of one side of the volume, and `t` is
 an integer for the number of timesteps to run. `--boxes-x` and `--boxes-y` will
 not work with this version.
 
-### Directory information
+## Directory information
 
+### examples
 
+This directory contains cpp files for generating a DPD simulation. They take in
+arguments for length of one side of the volume and build it, add in the beads
+according to percentages of types. The README in this directory has more
+information on the available examples.
+
+### gifs
+
+Holds images used to show how the simulator operates in the documentation.
+
+### inc
+
+All header files for the code are stored here. For Volume, Simulator and Cells
+it provides a good place to look at the API for using these. It also contains
+all the common code for the DPD simulations, how forces and Verlet are
+calculated and so on. The code that inherits from POLite to create vertices
+(cells) is stored here.
+
+The README in this directory provides more detailed information for each of the
+files.
+
+### scripts
+
+Contains some handy python scripts, which convert bead states into something
+usable by something else, generate graphs from states or other data, and even a
+script that compares two sets of states and finds where they diverge. The README
+of this directory provides more information.
+
+### single-poets-thread
+
+A version of the simulator that uses 1 Tinsel thread to run a small simulation.
+It was designed as a development tool for testing custom instructions.
+
+### socat
+
+This contains the socat script, used for sending bead data to a client machine
+for the purposes of live visualisation. This feature has been deprecated
+somewhat, as we now use [VMD](https://www.ks.uiuc.edu/Research/vmd/) primarily for generating visualisation videos, as
+they are better quality. The `vmd-files` directory README has more information.
+
+### src
+
+This is the main source code directory. They implement the classes found in
+`inc/`. `inc/` has all the code for DPD calculations, the structs necessary and
+the constants, as well as the code for implementing POLite based vertices (the
+cells).
+
+The README in this directory has more information on what each file does.
+
+### submodules
+
+This contains the repos for `tinsel` and `dpd-vis`. `tinsel` is the engine which
+drives the POETS boxes, and contains POLite, the thin-layer API on which this
+POETS DPD simulator is implemented, and facilitates all the necessary
+communication between host x86 machine and the POETS boxes.
+
+`dpd-vis` is the way we used to visualise DPD simulations. It allowed for
+real-time visualisation and some playback, but has been deprecated somewhat, as
+we now store states, convert them to PDB and use
+[VMD](https://www.ks.uiuc.edu/Research/vmd/) as it generates better videos.
+
+### tests
+
+This contains scripts to perform regression testing. It is useful to test every
+feature, old and new, in case any combination of old/new features somehow
+improves performance. It also contains CSV files holding input and expected
+outputs bead states, which is what is tested against. The README in this
+directory provides more information on tests.
+
+### utils
+
+This contains some scripts used by the RISCV compiler.
+
+### vmd-files
+
+To generate videos, you need to use
+[VMD](https://www.ks.uiuc.edu/Research/vmd/). This contains some scripts to help
+with this. See the README in this directroy for more information.
+
+### xml-generators
+
+Source code for taking an xml-graph type and generating the DeviceInstances with
+the initial state containing beads, and the EdgeInstances connecting the
+devices.
+
+### xml-graph-types
+
+Graph types for an XML version of DPD aimed for used with The Orchestrator.
+
+### Makefile
+
+This is quite long, but contains the necessary recipes to generate a simulation
+that can use any valid combination of macro flags. The macro flags are explained
+more in `docs`.
+
+### config.json
+
+This is used on a client x86 machine when built to use `dpd-vis` to visualise a
+simulation at runtime.
