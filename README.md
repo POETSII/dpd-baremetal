@@ -223,6 +223,13 @@ not work with this version.
 
 ## Directory information
 
+### docs
+
+Here you will find documents explaining in more detail how DPD and the POETS DPD
+algorithm work, how the different versions (sync, GALS and serial) of the
+simulator work, and a list of the available macro flags, and details on what
+they do.
+
 ### examples
 
 This directory contains cpp files for generating a DPD simulation. They take in
