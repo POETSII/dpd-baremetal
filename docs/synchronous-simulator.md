@@ -30,7 +30,7 @@ could be waiting a while, which is inefficient.
 have completed, and skew can occur in calling `step()` leading to some cells
 moving ahead and waiting longer for the next synchronisation.
 
-## POETS DPD Simulator
+## Working in POETS DPD Simulator
 
 The POETS DPD simulator can also make use of this. As discussed in the [POETS
 DPD Simulation Algorithm document](./poets-dpd-simulation.md), certain phases
