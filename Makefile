@@ -22,7 +22,7 @@ DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 COMMON_OBJS = $(DPD_BIN)/HostMessenger.o $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o \
  			  $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/Simulator.o
-POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteMessenger.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
@@ -88,6 +88,10 @@ $(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
 
 # -------------- POLite Object files --------------------------
+$(DPD_BIN)/POLiteMessenger.o: $(DPD_SRC)/POLiteMessenger.cpp $(DPD_INC)/POLiteMessenger.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteMessenger.o $(DPD_SRC)/POLiteMessenger.cpp
+
 $(DPD_BIN)/POLiteCells.o: $(DPD_SRC)/POLiteCells.cpp $(DPD_INC)/POLiteCells.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteCells.o $(DPD_SRC)/POLiteCells.cpp
@@ -907,8 +911,9 @@ timed-improved-gals-obo-new-verlet: base-gals $(POLITE_OBJS) oil-water
 timed-improved-gals-obo-new-verlet-dram: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DDRAM -DSMALL_DT_EARLY -DFLOAT_ONLY
 timed-improved-gals-obo-new-verlet-dram: base-gals oil-water
 
+visual-improved-gals-obo-new-verlet: OBJS=$(POLITE_OBJS)
 visual-improved-gals-obo-new-verlet: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY
-visual-improved-gals-obo-new-verlet: base-gals oil-water
+visual-improved-gals-obo-new-verlet: base-gals $(POLITE_OBJS) oil-water
 
 timed-improved-gals-obo-new-verlet-reduced-local-calcs: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DFLOAT_ONLY -DREDUCE_LOCAL_CALCS
 timed-improved-gals-obo-new-verlet-reduced-local-calcs: base-gals oil-water
@@ -944,15 +949,17 @@ timed-gals-vesicle-fastest: $(POLITE_OBJS) base-gals vesicle
 timed-gals-vesicle-fastest-dram: DFLAGS+=-DDRAM
 timed-gals-vesicle-fastest-dram: timed-gals-vesicle-fastest
 
-visual-gals-vesicle-fastest: DFLAGS=-DVISUAL -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
-visual-gals-vesicle-fastest: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+visual-gals-vesicle-fastest: OBJS+=$(POLITE_OBJS)
+visual-gals-vesicle-fastest: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
+visual-gals-vesicle-fastest: $(POLITE_OBJS) base-gals vesicle
 
-visual-gals-vesicle-fastest-dram: DFLAGS=-DVISUAL -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
+visual-gals-vesicle-fastest-dram: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
 visual-gals-vesicle-fastest-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
+stats-gals-vesicle-fastest: OBJS+=$(POLITE_OBJS)
 stats-gals-vesicle-fastest: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS
 stats-gals-vesicle-fastest: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
-stats-gals-vesicle-fastest: clean-tinsel clean $(TINSEL_LIB)/lib.o base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
+stats-gals-vesicle-fastest: clean-tinsel clean $(TINSEL_LIB)/lib.o $(POLITE_OBJS) base-gals vesicle
 
 stats-gals-vesicle-fastest-dram: DFLAGS=-DSTATS -DGALS -DIMPROVED_GALS -DONE_BY_ONE -DBONDS -DSMALL_DT_EARLY -DVESICLE_SELF_ASSEMBLY -DREDUCE_LOCAL_CALCS -DDRAM
 stats-gals-vesicle-fastest-dram: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o

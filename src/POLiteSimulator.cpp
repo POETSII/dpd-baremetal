@@ -32,6 +32,8 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
     cells->set_start_timestep(start_timestep);
     cells->set_end_timestep(max_timestep);
 
+    this->messenger = new POLiteMessenger(hostLink, state_dir, cells_per_dimension, max_timestep);
+
 }
 
 POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells_per_dimension, uint32_t start_timestep, uint32_t max_timestep,
@@ -40,41 +42,37 @@ POLiteSimulator::POLiteSimulator(const ptype volume_length, const unsigned cells
 
 // Run the simulation
 void POLiteSimulator::run() {
-#ifdef VISUALISE
-    // Max runtime - currently only checked when a json file is closed
-    runtime_hours = 0;
-    runtime_minutes = 30;
-    runtime_seconds = 0;
+    this->messenger->set_number_of_beads(this->volume->get_number_of_beads());
 
-    uint16_t cells_per_dimension = volume->get_cells_per_dimension();
-    uint32_t total_cells = volume->get_number_of_cells();
-    uint32_t total_beads_in = volume->get_number_of_beads();
+// #ifdef VISUALISE
+//     // Max runtime - currently only checked when a json file is closed
+//     runtime_hours = 0;
+//     runtime_minutes = 30;
+//     runtime_seconds = 0;
 
-    std::cout << "Simulation run for a maximum time of ";
-    if (runtime_hours > 0) {
-        std::cout << runtime_hours << " hours ";
-    }
-    if (runtime_minutes > 0) {
-        std::cout << runtime_minutes << " minutes ";
-    }
-    if (runtime_seconds > 0) {
-        std::cout << runtime_minutes << " seconds.";
-    }
-    std::cout << "\n";
+//     uint16_t cells_per_dimension = volume->get_cells_per_dimension();
+//     uint32_t total_cells = volume->get_number_of_cells();
+//     uint32_t total_beads_in = volume->get_number_of_beads();
 
-    calculate_runtime();
+//     std::cout << "Simulation run for a maximum time of ";
+//     if (runtime_hours > 0) {
+//         std::cout << runtime_hours << " hours ";
+//     }
+//     if (runtime_minutes > 0) {
+//         std::cout << runtime_minutes << " minutes ";
+//     }
+//     if (runtime_seconds > 0) {
+//         std::cout << runtime_minutes << " seconds.";
+//     }
+//     std::cout << "\n";
 
-    std::cout << "This totals " << runtime_seconds << " seconds.\n";
-#endif
+//     calculate_runtime();
 
-#ifdef SERIAL
-    moodycamel::BlockingConcurrentQueue<DPDMessage> queue(100);
-    _volume->setQueue(&queue);
-    std::thread thread(&SerialSim::run, _volume);
-#else // We dont need host link if we're running serial sim on x86
+//     std::cout << "This totals " << runtime_seconds << " seconds.\n";
+// #endif
+
     hostLink->boot("code.v", "data.v");
     hostLink->go();
-#endif
 
     struct timeval start, finish, elapsedTime;
     gettimeofday(&start, NULL);
@@ -85,191 +83,193 @@ void POLiteSimulator::run() {
     politeSaveStats(hostLink, "stats.txt");
 #endif
 
-    uint32_t devices = 0;
-    uint32_t timestep = start_timestep;
-#ifdef BEAD_COUNTER
-    uint32_t total_beads_out = 0;
-#endif
+    this->messenger->run_wrapper();
 
-#ifdef VISUALISE
-    std::map<uint32_t, uint32_t> bead_print_map;
-#endif
+//     uint32_t devices = 0;
+//     uint32_t timestep = start_timestep;
+// #ifdef BEAD_COUNTER
+//     uint32_t total_beads_out = 0;
+// #endif
 
-    std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
-    bool first = true;
-    // enter the main loop
-    while(1) {
-        PMessage<DPDMessage> pmsg;
-        hostLink->recvMsg(&pmsg, sizeof(pmsg));
-        DPDMessage msg = pmsg.payload;
+// #ifdef VISUALISE
+//     std::map<uint32_t, uint32_t> bead_print_map;
+// #endif
 
-        if (msg.type == 0xE0) {
-            std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
-            exit(1);
-        }
+//     std::map<uint32_t, std::map<uint32_t, bead_t>> bead_map;
+//     bool first = true;
+//     // enter the main loop
+//     while(1) {
+//         PMessage<DPDMessage> pmsg;
+//         hostLink->recvMsg(&pmsg, sizeof(pmsg));
+//         DPDMessage msg = pmsg.payload;
 
-    #ifdef TIMER
-      #ifdef BEAD_COUNTER
-        if (msg.type == 0xAB) {
-            devices++;
-            beads_out += msg.timestep;
-            if (devices >= total_cells) { // All devices reported
-                std::cerr << "Beads in  = " << total_beads_in << "\n";
-                std::cerr << "Beads out = " << total_beads_out << "\n";
-                FILE *f = fopen("../bead_count.csv", "a+");
-                fprintf(f, "%u, %u, %u\n", cells_per_dimension, total_beads_in, total_beads_out);
-                fclose(f);
-                return;
-            }
-        }
-      #else
-        std::cerr << "Msg type = " << (uint32_t) msg.type << "\n";
-        if (msg.type == 0xDD) {
-            if (msg.timestep > timestep) {
-                std::cerr << msg.from.x << ", "<< msg.from.y << ", " << msg.from.z;
-                std::cerr << " finished early. Timestep " << msg.timestep << "\n";
-                timestep = msg.timestep;
-            }
-        } else if (msg.type != 0xBB) {
-            if (msg.timestep >= max_timestep) {
-                gettimeofday(&finish, NULL);
-                timersub(&finish, &start, &elapsedTime);
-                double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-                printf("Runtime = %1.10f\n", duration);
-                FILE* f = fopen("../mega_results.csv", "a+");
-                // FILE* f = fopen("../timing_results.csv", "a+");
-                fprintf(f, "%1.10f", duration);
-                fclose(f);
-            #ifdef SERIAL
-                thread.join();
-            #endif
-                return;
-            } else {
-                std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
-                return;
-            }
-        } else {
-            std::cerr << "ERROR: received message when not expected\n";
-            return;
-        }
-      #endif
-    #elif defined(STATS)
-        if (msg.type == 0xAB) {
-            printf("Stat collection complete, run \"make print-stats -C ..\"\n");
-            return;
-        }
-    #elif defined(VISUALISE)
-        if (timestep < msg.timestep) {
-            timestep = msg.timestep;
-            bead_print_map[timestep] = 0;
-            // if (timestep > start_timestep + emitperiod) {
-            // #ifndef VESICLE_SELF_ASSEMBLY
-            //     std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-            // #else
-            //     std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
-            // #endif
-            //     FILE* old_file = fopen(path.c_str(), "a+");
-            //     fprintf(old_file, "\n]}\n");
-            //     fclose(old_file);
-            // }
+//         if (msg.type == 0xE0) {
+//             std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+//             exit(1);
+//         }
 
-        #ifndef VESICLE_SELF_ASSEMBLY
-            // std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
-            std::string fpath = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(timestep) + ".json";
-        #else
-            std::string fpath = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
-        #endif
-            FILE* f = fopen(fpath.c_str(), "w+");
-            fprintf(f, "{\n\t\"beads\":[\n");
-            fclose(f);
-            first = true;
-        }
-        // pts_to_extern_t eMsg;
-        // eMsg.timestep = msg.timestep;
-        // eMsg.from = msg.from;
-        // eMsg.bead = msg.beads[0];
-        // _extern->send(&eMsg);
+//     #ifdef TIMER
+//       #ifdef BEAD_COUNTER
+//         if (msg.type == 0xAB) {
+//             devices++;
+//             beads_out += msg.timestep;
+//             if (devices >= total_cells) { // All devices reported
+//                 std::cerr << "Beads in  = " << total_beads_in << "\n";
+//                 std::cerr << "Beads out = " << total_beads_out << "\n";
+//                 FILE *f = fopen("../bead_count.csv", "a+");
+//                 fprintf(f, "%u, %u, %u\n", cells_per_dimension, total_beads_in, total_beads_out);
+//                 fclose(f);
+//                 return;
+//             }
+//         }
+//       #else
+//         std::cerr << "Msg type = " << (uint32_t) msg.type << "\n";
+//         if (msg.type == 0xDD) {
+//             if (msg.timestep > timestep) {
+//                 std::cerr << msg.from.x << ", "<< msg.from.y << ", " << msg.from.z;
+//                 std::cerr << " finished early. Timestep " << msg.timestep << "\n";
+//                 timestep = msg.timestep;
+//             }
+//         } else if (msg.type != 0xBB) {
+//             if (msg.timestep >= max_timestep) {
+//                 gettimeofday(&finish, NULL);
+//                 timersub(&finish, &start, &elapsedTime);
+//                 double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+//                 printf("Runtime = %1.10f\n", duration);
+//                 FILE* f = fopen("../mega_results.csv", "a+");
+//                 // FILE* f = fopen("../timing_results.csv", "a+");
+//                 fprintf(f, "%1.10f", duration);
+//                 fclose(f);
+//             #ifdef SERIAL
+//                 thread.join();
+//             #endif
+//                 return;
+//             } else {
+//                 std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
+//                 return;
+//             }
+//         } else {
+//             std::cerr << "ERROR: received message when not expected\n";
+//             return;
+//         }
+//       #endif
+//     #elif defined(STATS)
+//         if (msg.type == 0xAB) {
+//             printf("Stat collection complete, run \"make print-stats -C ..\"\n");
+//             return;
+//         }
+//     #elif defined(VISUALISE)
+//         if (timestep < msg.timestep) {
+//             timestep = msg.timestep;
+//             bead_print_map[timestep] = 0;
+//             // if (timestep > start_timestep + emitperiod) {
+//             // #ifndef VESICLE_SELF_ASSEMBLY
+//             //     std::string path = "../100_bond_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+//             // #else
+//             //     std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(timestep - emitperiod) + ".json";
+//             // #endif
+//             //     FILE* old_file = fopen(path.c_str(), "a+");
+//             //     fprintf(old_file, "\n]}\n");
+//             //     fclose(old_file);
+//             // }
+
+//         #ifndef VESICLE_SELF_ASSEMBLY
+//             // std::string fpath = "../100_bond_frames/state_" + std::to_string(timestep) + ".json";
+//             std::string fpath = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(timestep) + ".json";
+//         #else
+//             std::string fpath = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(timestep) + ".json";
+//         #endif
+//             FILE* f = fopen(fpath.c_str(), "w+");
+//             fprintf(f, "{\n\t\"beads\":[\n");
+//             fclose(f);
+//             first = true;
+//         }
+//         // pts_to_extern_t eMsg;
+//         // eMsg.timestep = msg.timestep;
+//         // eMsg.from = msg.from;
+//         // eMsg.bead = msg.beads[0];
+//         // _extern->send(&eMsg);
 
 
-        // if (msg.timestep >= _max_timestep + 100) {
-        //     std::cout << "\n";
-        //     std::cout << "Finished, saving now\n";
-        //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
-        //         std::cout << "Timestep " << i->first << "\r";
-        //         fflush(stdout);
-        //         std::string path = "../100_bond_frames/state_" + std::to_string(i->first) + ".json";
-        //         FILE* f = fopen(path.c_str(), "w+");
-        //         fprintf(f, "{\n\t\"beads\":[\n");
-        //         bool first = true;
-        //         for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
-        //             if (first) {
-        //                 first = false;
-        //             } else {
-        //                 fprintf(f, ",\n");
-        //             }
-        //             fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
-        //         }
-        //         fprintf(f, "\n]}");
-        //         fclose(f);
-        //     }
-        //     std::cout << "\n";
-        // #ifdef SERIAL
-        //     thread.join();
-        // #endif
-        //     return;
-        // }
+//         // if (msg.timestep >= _max_timestep + 100) {
+//         //     std::cout << "\n";
+//         //     std::cout << "Finished, saving now\n";
+//         //     for (std::map<uint32_t, std::map<uint32_t, bead_t>>::iterator i = bead_map.begin(); i != bead_map.end(); ++i) {
+//         //         std::cout << "Timestep " << i->first << "\r";
+//         //         fflush(stdout);
+//         //         std::string path = "../100_bond_frames/state_" + std::to_string(i->first) + ".json";
+//         //         FILE* f = fopen(path.c_str(), "w+");
+//         //         fprintf(f, "{\n\t\"beads\":[\n");
+//         //         bool first = true;
+//         //         for (std::map<uint32_t, bead_t>::iterator j = i->second.begin(); j != i->second.end(); ++j){
+//         //             if (first) {
+//         //                 first = false;
+//         //             } else {
+//         //                 fprintf(f, ",\n");
+//         //             }
+//         //             fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", j->second.id, j->second.pos.x(), j->second.pos.y(), j->second.pos.z(), j->second.velo.x(), j->second.velo.y(), j->second.velo.z(), j->second.type);
+//         //         }
+//         //         fprintf(f, "\n]}");
+//         //         fclose(f);
+//         //     }
+//         //     std::cout << "\n";
+//         // #ifdef SERIAL
+//         //     thread.join();
+//         // #endif
+//         //     return;
+//         // }
 
-        bead_t b = msg.beads[0];
-        b.pos.x(b.pos.x() + msg.from.x);
-        b.pos.y(b.pos.y() + msg.from.y);
-        b.pos.z(b.pos.z() + msg.from.z);
-        // bead_map[msg.timestep][msg.beads[0].id] = b;
-    #ifndef VESICLE_SELF_ASSEMBLY
-        // std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
-        std::string path = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(msg.timestep) + ".json";
-    #else
-        std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
-    #endif
-        FILE* f = fopen(path.c_str(), "a+");
-        if (first) {
-            first = false;
-        } else {
-            fprintf(f, ",\n");
-        }
-        fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
-        fclose(f);
-        bead_print_map[msg.timestep]++;
-        if (bead_print_map[msg.timestep] >= total_beads_in) {
-          #ifndef VESICLE_SELF_ASSEMBLY
-            // std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
-            std::string path = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(msg.timestep) + ".json";
-          #else
-            std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
-          #endif
-            FILE* old_file = fopen(path.c_str(), "a+");
-            fprintf(old_file, "\n]}\n");
-            fclose(old_file);
+//         bead_t b = msg.beads[0];
+//         b.pos.x(b.pos.x() + msg.from.x);
+//         b.pos.y(b.pos.y() + msg.from.y);
+//         b.pos.z(b.pos.z() + msg.from.z);
+//         // bead_map[msg.timestep][msg.beads[0].id] = b;
+//     #ifndef VESICLE_SELF_ASSEMBLY
+//         // std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+//         std::string path = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(msg.timestep) + ".json";
+//     #else
+//         std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
+//     #endif
+//         FILE* f = fopen(path.c_str(), "a+");
+//         if (first) {
+//             first = false;
+//         } else {
+//             fprintf(f, ",\n");
+//         }
+//         fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
+//         fclose(f);
+//         bead_print_map[msg.timestep]++;
+//         if (bead_print_map[msg.timestep] >= total_beads_in) {
+//           #ifndef VESICLE_SELF_ASSEMBLY
+//             // std::string path = "../100_bond_frames/state_" + std::to_string(msg.timestep) + ".json";
+//             std::string path = "/home/jrbeaumont/polite-dpd-states/state_" + std::to_string(msg.timestep) + ".json";
+//           #else
+//             std::string path = "../" + std::to_string(cells_per_dimension) + "_vesicle_frames/state_" + std::to_string(msg.timestep) + ".json";
+//           #endif
+//             FILE* old_file = fopen(path.c_str(), "a+");
+//             fprintf(old_file, "\n]}\n");
+//             fclose(old_file);
 
-            // Check if we've run for longer than the max time
-            gettimeofday(&finish, NULL);
-            timersub(&finish, &start, &elapsedTime);
-            double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
-            printf("Timestep %u stored after %1.10f seconds                     \r", timestep,  duration);
-            fflush(stdout);
-            if (duration >= runtime_seconds) {
-                std::cout << "\nMax runtime reached, exiting\n";
-            #ifdef VESICLE_SELF_ASSEMBLY
-                FILE* timeFile = fopen("../vesicle_total_run_time.csv", "a+");
-            #else
-                FILE* timeFile = fopen("../oil_water_total_run_time.csv", "a+");
-            #endif
-                fprintf(timeFile, "%u, %u, %f\n", start_timestep, msg.timestep, duration);
-                return;
-            }
-        }
+//             // Check if we've run for longer than the max time
+//             gettimeofday(&finish, NULL);
+//             timersub(&finish, &start, &elapsedTime);
+//             double duration = (double) elapsedTime.tv_sec + (double) elapsedTime.tv_usec / 1000000.0;
+//             printf("Timestep %u stored after %1.10f seconds                     \r", timestep,  duration);
+//             fflush(stdout);
+//             if (duration >= runtime_seconds) {
+//                 std::cout << "\nMax runtime reached, exiting\n";
+//             #ifdef VESICLE_SELF_ASSEMBLY
+//                 FILE* timeFile = fopen("../vesicle_total_run_time.csv", "a+");
+//             #else
+//                 FILE* timeFile = fopen("../oil_water_total_run_time.csv", "a+");
+//             #endif
+//                 fprintf(timeFile, "%u, %u, %f\n", start_timestep, msg.timestep, duration);
+//                 return;
+//             }
+//         }
 
-    #endif
-    }
+//     #endif
+//     }
 }
 
 //Runs a test, gets the bead outputs and returns this to the test file

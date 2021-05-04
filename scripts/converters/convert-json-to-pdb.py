@@ -2,14 +2,16 @@ import json
 import numpy as np
 
 volLength = 10
-min_timestep = 0
-max_timestep = 2500
+min_timestep = 1
+max_timestep = 2000
 emitperiod = 1
-in_dir = "../serial-dpd-states/"
-out_filepath = "../serial-dpd-test.pdb"
-bead_types = ["WWW", "OOO", "AAA"]
+in_dir = "../../polite-dpd-states/"
+out_filepath = "../../polite-dpd-test.pdb"
+# bead_types = ["WWW", "OOO", "AAA"]
+bead_types = ["HHH", "TTT", "WWW", "AAA"]
 includeWater = False
-waterTypeNum = 0
+# waterTypeNum = 0
+waterTypeNum = 2
 append = False
 
 volLength_str = "{:.3f}".format(volLength)

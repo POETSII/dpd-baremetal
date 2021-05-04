@@ -5,15 +5,17 @@
 #ifndef _POLITESIMULATOR_H
 #define _POLITESIMULATOR_H
 
-#include "HostLink.h"
-
-#include "ExternalServer.hpp"
-#include "POLiteVolume.hpp"
-
 #ifdef STATS
 #define POLITE_DUMP_STATS
 #define POLITE_COUNT_MSGS
 #endif
+
+#include "POLiteMessenger.hpp"
+
+#include "HostLink.h"
+
+#include "ExternalServer.hpp"
+#include "POLiteVolume.hpp"
 
 class POLiteSimulator : public Simulator<POLiteVolume> {
     public:
@@ -35,6 +37,8 @@ class POLiteSimulator : public Simulator<POLiteVolume> {
 
     // For sending bead data to externals
     ExternalServer *_extern;
+    // Host message manager
+    POLiteMessenger *messenger;
 
 };
 

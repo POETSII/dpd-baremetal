@@ -26,15 +26,11 @@ public:
 #ifdef TIMER
     unsigned timer_message(DPDMessage msg); // Message expected to end a performance test
 #endif
-#ifdef stats
+#ifdef STATS
     unsigned stats_collection(DPDMessage msg); // Expected when a simulation has finished gathering POLite stats
 #endif
 #ifdef VISUALISE
     void emit_message(DPDMessage msg); // A message containing bead information to be stored for visualisation/analysis
-#endif
-
-#ifdef TIMER
-    void start_timer();
 #endif
 
     virtual DPDMessage await_message() = 0;

@@ -43,9 +43,6 @@ unsigned HostMessenger<Q>::timer_message(DPDMessage msg) {
             // FILE* f = fopen("../timing_results.csv", "a+");
             fprintf(f, "%1.10f", duration);
             fclose(f);
-        #ifdef SERIAL
-        //     thread.join();
-        #endif
             return 0;
         } else {
             std::cerr << "ERROR: Received finish message at early timestep: " << msg.timestep << "\n";
@@ -162,24 +159,17 @@ void HostMessenger<Q>::emit_message(DPDMessage msg) {
 }
 #endif
 
-#ifdef TIMER
-template<class Q>
-void HostMessenger<Q>::start_timer() {
-    gettimeofday(&this->start, NULL);
-}
-#endif
-
 template<class Q>
 void HostMessenger<Q>::run() {
 
+    std::cout << "Entered host messenger\n";
     // Get the start time
     gettimeofday(&start, NULL);
-    // This function be run after the simulation has been started
+    // This function will be run after the simulation has been started
 
     // enter the main loop
     while(1) {
-        // PMessage<DPDMessage> pmsg;
-        // hostLink->recvMsg(&pmsg, sizeof(pmsg));
+
         DPDMessage msg = await_message();
 
         // Check if there's an error

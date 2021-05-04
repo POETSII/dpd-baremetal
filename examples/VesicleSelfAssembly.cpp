@@ -136,7 +136,6 @@ int main(int argc, char *argv[]) {
     // Get the directory to store simulation states
     char cwd_buffer[PATH_MAX], *unused;
     unused = getcwd(cwd_buffer, sizeof(cwd_buffer));
-    std::cout << cwd_buffer << "\n";
 
   #ifndef SERIAL
     std::string state_dir = std::string(cwd_buffer) + "/../polite-dpd-states/";
