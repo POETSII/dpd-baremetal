@@ -1,25 +1,27 @@
 # dpd-baremetal
-_A tinsel-based (POLite) version of the DPD application_
+_A POLite version of the DPD application_
 
-## TPDS-PAPER
+## Documentation
 
-This branch is intended to be a snapshot of the POETS DPD paper for IEEE
-Transactions on Parallel and Distributed systems (TPDS). The results of that
-paper were achieved using the code in this branch (albeit with a different
-Tinsel version).
+This README is designed to give an overview of how to run something quickly.
+More details are provided in the `docs` directory of how the POETS DPD algorithm
+actually works, and how macro flags and makefile recipes work to produce
+simulations that achieve a result but with differing performance.
 
-The code has since gone under a major refactor and has improvements, both in
-terms of efficiency and clarity. The master branch contains this, and should be
-used for any major development. This branch should be considered a dead-end, and
-any further work done on it should be purely for comparison to the improved
-POETS DPD simulator.
+Each directory has a README explaining what its containing files do. At the end
+of this README, a brief explanation of what each of the directories in the root
+contains is provided.
 
-What is suggested in this README is how we got the results as seen in the TPDS
-paper, namely a GALS timed simulation.
+## Setup
 
-## Cloning
+#### Install requirments
 
-To clone this correctly, use the command:
+- `libboost`
+- `socat`
+
+#### Cloning
+
+To clone this correctly, use:
 
 ```bash
 git clone --recursive git@github.com/POETSII/dpd-baremetal
@@ -27,58 +29,68 @@ git clone --recursive git@github.com/POETSII/dpd-baremetal
 
 To run the simulations on a POETS box, this needs `tinsel` in the submodules
 directory.
-To run the visualisation on any x86 machine, this needs `dpd-vis` in the
-submodules directory.
 
-## Documentation
+## Testing
 
-The master branch of this repo includes lots of documentation on how the
-simulator works, and each file within the directories.
+It's always a good idea to run a test suite after first cloning, and then after
+making changes during development.
 
-For more information on what macro flags are available and how each file works
-please see the master branch.
+`tests/` has a regression test suite that runs everything. It does take a
+while, but it will test all the different macro flags. More information on what
+is tested can be found in the README of the `tests/` directory.
 
-**Warning**: Some of the information in the master branch may be new compared
-to this branch, and will likely not be implemented, but some of the old
-information may help. It is recommended if you want to do anything new to
-start by branching from master. This repo is meant only to exist incase we need
-to compare performance to newer versions of the simulator.
+To run the tests:
 
-We have tried to implement all new things on top of old things and use macro
-flags to select the best. If the makefile contains something you want to know
-more about, check the master branch docs. If it's not there, then please get in
-contact, we can likely help.
+```bash
+cd tests/
+./test-all
+```
 
-## Running timed simulations (for performance testing)
+This will run a script which tests everything. Again, it may take a long time,
+and occasionally the boxes will fail a startup self-check. In this case, either
+comment-out the completed tests from the test-all script and run again, or run
+the whole thing again.
 
-These simulations build the volume, add the beads, and then write it down to
-hardware. The hardware then runs for a given number of simulations (default
-10,000). As soon as a cell reaches this timestep, it sends a message to the host
-program (see `src/universe.cpp`) which reports the wallclock runtime of the
-simulation.
+If all complete successfully, it will inform you, and you can start running
+other things and developing.
 
-GALS
-----
+## Running a POETS DPD simulation
+
+There are a few methods of running a simulation, each of which the
+basics will be explained here.
+
+### Visual DPD Simulation
+
+A visual simulation runs a DPD simulation and stores the state of the beads at
+given intervals (default: each timestep). The interval, `emitperiod`, can be
+changed in `inc/DPDConstants.hpp`.
+
+The x86 host machine will store the bead states in `polite-dpd-states/` as
+JSON files, one file per timestep. These files can then be used to generate a
+PDB file for use with [VMD](https://www.ks.uiuc.edu/Research/vmd/) which
+visualises the data, and can generate videos.
+
+The following commands build the volume, add the beads, and then write it down
+to hardware, which then runs the simulation. It is recommended to run `make
+clean` between each make, to avoid clashes.
 
 Build the simulation binaries:
 ```bash
 make clean
-make timed-improved-gals-obo-new-verlet
+make visual-gals-vesicle-fastest
 ```
 
-To run the simulation:
+Once these have compiled, run the simulation:
 ```bash
 cd bin/
-./run v --time t
+./run v
 ```
 
-Where `v` is an integer >=3, and `t` is an integer for the number of timesteps
-to be executed.
+Where `v` is an integer >=3 for the length of one side of the volume.
 
-When it is finished, it will report the runtime.
+This will run continuously until stopped with `Ctrl+C`.
 
-DRAM
-----
+#### DRAM
 
 Large volumes may not fit in SRAM. In this case, when running with the above,
 the simulation will terminate before running and indicate that SRAM is full.
@@ -88,192 +100,233 @@ following:
 
 ```bash
 make clean
-make timed-improved-gals-obo-new-verlet-dram
+make visual-gals-vesicle-fastest-dram
 ```
 
 This will build the same simulation binaries, but this time direct the POLite
 mapper to store cells in DRAM instead. This will allow much larger simulations
-to be run, at a loss of performance (longer runtimes).
+to be run, at a loss of performance (longer runtimes). Running this is the same
+as before.
 
-Box arrangement
----------------
+`-dram` can be applied to any Makefile recipe for this to allow for larger
+simulations of all types.
 
-To change the box arrangement, see `src/universe.cpp` lines 294 and 295.
+#### Box arrangement
 
-```c++
-    _boxesX = 1;
-    _boxesY = 1;
-```
+By default, a POETS DPD simulation will run on 1 box (6 FPGAs, 6144
+Tinsel threads). There is capability to run this on up to 8 boxes, in a 2x4
+arrangement, depending on which box you run from. See
+[poets-cloud](https://github.com/POETSII/poets-cloud) for more details on which
+boxes can run what arrangement.
 
-By default it places it on an arrangement of (1 x 1 =) 1 boxes.
-This can be changed to any orientation up to a maximum of `_boxesX = 2` and
-`_boxesY = 4` which will allow you to use 8 boxes.
-
-## DPD
-
-Based around the equations set out in the DL_MESO manual [[1](http://www.cse.scitech.ac.uk/ccg/software/DL_MESO/MANUAL/USRMAN.pdf)].
-
-| real-time example | slowed down |
-| ----------------- | ----------- |
-| ![example](gifs/dpd-baremetal-oil-and-water-realtime.gif) | ![example](gifs/dpd-baremetal-oil-and-water-slowed-start.gif) |
-| ![example](gifs/dpd-baremetal-oil-and-water-3D-realtime.gif) | ![example](gifs/dpd-baremetal-oil-and-water-3D-slowed-down.gif) |
-
-An oil-and-water demo (ran on Byron: 2D = 100 threads, 3D = 1000 threads -- any larger and the current visualiser breaks..).
-
-[1] http://www.cse.scitech.ac.uk/ccg/software/DL_MESO/MANUAL/USRMAN.pdf <br />
-[2] https://www.sciencedirect.com/science/article/pii/S0010465514002203
-
---------------------------------------------------------------
-
-__dpd-baremetal__ consists of two main parts:
-* _[the application]_ the simulation application that is running on the _remote_ POETS box.
-* _[the client]_ a _local_ web-based GUI that displays the real-time output from the application and allows simulation playback and storage.
-
-Both of these two separate parts communicate over ssh to generate web-based
-real-time visualisations.
-
---------------------------------------------------------------
-
-## Implmentation details
-
-Currently this application is built using POLite and makes extensive use of the newer hardware and POLite features, in particular the idle-detection feature from [tinsel-0.5](https://github.com/POETSII/tinsel/releases/tag/v0.5).
-
-There is also a GALS version which doesn't use the hardware idle detection, and
-instead uses the messaging to synchronise between cells. They have comparable
-performance.
-
-The simulation universe is a cube that is decomposed into many smaller sub-cubes represented by devices. Each sub-cube is connected in a toroidal fashion to it's neighbours via edges (i.e. the edges of the cube wraparound, making the boundaries periodic).
-
-The simulation has three modes of operation which is switches between throughout the simulation:
-
-* __[UPDATE]__ Every sub-cube sends its entire state -- bead position and velocity -- to all of its neighbours. Each message contains the details for a single bead, meaning that multiple messages may need to be sent to each neighbour. As it receives beads it performs force update calculations for all the beads it owns. Once the system has gone idle we know that every sub-cube has shared it state and we can calculate the inter-bead interactions for each sub-cube.
-
-* __[MIGRATION]__ In the idle handler after an update we have the new force acting on each bead and we can perform a velocity verlet integration to calculate the new position of each bead. Any bead that leaves the current sub-cube is sent as a message to its intended destination and removed from the current cube. When a sub-cube receives a message in the __MIGRATION__ stage it knows that it should add this bead to its state.
-
-* __[EMIT]__ After `emitperiod` __MIGRATION__ stages there is an emit phase where the position and velocity of every bead is sent to the remote web-based client. (In the current implementation for real-time output it is important that this is not set too low otherwise the web-interface gets overwhelmed, for small sized problems of <20K beads a value of between 25 - 50 works well.)
-
-## Setup
-
-#### Install requirments
-
-Both client and application
-* `libboost`
-* `socat`
-
---------------------------------------------------------------
-
-# The following may no longer work
-
-#### Building for visual simulation
-
-To build on the local client-side:
-```bash
- make bridge
-```
-
-To build on the remote application side (POETS box):
-```bash
-make visual-improved-gals-obo-new-verlet
-```
-
-To connect the client and the application the user must have ssh key-based authetification access to the POETS box where the application is running and must edit the following lines of `dpd-baremetal/Makefile`:
+To select box arrangement at runtime, POETS DPD has command line options. Once
+the binaries are compiled, run:
 
 ```bash
-  # ~~~~~~~~~~~~~~~ Client side setup ~~~~~~~~~~~~~~~~~~~~~~~~~
-  LOCAL_SOCKET=./_external.sock
-  REMOTE_FULL=sf306@byron.cl.cam.ac.uk
-  REMOTE_SOCKET=/home/sf306/dpd-baremetal/bin/_external.sock
+./run v --boxes-x x --boxes-y y
 ```
-Where:
-* `LOCAL_SOCKET` is the name of the socket for the socket on the client side that is connected to the remote socket using `socat`.
-* `REMOTE_FULL` is the username of the user and the address of the POETS box where the application will be executed.
-* `REMOTE_SOCKET` is the name of the socket on the POETS box that is created by the application
 
+Where `v` is an integer >=3 for the length of one side of the volume, x is the
+number of boxes in the x-dimension and y is the number of boxes in the y
+dimension.
 
-## running the default example
+Using more boxes means there are more available threads, so larger simulations
+will run faster on more boxes.
 
-The default application is a 2D oil-and-water example (gif at the top of this page). To run this application code needs to be executed on both the client-side and the application side in a specific order -- as there is not currently startup synchronisation like there is in `ImPOLite` or `poets-ecosystem` ... yet.
+### Timed DPD simulation
 
-#### Step 1: _launch the remote application_
-On the POETS box you can start the application with the following:
+For the purposes of testing the performance of the simulator, we provide a timed
+method, which runs the simulation for a given number of timesteps, and reports
+the runtime when it has completed. This version **does not** emit any bead
+states, this is a slow process, we're trying to find the best-case runtimes of
+this simulator.
+
+Building the simulation binaries:
 ```bash
-cd bin; ./run
+make clean
+make visual-gals-vesicle-fastest
 ```
 
-#### Step 2: _launch the local client_
-Before `running...` appears on the POETS box application. The web interface needs to be lauched on the client-side by typing:
+Once these have compiled, run the simulation:
 ```bash
-make client_run
+cd bin/
+./run v
 ```
 
-#### Step 3: _open the web-interface_
+Where `v` is an integer >=3 for the length of one side of the volume.
 
-Once the application is running the web-interface can be launched from the client machine by opening `http://localhost:3000`. From here the user can watch a live output of the simulation and play the simulation back from the start at a faster framerate.
+By default, this will run for 10,000 timesteps, and the first cell to reach this
+will inform the host x86 machine, which will report the runtime, and store it
+in a file "mega_results.csv".
 
-## Other make options
+This CSV file  can be used in conjunction with the `mega-tests.sh` script.
+`mega-tests.sh` is designed to run volume sizes from a given minimum and
+maximum, for a given Makefile recipe. It runs each volume size 3 times, as the
+runtimes are likely to change based on message orderings etc. These are averaged
+to provide a better idea of runtimes.
 
-The Makefile has several other options for running the DPD application, which
-can provide interesting information for how the DPD application performs.
+#### Different length runs
 
-### `make test`
+10,000 timesteps is chosen as, MPI DPD (which we compare to a lot as it is the
+gold-standard), the runtime includes set up times. Our runtimes do not, but to
+make sure the runtimes are negligible for MPI DPD when we compare runtimes, we
+use 10,000 timesteps.
 
-This option builds a test to run a DPD simulation in an 18x18x18 universe, from
-a set of beads which have been pre-set (stored in `tests/beads_in_18.csv`).
-This simulation runs for 1000 timesteps, and outputs the state of all beads at
-the end of this run. The positions of these beads are then checked against the
-expected output from the pre-set input beads (stored in
-`tests/beads_out_18.csv`). If these match, the application works as expected.
-Otherwise, there is a problem in the application, meaning the calculations are
-not performing as expected, or potentially, beads are being lost.
+However, you can run POETS DPD simulations for any number of timesteps. Simply
+use:
 
-#### Execution:
-
-```
-    make test
-    cd bin
-    ./test
+```bash
+./run v --time t
 ```
 
-The test will print out the positions of each bead, comparing them to the
-expected output, and finally print an overall `PASS` or `FAIL` to indicate the
-success of the test.
+Where `v` is an integer >=3 for the length of one side of the volume, and `t` is
+an integer for the number of timesteps to run.
 
-### `make test-bonds`
+This can also be used in conjunction with `--boxes-x` and `--boxes-y` to compare
+runtimes on any arrangement of POETS boxes.
 
-This option builds a test to run a DPD simulation in a 25x25x25 universe, from
-a set of beads which have been pre-set, and includes some polymer chains; beads
-which are bonded (stored in `tests/beads_bonds_in_25.csv`).
-This simulation runs for 1000 timesteps, and outputs the state of all beads at
-the end of this run. The positions of these beads are then checked against the
-expected output from the pre-set input beads (stored in
-`tests/beads_bonds_out_25.csv`). If these match, the application works as
-expected. Otherwise, there is a problem in the application, meaning the calculations are
-not performing as expected, or potentially, beads are being lost.
+### Serial DPD simulator
 
-#### Execution:
+A serial simulator is provided which uses the same DPD calculation code
+`inc/dpd.hpp` as the POETS simulators (GALS and synchronous).
 
+Developing with POETS can be a challenge as there's very little output
+capabilities in order to debug when there is an error.
+
+The serial simulator is aimed at running the same simulations and producing
+similar results that can be indicative of those from the POETS boxes (x86 vs
+RISCV FPUs produce different results). There is the added benefit of using
+standard C++ tools to debug, and being able to output anything using stdout, as
+well as being able to develop on any x86 machine.
+
+The serial simulator can do visual and timed runs, the makefile recipes
+determine which type.
+
+```bash
+make serial-visual-vesicle
 ```
-    make test
-    cd bin
-    ./test
+OR
+```bash
+make serial-timed-vesicle
 ```
 
-The test will print out the positions of each bead, comparing them to the
-expected output, and finally print an overall `PASS` or `FAIL` to indicate the
-success of the test.
+Both can be run in the same way as the POETS simulator:
 
-### Run options
+```bash
+cd bin
+./run v --time t
+```
 
-There are some command line options for run when generated by some `make`
-options. These give options for various modes of running the simulation.
+Where `v` is an integer >=3 for the length of one side of the volume, and `t` is
+an integer for the number of timesteps to run. `--boxes-x` and `--boxes-y` will
+not work with this version.
 
-`./run <Simulation length> [--help] [--time t]`
+## Directory information
 
-`Simulation length` - The only required argument is the simulation length, which
-must be an integer greater than or equal to three. This is the length of one
-side of the volume, which is a cube.
+### docs
 
-`--time t` - Optional integer to provide the maximum number of timesteps to run.
-This only works with `timed` runs.
+Here you will find documents explaining in more detail how DPD and the POETS DPD
+algorithm work, how the different versions (sync, GALS and serial) of the
+simulator work, and a list of the available macro flags, and details on what
+they do.
 
-`--help` - Print a help text, explaining the above.
+### examples
+
+This directory contains cpp files for generating a DPD simulation. They take in
+arguments for length of one side of the volume and build it, add in the beads
+according to percentages of types. The README in this directory has more
+information on the available examples.
+
+### gifs
+
+Holds images used to show how the simulator operates in the documentation.
+
+### inc
+
+All header files for the code are stored here. For Volume, Simulator and Cells
+it provides a good place to look at the API for using these. It also contains
+all the common code for the DPD simulations, how forces and Verlet are
+calculated and so on. The code that inherits from POLite to create vertices
+(cells) is stored here.
+
+The README in this directory provides more detailed information for each of the
+files.
+
+### scripts
+
+Contains some handy python scripts, which convert bead states into something
+usable by something else, generate graphs from states or other data, and even a
+script that compares two sets of states and finds where they diverge. The README
+of this directory provides more information.
+
+### single-poets-thread
+
+A version of the simulator that uses 1 Tinsel thread to run a small simulation.
+It was designed as a development tool for testing custom instructions.
+
+### socat
+
+This contains the socat script, used for sending bead data to a client machine
+for the purposes of live visualisation. This feature has been deprecated
+somewhat, as we now use [VMD](https://www.ks.uiuc.edu/Research/vmd/) primarily for generating visualisation videos, as
+they are better quality. The `vmd-files` directory README has more information.
+
+### src
+
+This is the main source code directory. They implement the classes found in
+`inc/`. `inc/` has all the code for DPD calculations, the structs necessary and
+the constants, as well as the code for implementing POLite based vertices (the
+cells).
+
+The README in this directory has more information on what each file does.
+
+### submodules
+
+This contains the repos for `tinsel` and `dpd-vis`. `tinsel` is the engine which
+drives the POETS boxes, and contains POLite, the thin-layer API on which this
+POETS DPD simulator is implemented, and facilitates all the necessary
+communication between host x86 machine and the POETS boxes.
+
+`dpd-vis` is the way we used to visualise DPD simulations. It allowed for
+real-time visualisation and some playback, but has been deprecated somewhat, as
+we now store states, convert them to PDB and use
+[VMD](https://www.ks.uiuc.edu/Research/vmd/) as it generates better videos.
+
+### tests
+
+This contains scripts to perform regression testing. It is useful to test every
+feature, old and new, in case any combination of old/new features somehow
+improves performance. It also contains CSV files holding input and expected
+outputs bead states, which is what is tested against. The README in this
+directory provides more information on tests.
+
+### utils
+
+This contains some scripts used by the RISCV compiler.
+
+### vmd-files
+
+To generate videos, you need to use
+[VMD](https://www.ks.uiuc.edu/Research/vmd/). This contains some scripts to help
+with this. See the README in this directroy for more information.
+
+### xml-generators
+
+Source code for taking an xml-graph type and generating the DeviceInstances with
+the initial state containing beads, and the EdgeInstances connecting the
+devices.
+
+### xml-graph-types
+
+Graph types for an XML version of DPD aimed for used with The Orchestrator.
+
+### Makefile
+
+This is quite long, but contains the necessary recipes to generate a simulation
+that can use any valid combination of macro flags. The macro flags are explained
+more in `docs`.
+
+### config.json
+
+This is used on a client x86 machine when built to use `dpd-vis` to visualise a
+simulation at runtime.
