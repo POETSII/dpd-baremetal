@@ -169,7 +169,7 @@ void HostMessenger<Q>::run() {
 
     // enter the main loop
     while(1) {
-
+        std::cout << "Awaiting message\n";
         DPDMessage msg = await_message();
 
         // Check if there's an error

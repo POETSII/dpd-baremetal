@@ -5,11 +5,6 @@
 #ifndef _POLITESIMULATOR_H
 #define _POLITESIMULATOR_H
 
-#ifdef STATS
-#define POLITE_DUMP_STATS
-#define POLITE_COUNT_MSGS
-#endif
-
 #include "POLiteMessenger.hpp"
 
 #include "HostLink.h"

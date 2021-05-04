@@ -3,6 +3,11 @@
 #ifndef __CELLS_H
 #define __CELLS_H
 
+#ifdef STATS
+#define POLITE_DUMP_STATS
+#define POLITE_COUNT_MSGS
+#endif
+
 #include <map>
 
 #ifndef XML
