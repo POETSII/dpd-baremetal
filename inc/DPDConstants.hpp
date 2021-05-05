@@ -52,7 +52,7 @@ const ptype early_inv_sqrt_dt = 22.360679775;
 #endif
 
 #ifdef VISUALISE
-const uint32_t emitperiod = 1;
+const uint32_t emitperiod = 10;
 #endif
 
 #ifdef SERIAL
@@ -89,10 +89,10 @@ const ptype A[4][4] = {  {ptype(25.0), ptype(50.0), ptype(20.0), ptype(50.0)},
                          {ptype(50.0), ptype(25.0), ptype(75.0), ptype(25.0)}
                       };
 #elif GRAVITY
-const ptype A[4][4] = {  {ptype(25.0), ptype(75.0), ptype(35.0), ptype(100.0)},
-                         {ptype(75.0), ptype(25.0), ptype(50.0), ptype(100.0)},
-                         {ptype(35.0), ptype(50.0), ptype(25.0), ptype(100.0)},
-                         {ptype(100.0), ptype(100.0), ptype(100.0), ptype(0)}
+const ptype A[4][4] = {  {ptype(25.0), ptype(75.0), ptype(35.0), ptype(90.0)},
+                         {ptype(75.0), ptype(25.0), ptype(50.0), ptype(90.0)},
+                         {ptype(35.0), ptype(50.0), ptype(25.0), ptype(90.0)},
+                         {ptype(90.0), ptype(90.0), ptype(90.0), ptype(0)}
                       };
 #else // OIL AND WATER
 const ptype A[3][3] = {  {ptype(25.0), ptype(75.0), ptype(35.0)},

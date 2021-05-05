@@ -149,7 +149,6 @@ int main(int argc, char *argv[]) {
     // Get the directory to store simulation states
     char cwd_buffer[PATH_MAX], *unused;
     unused = getcwd(cwd_buffer, sizeof(cwd_buffer));
-    std::cout << cwd_buffer << "\n";
 
   #ifndef SERIAL
     std::string state_dir = std::string(cwd_buffer) + "/../polite-dpd-states/";
@@ -174,7 +173,6 @@ int main(int argc, char *argv[]) {
 
     // May lose one or two bead in conversion from float to int, so let's get the real number
     total_beads = w + r + o;
-    std::cout << "Total beads = " << total_beads << "\n";
 
     // ************* Generate initial velocities ********************
     // Declare temperature for simulation
@@ -249,6 +247,7 @@ int main(int argc, char *argv[]) {
             w1->id = b_uid++;
             w1->type = 3;
             w1->pos.set(0.25, 0.25, 0.25);
+            w1->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w1, cell);
             if (first_bead) {
                 fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
@@ -261,6 +260,7 @@ int main(int argc, char *argv[]) {
             w2->id = b_uid++;
             w2->type = 3;
             w2->pos.set(0.25, 0.25, 0.75);
+            w2->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w2, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
 
@@ -268,6 +268,7 @@ int main(int argc, char *argv[]) {
             w3->id = b_uid++;
             w3->type = 3;
             w3->pos.set(0.75, 0.25, 0.25);
+            w3->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w3, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
 
@@ -275,6 +276,7 @@ int main(int argc, char *argv[]) {
             w4->id = b_uid++;
             w4->type = 3;
             w4->pos.set(0.75, 0.25, 0.75);
+            w4->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w4, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
 
@@ -289,6 +291,7 @@ int main(int argc, char *argv[]) {
             w1->id = b_uid++;
             w1->type = 3;
             w1->pos.set(0.25, 0.75, 0.25);
+            w1->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w1, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w1->id, w1->pos.x() + cell.x, w1->pos.y() + cell.y, w1->pos.z() + cell.z, w1->velo.x(), w1->velo.y(), w1->velo.z(), w1->type);
 
@@ -296,6 +299,7 @@ int main(int argc, char *argv[]) {
             w2->id = b_uid++;
             w2->type = 3;
             w2->pos.set(0.25, 0.75, 0.75);
+            w2->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w2, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w2->id, w2->pos.x() + cell.x, w2->pos.y() + cell.y, w2->pos.z() + cell.z, w2->velo.x(), w2->velo.y(), w2->velo.z(), w2->type);
 
@@ -303,6 +307,7 @@ int main(int argc, char *argv[]) {
             w3->id = b_uid++;
             w3->type = 3;
             w3->pos.set(0.75, 0.75, 0.25);
+            w3->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w3, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w3->id, w3->pos.x() + cell.x, w3->pos.y() + cell.y, w3->pos.z() + cell.z, w3->velo.x(), w3->velo.y(), w3->velo.z(), w3->type);
 
@@ -310,6 +315,7 @@ int main(int argc, char *argv[]) {
             w4->id = b_uid++;
             w4->type = 3;
             w4->pos.set(0.75, 0.75, 0.75);
+            w4->velo.set(0.0, 0.0, 0.0);
             volume->add_bead_to_cell(w4, cell);
             fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", w4->id, w4->pos.x() + cell.x, w4->pos.y() + cell.y, w4->pos.z() + cell.z, w4->velo.x(), w4->velo.y(), w4->velo.z(), w4->type);
 
@@ -318,7 +324,7 @@ int main(int argc, char *argv[]) {
 
     printf("Volume setup -- adding beads\n");
 
-    Vector3D<ptype> centre = Vector3D<ptype>(cells_per_dimension_with_walls/2, cells_per_dimension_with_walls/2, cells_per_dimension_with_walls/2);
+    Vector3D<ptype> centre = Vector3D<ptype>(0.0, cells_per_dimension_with_walls/2, 0.0);
 
     // Add beads
     for(int i=0; i < total_beads; i++) {
@@ -334,9 +340,9 @@ int main(int argc, char *argv[]) {
           #endif
             if(volume->space_for_bead(b1)) {
                 float dist_from_centre = centre.dist(b1->pos);
-                if (dist_from_centre <= 1.0) {
+                if (dist_from_centre <= (problem_size * 0.1)) {
                     b1->type = 2;
-                } else if (dist_from_centre <= 2.5) {
+                } else if (dist_from_centre <= (problem_size * 0.4)) {
                     b1->type = 1;
                 } else {
                     b1->type = 0;

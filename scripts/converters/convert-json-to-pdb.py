@@ -3,11 +3,23 @@ import numpy as np
 
 volLength = 11
 min_timestep = 0
-max_timestep = 500
-emitperiod = 1
-in_dir = "../../serial-dpd-states/"
-out_filepath = "../serial-dpd-test.pdb"
+max_timestep = 3000
+emitperiod = 10
+in_dir = "../../polite-dpd-states/"
+# in_dir = "../../serial-dpd-states/"
+
+out_filepath = "../../polite-dpd-test.pdb"
+# out_filepath = "../../serial-dpd-test.pdb"
+
+# Gravity
 bead_types = ["WWW", "OOO", "AAA", "PPP"]
+
+# Oil water / corner tests
+# bead_types = ["WWW", "OOO", "AAA"]
+
+# Vesicle
+# bead_types = ["HHH", "TTT", "WWW", "PPP"]
+
 includeWater = True
 waterTypeNum = 0
 append = False
@@ -17,8 +29,8 @@ volLength_str = "{:.3f}".format(volLength)
 if not append:
     f = open(out_filepath, "w+")
     print("Writing PDB preamble", end="\r")
-    f.write("TITLE     MDANALYSIS FRAMES FROM 0\n")
-    f.write("CRYST1   " + str(volLength_str) + "   " + str(volLength_str) + "   " + str(volLength_str) + "   0.00   0.00   0.00 P 1           1\n")
+    f.write("TITLE     MDANALYSIS FRAMES FROM 0\r")
+    f.write("CRYST1   " + str(volLength_str) + "   " + str(volLength_str) + "   " + str(volLength_str) + "   0.00   0.00   0.00 P 1           1\r")
 else:
     f = open(out_filepath, "a+")
 
@@ -63,7 +75,7 @@ while timestep <= max_timestep:
                 types[bead_id] = bead_type
     # Print bead data in PDB format
     print("Timestep " + str(timestep) + ": Printing to PDB              ", end="\r")
-    f.write("MODEL        " + str(model_num) + "\n")
+    f.write("MODEL        " + str(model_num) + "\r")
     bead_id = ['0']
     for b, v in sorted(coords.items()):
         type = bead_types[types[b]]
@@ -105,7 +117,7 @@ while timestep <= max_timestep:
         f.write("  1.00  0.00           ")
         # And the type again
         f.write(str(type[0]))
-        # leovnpv = str(coords[b]["x"]) + "  " + str(coords[b]["y"]) + "   " + str(coords[b]["z"]) + "  1.00  0.00           " + str(type[0]) + "\n")
+        # leovnpv = str(coords[b]["x"]) + "  " + str(coords[b]["y"]) + "   " + str(coords[b]["z"]) + "  1.00  0.00           " + str(type[0]) + "\r")
         f.write("\n")
         increment_id(bead_id)
 

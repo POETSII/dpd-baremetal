@@ -39,7 +39,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 		s->grand = p_rand(&s->rngstate);
         s->grand = p_rand(&s->rngstate);
     #ifdef VISUALISE
-		s->emitcnt = emitperiod;
+		s->emitcnt = 1;
     #endif
 		// s->mode = UPDATE;
         s->sentslot = s->bslot;
@@ -254,7 +254,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                    #ifndef SINGLE_FORCE_LOOP
                     local_calcs(ci, s->inv_sqrt_dt, s->sentslot, s);
                    #else
-                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s->inv_sqrt_dt, s, ci);
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s, ci);
                    #endif
                   #else
                    #ifndef SINGLE_FORCE_LOOP
@@ -268,7 +268,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                    #ifndef SINGLE_FORCE_LOOP
                     local_calcs(ci, inv_sqrt_dt, s->sentslot, s);
                    #else
-                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, inv_sqrt_dt, s, ci);
+                    calc_bead_force_on_beads(&s->bead_slot[ci], s->sentslot, s, ci);
                    #endif
                   #else
                    #ifndef SINGLE_FORCE_LOOP
@@ -459,11 +459,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	            i = clear_slot(i, ci);
 	        }
         #else
-          #ifdef SMALL_DT_EARLY
-            calc_bead_force_on_beads(&b, s->bslot, s->inv_sqrt_dt, s);
-          #else
-            calc_bead_force_on_beads(&b, s->bslot, inv_sqrt_dt, s);
-          #endif
+            calc_bead_force_on_beads(&b, s->bslot, s);
         #endif
 	    } else if (s->mode == MIGRATION) {
             // we are in the MIGRATION mode beads we receive here _may_ be added to our state

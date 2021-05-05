@@ -134,13 +134,21 @@ void HostMessenger<Q>::emit_message(DPDMessage msg) {
 
     std::string path = state_dir + "state_" + std::to_string(msg.timestep) + ".json";
     FILE* f = fopen(path.c_str(), "a+");
+
+#ifdef GRAVITY
+  if (b.type != 3) {
+#endif
     if (first) {
         this->first = false;
     } else {
         fprintf(f, ",\n");
     }
     fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", b.id, b.pos.x(), b.pos.y(), b.pos.z(), b.velo.x(), b.velo.y(), b.velo.z(), b.type);
+#ifdef GRAVITY
+  }
+#endif
     fclose(f);
+
     bead_print_map[msg.timestep]++;
     if (bead_print_map[msg.timestep] >= number_of_beads) {
         std::string path = state_dir + "state_" + std::to_string(msg.timestep) + ".json";
@@ -162,7 +170,6 @@ void HostMessenger<Q>::emit_message(DPDMessage msg) {
 template<class Q>
 void HostMessenger<Q>::run() {
 
-    std::cout << "Entered host messenger\n";
     // Get the start time
     gettimeofday(&start, NULL);
     // This function will be run after the simulation has been started

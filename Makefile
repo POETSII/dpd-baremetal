@@ -1104,3 +1104,21 @@ serial-gravity: serial gravity
 
 visual-serial-gravity: DFLAGS+=-DVISUALISE
 visual-serial-gravity: serial-gravity
+
+gals-gravity: OBJS=$(POLITE_OBJS)
+gals-gravity: DFLAGS+=-DGRAVITY -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DREDUCE_LOCAL_CALCS
+gals-gravity: $(POLITE_OBJS) base-gals gravity
+
+visual-gals-gravity: OBJS+=$(POLITE_OBJS)
+visual-gals-gravity: DFLAGS+=-DVISUALISE
+visual-gals-gravity: gals-gravity
+
+sync-gravity: OBJS=$(POLITE_OBJS)
+sync-gravity: DFLAGS+=-DGRAVITY -DREDUCE_LOCAL_CALCS -DONE_BY_ONE -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
+sync-gravity: $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v gravity
+
+visual-sync-gravity: DFLAGS+=-DVISUALISE
+visual-sync-gravity: sync-gravity
+
+timed-sync-gravity: DFLAGS+=-DTIMER
+timed-sync-gravity: sync-gravity
