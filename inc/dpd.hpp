@@ -173,10 +173,10 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
   #endif
 
 #ifdef GRAVITY
-  // if (s->bead_slot[bead_index].type == 0) {
-  //   Vector3D<ptype> gravity = Vector3D<ptype>(0, -0.5, 0);
-  //   force = force + gravity;
-  // }
+  if (s->bead_slot[bead_index].type == 0) {
+    Vector3D<ptype> gravity = Vector3D<ptype>(0, -0.5, 0);
+    force = force + gravity;
+  }
 
   if (s->bead_slot[bead_index].type != 3) {
 #endif
