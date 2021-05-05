@@ -37,7 +37,7 @@ inline bool are_beads_bonded(bead_id_t a, bead_id_t b)
 /********************* DPD FUNCTIONS **************************/
 
 // dt10's hash based random num gen
-inline uint32_t pairwise_rand(const uint32_t pid1, const uint32_t pid2, const uint32_t grand){
+inline uint32_t pairwise_rand(const uint32_t pid1, const uint32_t pid2, const uint32_t grand) {
     uint32_t s0 = (pid1 ^ grand)*pid2;
     uint32_t s1 = (pid2 ^ grand)*pid1;
     return s0 + s1;
@@ -172,6 +172,15 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
     const ptype dt = s->dt;
   #endif
 
+#ifdef GRAVITY
+  if (s->bead_slot[bead_index].type == 0) {
+    Vector3D<ptype> gravity = Vector3D<ptype>(0, -1, 0);
+    force = force + gravity;
+  }
+
+  if (s->bead_slot[bead_index].type != 3) {
+#endif
+
 #ifndef BETTER_VERLET
     // Vector3D<ptype> acceleration = force / p_mass;
 
@@ -184,8 +193,6 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
 
     s->bead_slot[bead_index].pos = s->bead_slot[bead_index].pos + s->bead_slot[bead_index].velo * dt + force * ptype(0.5) * dt * dt;
 
-    // ----- clear the forces ---------------
-    s->force_slot[bead_index].clear();
 #else
     // Vector3D<ptype> force = force / p_mass;
     // ------ End of previous velocity Verlet -----
@@ -199,9 +206,14 @@ inline void velocity_Verlet(uint8_t bead_index, DPDState *s) {
     // Update position
     s->bead_slot[bead_index].pos = s->bead_slot[bead_index].pos + (s->bead_slot[bead_index].velo * dt) + (force * ptype(0.5) * dt * dt);
 
+#endif
+
+#ifdef GRAVITY
+  }
+#endif
     // ----- clear the forces ---------------
     s->force_slot[bead_index].clear();
-#endif
+
 }
 
 inline bool migration(const uint8_t bead_index, DPDState *s) {
