@@ -11,7 +11,7 @@ performed again, their velocity and positions are updated again, and so on and
 so forth.
 
 The volume has periodic boundary conditions, and any bead which moves outside
-the bounds of the volume has its positioned changed so that it appears on the
+the bounds of the volume has its position changed so that it appears on the
 opposite side of the volume with the same velocity.
 
 A better explanation of how this works, and the equations used can be found in
@@ -28,13 +28,13 @@ The challenge with DPD comes from working out which beads are within the cut-off
 radius and then calculating the forces.
 
 Consider a naive implementation, where a volume full of beads is calculated on
-one thread, with no separation of the volume space into separate cells. For every
-timestep, it would need to take a bead, and check its Euclidean distance against
-every other bead in the volume, calculating the forces if it is less than 1.0.
-In a large enough volume, 1.0 is a negligible radius, and it's possible that you
-would be calculating the Euclidean distance (which includes a
-computationally heavy square root functions) `(b^2 - 1)` times, where `b` is the
-number of beads.
+one thread, with no separation of the volume space into separate cells. For
+every timestep, it would need to take a bead, and check its Euclidean distance
+against every other bead in the volume, calculating the forces if that distance
+is less than 1.0. In a large enough volume, 1.0 is a negligible radius, and
+it's possible that you would be calculating the Euclidean distance (which
+includes a computationally heavy square root functions) `(b^2 - 1)` times,
+where `b` is the number of beads.
 
 Parallelisation is therefore a useful tool in speeding up DPD simulations.
 Splitting a volume into several cells, with each cell running in parallel is the
@@ -49,7 +49,7 @@ they are geographically adjacent to one-another, and the beads at the
 neighbouring edges of cells will interact, and be able to move between them.
 This adds some extra steps: 1. Sharing beads between cells for calculating the
 forces acting on beads in the neighbouring cell, and 2. Migrating beads whose
-position changes to outside of it's current holding cell.
+position changes to outside of its current holding cell.
 
 For beads near the edge, cells can have **Halo Regions**. These are areas around
 each edge of a cell with a width/height at least the same as the cut-off radius.
@@ -61,9 +61,9 @@ communicating between cells (and threads) by sending fewer beads which are more
 likely to interact with beads in neighbouring cells, instead of sending all
 beads.
 
-Migrating beads simply involves checking the position of beads following
-calculating the new positions during velocity Verlet. These are then passed to
-the appropriate neighbouring cell.
+Migrating beads simply involves checking the position of beads following the
+calculation of their new positions during velocity Verlet. These are then
+passed to the appropriate neighbouring cell.
 
 These extra steps, sharing halo region beads and migrating beads, still help to
 reduce the total number of unnecessary Euclidean distance calculations and
@@ -74,23 +74,22 @@ Such simulators generally use existing x86 parallel methodologies: They use
 multiple threads per machine and/or multiple machines, communication methods
 such as MPI and so on. The more threads you can use, the more cells can you
 use, the smaller each cell is, with each cell having fewer beads to perform
-calculations and and share with neighbours. However, in such systems,
+calculations on and share with neighbours. However, in such systems,
 communication through sharing information tends to be a bottleneck, and a sweet
-spot must be found where cell size and communication are balanced to provide the
-smallest and therefore fastest cells possible without being bogged down by the
-communication between these cells.
+spot must be found where cell size and communication are balanced to provide
+the smallest and therefore fastest cells possible without being bogged down by
+the communication between these cells.
 
 ## POETS DPD Simulation Algorithm
 
 The POETS DPD algorithm takes the general algorithm as discussed above, and
-adjusts it to play to the strengths of the Tinsel hardware and POETS programming
-model. The hardware has incredibly fast communication, albeit with small message
-sizes, albeit with small messages, and we have access to thousands of threads
-(maybe more in the future), albeit with much reduced compute power and shared
-resources.
+adjusts it to play to the strengths of the Tinsel hardware and POETS
+programming model. The hardware has incredibly fast communication, albeit with
+small message sizes, but we have access to thousands of threads (maybe more in
+the future), albeit with much reduced compute power and shared resources.
 
 For this reason, we switch the focus from compute to communication as much as
-possible, i.e. Reduce the number of calculations a thread has to perform, but
+possible, i.e. reduce the number of calculations a thread has to perform, but
 increase the communication between the threads.
 
 Reducing the number of calculations can be done by reducing the cell size. If
