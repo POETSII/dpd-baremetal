@@ -1088,3 +1088,19 @@ clean:
 	rm -rf _state.json
 	rm -rf node_modules
 	rm -rf DPD_mapping*.json
+
+gravity: DFLAGS+=-DGRAVITY
+gravity: $(DPD_EXAMPLES)/GravityOilWater.cpp $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/run.o $(DPD_EXAMPLES)/GravityOilWater.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/run.o \
+	  -static-libgcc -static-libstdc++ \
+      -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
+	  -L$(QUARTUS_ROOTDIR)/linux64 \
+      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+
+serial-gravity: OBJS=$(SERIAL_OBJS)
+serial-gravity: DFLAGS+=-DSERIAL -DGRAVITY -DREDUCE_LOCAL_CALCS -DSINGLE_FORCE_LOOP -DBETTER_VERLET
+serial-gravity: serial gravity
+
+visual-serial-gravity: DFLAGS+=-DVISUALISE
+visual-serial-gravity: serial-gravity
