@@ -154,7 +154,7 @@ $(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
 
 # One by one is the best form
-$(DPD_BIN)/dpd.elf: DFLAGS+=-DONE_BY_ONE
+$(DPD_BIN)/dpd.elf: DFLAGS+=
 $(DPD_BIN)/dpd.elf: $(DPD_SRC)/sync.cpp $(DPD_INC)/sync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS) $(DPD_HEADERS)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/sync.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/sync.o $(TINSEL_LIB_INC) $(DPD_OBJS)
