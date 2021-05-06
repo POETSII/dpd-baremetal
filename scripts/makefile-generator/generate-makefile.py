@@ -104,9 +104,13 @@ msg_mgmt = MacroFlag("-DMESSAGE_MANAGEMENT", "msgmgmt")
 float_only = MacroFlag("-DFLOAT_ONLY", "floatonly")
 reduced_local_calcs = MacroFlag("-DREDUCED_LOCAL_CALCS", "reducedlocalcalcs")
 single_force_loop = MacroFlag("-DSINGLE_FORCE_LOOP", "singleforceloop")
+singleloopreduced_flag = "-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS"
+single_reduced_force_loop = MacroFlag(singleloopreduced_flag,
+                                      "singlereducedforceloop")
 
 features = [improved_verlet, small_dt_early, double_sqrt,
-            msg_mgmt, float_only, reduced_local_calcs, single_force_loop]
+            msg_mgmt, float_only, reduced_local_calcs,
+            single_force_loop, single_reduced_force_loop]
 
 # All the macros leads to way too many options.
 # Lets' split it into:

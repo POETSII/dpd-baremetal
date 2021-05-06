@@ -881,6 +881,9 @@ test-sync-reducedlocalcalcs: test-sync
 test-sync-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-singleforceloop: test-sync
 
+test-sync-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-singlereducedforceloop: test-sync
+
 # **TEST Local calculation method: onebyone**
 test-sync-onebyone: DFLAGS+=-DONE_BY_ONE
 test-sync-onebyone: test-sync
@@ -903,6 +906,9 @@ test-sync-onebyone-reducedlocalcalcs: test-sync-onebyone
 test-sync-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-onebyone-singleforceloop: test-sync-onebyone
 
+test-sync-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-onebyone-singlereducedforceloop: test-sync-onebyone
+
 # **TEST Local calculation method: sendtoself**
 test-sync-sendtoself: DFLAGS+=-DSEND_TO_SELF
 test-sync-sendtoself: test-sync
@@ -921,6 +927,9 @@ test-sync-sendtoself-msgmgmt: test-sync-sendtoself
 
 test-sync-sendtoself-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-sendtoself-singleforceloop: test-sync-sendtoself
+
+test-sync-sendtoself-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-sendtoself-singlereducedforceloop: test-sync-sendtoself
 
 test-sync-large: DFLAGS+=-DLARGE_TEST
 test-sync-large: test-sync
@@ -942,6 +951,9 @@ test-sync-large-reducedlocalcalcs: test-sync-large
 
 test-sync-large-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-large-singleforceloop: test-sync-large
+
+test-sync-large-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-large-singlereducedforceloop: test-sync-large
 
 # **TEST Local calculation method: onebyone**
 test-sync-large-onebyone: DFLAGS+=-DONE_BY_ONE
@@ -965,6 +977,9 @@ test-sync-large-onebyone-reducedlocalcalcs: test-sync-large-onebyone
 test-sync-large-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-large-onebyone-singleforceloop: test-sync-large-onebyone
 
+test-sync-large-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-large-onebyone-singlereducedforceloop: test-sync-large-onebyone
+
 # **TEST Local calculation method: sendtoself**
 test-sync-large-sendtoself: DFLAGS+=-DSEND_TO_SELF
 test-sync-large-sendtoself: test-sync-large
@@ -983,6 +998,9 @@ test-sync-large-sendtoself-msgmgmt: test-sync-large-sendtoself
 
 test-sync-large-sendtoself-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-large-sendtoself-singleforceloop: test-sync-large-sendtoself
+
+test-sync-large-sendtoself-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-large-sendtoself-singlereducedforceloop: test-sync-large-sendtoself
 
 test-sync-bonds: DFLAGS+=-DBONDS
 test-sync-bonds: test-sync
@@ -1004,6 +1022,9 @@ test-sync-bonds-reducedlocalcalcs: test-sync-bonds
 
 test-sync-bonds-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-bonds-singleforceloop: test-sync-bonds
+
+test-sync-bonds-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-bonds-singlereducedforceloop: test-sync-bonds
 
 # **TEST Local calculation method: onebyone**
 test-sync-bonds-onebyone: DFLAGS+=-DONE_BY_ONE
@@ -1027,6 +1048,9 @@ test-sync-bonds-onebyone-reducedlocalcalcs: test-sync-bonds-onebyone
 test-sync-bonds-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-bonds-onebyone-singleforceloop: test-sync-bonds-onebyone
 
+test-sync-bonds-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-bonds-onebyone-singlereducedforceloop: test-sync-bonds-onebyone
+
 # **TEST Local calculation method: sendtoself**
 test-sync-bonds-sendtoself: DFLAGS+=-DSEND_TO_SELF
 test-sync-bonds-sendtoself: test-sync-bonds
@@ -1045,6 +1069,9 @@ test-sync-bonds-sendtoself-msgmgmt: test-sync-bonds-sendtoself
 
 test-sync-bonds-sendtoself-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-bonds-sendtoself-singleforceloop: test-sync-bonds-sendtoself
+
+test-sync-bonds-sendtoself-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-sync-bonds-sendtoself-singlereducedforceloop: test-sync-bonds-sendtoself
 
 
 # ************** TEST Simulator: gals**************
@@ -1072,6 +1099,9 @@ test-gals-reducedlocalcalcs: test-gals
 test-gals-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-gals-singleforceloop: test-gals
 
+test-gals-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-gals-singlereducedforceloop: test-gals
+
 # **TEST Local calculation method: onebyone**
 test-gals-onebyone: DFLAGS+=-DONE_BY_ONE
 test-gals-onebyone: test-gals
@@ -1094,6 +1124,9 @@ test-gals-onebyone-reducedlocalcalcs: test-gals-onebyone
 test-gals-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-gals-onebyone-singleforceloop: test-gals-onebyone
 
+test-gals-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-gals-onebyone-singlereducedforceloop: test-gals-onebyone
+
 test-gals-large: DFLAGS+=-DLARGE_TEST
 test-gals-large: test-gals
 
@@ -1114,6 +1147,9 @@ test-gals-large-reducedlocalcalcs: test-gals-large
 
 test-gals-large-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-gals-large-singleforceloop: test-gals-large
+
+test-gals-large-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-gals-large-singlereducedforceloop: test-gals-large
 
 # **TEST Local calculation method: onebyone**
 test-gals-large-onebyone: DFLAGS+=-DONE_BY_ONE
@@ -1137,6 +1173,9 @@ test-gals-large-onebyone-reducedlocalcalcs: test-gals-large-onebyone
 test-gals-large-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-gals-large-onebyone-singleforceloop: test-gals-large-onebyone
 
+test-gals-large-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-gals-large-onebyone-singlereducedforceloop: test-gals-large-onebyone
+
 test-gals-bonds: DFLAGS+=-DBONDS
 test-gals-bonds: test-gals
 
@@ -1157,6 +1196,9 @@ test-gals-bonds-reducedlocalcalcs: test-gals-bonds
 
 test-gals-bonds-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-gals-bonds-singleforceloop: test-gals-bonds
+
+test-gals-bonds-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-gals-bonds-singlereducedforceloop: test-gals-bonds
 
 # **TEST Local calculation method: onebyone**
 test-gals-bonds-onebyone: DFLAGS+=-DONE_BY_ONE
@@ -1179,6 +1221,9 @@ test-gals-bonds-onebyone-reducedlocalcalcs: test-gals-bonds-onebyone
 
 test-gals-bonds-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-gals-bonds-onebyone-singleforceloop: test-gals-bonds-onebyone
+
+test-gals-bonds-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-gals-bonds-onebyone-singlereducedforceloop: test-gals-bonds-onebyone
 
 
 # ************** TEST Simulator: improvedgals**************
@@ -1206,6 +1251,9 @@ test-improvedgals-reducedlocalcalcs: test-improvedgals
 test-improvedgals-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-improvedgals-singleforceloop: test-improvedgals
 
+test-improvedgals-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-improvedgals-singlereducedforceloop: test-improvedgals
+
 # **TEST Local calculation method: onebyone**
 test-improvedgals-onebyone: DFLAGS+=-DONE_BY_ONE
 test-improvedgals-onebyone: test-improvedgals
@@ -1228,6 +1276,9 @@ test-improvedgals-onebyone-reducedlocalcalcs: test-improvedgals-onebyone
 test-improvedgals-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-improvedgals-onebyone-singleforceloop: test-improvedgals-onebyone
 
+test-improvedgals-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-improvedgals-onebyone-singlereducedforceloop: test-improvedgals-onebyone
+
 test-improvedgals-large: DFLAGS+=-DLARGE_TEST
 test-improvedgals-large: test-improvedgals
 
@@ -1248,6 +1299,9 @@ test-improvedgals-large-reducedlocalcalcs: test-improvedgals-large
 
 test-improvedgals-large-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-improvedgals-large-singleforceloop: test-improvedgals-large
+
+test-improvedgals-large-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-improvedgals-large-singlereducedforceloop: test-improvedgals-large
 
 # **TEST Local calculation method: onebyone**
 test-improvedgals-large-onebyone: DFLAGS+=-DONE_BY_ONE
@@ -1271,6 +1325,9 @@ test-improvedgals-large-onebyone-reducedlocalcalcs: test-improvedgals-large-oneb
 test-improvedgals-large-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-improvedgals-large-onebyone-singleforceloop: test-improvedgals-large-onebyone
 
+test-improvedgals-large-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-improvedgals-large-onebyone-singlereducedforceloop: test-improvedgals-large-onebyone
+
 test-improvedgals-bonds: DFLAGS+=-DBONDS
 test-improvedgals-bonds: test-improvedgals
 
@@ -1291,6 +1348,9 @@ test-improvedgals-bonds-reducedlocalcalcs: test-improvedgals-bonds
 
 test-improvedgals-bonds-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-improvedgals-bonds-singleforceloop: test-improvedgals-bonds
+
+test-improvedgals-bonds-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-improvedgals-bonds-singlereducedforceloop: test-improvedgals-bonds
 
 # **TEST Local calculation method: onebyone**
 test-improvedgals-bonds-onebyone: DFLAGS+=-DONE_BY_ONE
@@ -1313,6 +1373,9 @@ test-improvedgals-bonds-onebyone-reducedlocalcalcs: test-improvedgals-bonds-oneb
 
 test-improvedgals-bonds-onebyone-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-improvedgals-bonds-onebyone-singleforceloop: test-improvedgals-bonds-onebyone
+
+test-improvedgals-bonds-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-improvedgals-bonds-onebyone-singlereducedforceloop: test-improvedgals-bonds-onebyone
 
 
 # ************** TEST Simulator: serial**************
@@ -1337,6 +1400,9 @@ test-serial-reducedlocalcalcs: test-serial
 test-serial-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-serial-singleforceloop: test-serial
 
+test-serial-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-serial-singlereducedforceloop: test-serial
+
 test-serial-large: DFLAGS+=-DLARGE_TEST
 test-serial-large: test-serial
 
@@ -1355,6 +1421,9 @@ test-serial-large-reducedlocalcalcs: test-serial-large
 test-serial-large-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-serial-large-singleforceloop: test-serial-large
 
+test-serial-large-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-serial-large-singlereducedforceloop: test-serial-large
+
 test-serial-bonds: DFLAGS+=-DBONDS
 test-serial-bonds: test-serial
 
@@ -1372,4 +1441,7 @@ test-serial-bonds-reducedlocalcalcs: test-serial-bonds
 
 test-serial-bonds-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-serial-bonds-singleforceloop: test-serial-bonds
+
+test-serial-bonds-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
+test-serial-bonds-singlereducedforceloop: test-serial-bonds
 

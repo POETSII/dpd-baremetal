@@ -13,18 +13,21 @@ test-serial-dtchange
 test-serial-doublesqrt
 test-serial-reducedlocalcalcs
 test-serial-singleforceloop
+test-serial-singlereducedforceloop
 test-serial-large
 test-serial-large-betterverlet
 test-serial-large-dtchange
 test-serial-large-doublesqrt
 test-serial-large-reducedlocalcalcs
 test-serial-large-singleforceloop
+test-serial-large-singlereducedforceloop
 test-serial-bonds
 test-serial-bonds-betterverlet
 test-serial-bonds-dtchange
 test-serial-bonds-doublesqrt
 test-serial-bonds-reducedlocalcalcs
 test-serial-bonds-singleforceloop
+test-serial-bonds-singlereducedforceloop
 )
 
 function build_and_run {

@@ -42,47 +42,40 @@ void SerialSimulator::init(DPDState *s) {
 
 // Calculate forces of neighbour cell's beads acting on this cells beads
 void SerialSimulator::neighbour_forces(DPDState *local_state, DPDState *neighbour_state) {
-    // Get the local bead map
-    uint16_t i = local_state->bslot;
-    // For each local bead calculate its interaction with neighbouring beads
+    // Get the neighbour bead map
+    uint16_t i = neighbour_state->bslot;
+    // For each neighbour bead calculate its affect on local beads
     while (i) {
-        // Get the local bead
+        // Get the neighbour bead
         uint8_t ci = get_next_slot(i);
-        bead_t *local_bead = &local_state->bead_slot[ci];
-        // Get neighbour bead map
-        uint16_t j = neighbour_state->bslot;
-        // For each neighbour bead
-        while (j) {
-            // Get neighbour bead
-            uint8_t cj = get_next_slot(j);
-            bead_t *neighbour_bead = &neighbour_state->bead_slot[cj];
-            bead_t b;
-            b.id = neighbour_bead->id;
-            b.type = neighbour_bead->type;
-            b.pos.set(neighbour_bead->pos.x(), neighbour_bead->pos.y(), neighbour_bead->pos.z());
-            b.velo.set(neighbour_bead->velo.x(), neighbour_bead->velo.y(), neighbour_bead->velo.z());
-            // from the device locaton get the adjustments to the bead positions
-            int x_rel = period_bound_adj(neighbour_state->loc.x - local_state->loc.x);
-            int y_rel = period_bound_adj(neighbour_state->loc.y - local_state->loc.y);
-            int z_rel = period_bound_adj(neighbour_state->loc.z - local_state->loc.z);
+        bead_t *neighbour_bead = &neighbour_state->bead_slot[ci];
 
-            // relative position for this particle to this device
-            b.pos.x(b.pos.x() + ptype(x_rel));
-            b.pos.y(b.pos.y() + ptype(y_rel));
-            b.pos.z(b.pos.z() + ptype(z_rel));
+        bead_t b = get_relative_bead(neighbour_bead, &local_state->loc, &neighbour_state->loc);
+
+    #ifndef SINGLE_FORCE_LOOP
+        uint16_t j = local_state->bslot;
+        // For each local bead
+        while (j) {
+            // Get local bead
+            uint8_t cj = get_next_slot(j);
+            bead_t *local_bead = &local_state->bead_slot[cj];
+
             // Calculate the forces acting on the local bead
             Vector3D<ptype> f = force_update(local_bead, &b, local_state);
             // Convert this force to fixed point to make it deterministic
         #ifndef FLOAT_ONLY
             Vector3D<int32_t> x = f.floatToFixed();
             // Add this to the force accumulator for this bead
-            local_state->force_slot[ci] = local_state->force_slot[ci] + x;
+            local_state->force_slot[cj] = local_state->force_slot[cj] + x;
         #else
-            local_state->force_slot[ci] = local_state->force_slot[ci] + f;
+            local_state->force_slot[cj] = local_state->force_slot[cj] + f;
         #endif
             // Clear the local bead map of the neighbour bead
             j = clear_slot(j, cj);
         }
+    #else
+        calc_bead_force_on_beads(&b, local_state->bslot, local_state);
+    #endif
         // Clear the local bead map for the local bead
         i = clear_slot(i, ci);
     }
@@ -175,32 +168,34 @@ void SerialSimulator::run() {
             DPDState *s = ((SerialCells *)this->volume->get_cells())->get_cell_state(c);
 
         uint16_t bead_map = s->bslot; //All the beads in this cell
+    #if defined(SINGLE_FORCE_LOOP) || defined(REDUCE_LOCAL_CALCS)
+        // Loop through the local beads, finding each ones force acting
+        // on the other local beads.
         while(bead_map) {
             // The bead (index) we want to calculate forces on
             uint8_t ci = get_next_slot(bead_map);
-
+            bead_map = clear_slot(bead_map, ci);
         #ifdef REDUCE_LOCAL_CALCS
             // Clear ci from the bead map, store it in another variable.
             // This variable now holds all the beads that haven't had their
             // force calculated yet, but forces are equal and opposite so we
             // can add the force to all beads in calc_map and subtract the
             // forces from ci.
-            uint16_t calc_map = clear_slot(bead_map, ci);
            #ifndef SINGLE_FORCE_LOOP
             local_calcs(ci, calc_map, s);
            #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], calc_map, s, ci);
+            calc_bead_force_on_beads(&s->bead_slot[ci], bead_map, s, ci);
            #endif
         #else
-           #ifndef SINGLE_FORCE_LOOP
-            local_calcs(s);
-           #else
-            calc_bead_force_on_beads(&s->bead_slot[ci], bead_map, s);
+           #ifdef SINGLE_FORCE_LOOP
+            calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s);
            #endif
         #endif
-
-            bead_map = clear_slot(bead_map, ci);
         }
+    #else
+        // This will take state and do local calculations automatically
+        local_calcs(s);
+    #endif
 
             // Calculate forces acting on beads in this cell from beads in
             // neighbouring cells
