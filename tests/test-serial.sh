@@ -40,7 +40,6 @@ function build_and_run {
         exit $result
     fi
     cd ..
-    sleep 10s
 }
 
 for t in ${tests[@]}; do

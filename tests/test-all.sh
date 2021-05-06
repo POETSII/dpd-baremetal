@@ -151,25 +151,6 @@ test-improvedgals-bonds-onebyone-doublesqrt
 test-improvedgals-bonds-onebyone-msgmgmt
 test-improvedgals-bonds-onebyone-reducedlocalcalcs
 test-improvedgals-bonds-onebyone-singleforceloop
-test-serial
-test-serial-betterverlet
-test-serial-dtchange
-test-serial-doublesqrt
-test-serial-reducedlocalcalcs
-test-serial-singleforceloop
-test-serial-large
-test-serial-large-betterverlet
-test-serial-large-dtchange
-test-serial-large-doublesqrt
-test-serial-large-reducedlocalcalcs
-test-serial-large-singleforceloop
-test-serial-bonds
-test-serial-bonds-betterverlet
-test-serial-bonds-dtchange
-test-serial-bonds-doublesqrt
-test-serial-bonds-reducedlocalcalcs
-test-serial-bonds-singleforceloop
-
 )
 
 function build_and_run {
@@ -192,7 +173,9 @@ for t in ${tests[@]}; do
   build_and_run $t
 done
 
-echo "ALL TESTING PASSED"
+echo "ALL POLITE TESTING PASSED"
 echo "====================================================================="
 
 cd tests
+
+./test-serial
