@@ -197,8 +197,7 @@ test: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-sync
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
-      -L$(QUARTUS_ROOTDIR)/linux64 \
-      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 $(METIS)-lmetis -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+      -Wl,-rpath, $(METIS) -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ---------------------------- Cleaner --------------------------------
 .PHONY: clean

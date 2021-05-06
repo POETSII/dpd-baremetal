@@ -29,6 +29,7 @@ class SimulatorFlag(MacroFlag):
     def __init__(self, sim_recipe, objs, metis, *args, **kwargs):
         self.sim_recipe = sim_recipe
         self.objs = objs
+        self.metis = metis
         super().__init__(*args, **kwargs)
 
 
@@ -180,9 +181,7 @@ for example in examples:
 $(DPD_EXAMPLES)/{filename}.cpp
 \tg++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/{filename}.o \\
 \t\t-static-libgcc -static-libstdc++ \
--L$(QUARTUS_ROOTDIR)/linux64 \\
-\t\t-Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 \
--lmetis -lpthread -lboost_program_options \\
+\t\t-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \\
 \t\t-lboost_filesystem -lboost_system -fopenmp
 """.format(makefile_string=example.makefile_string,
            flag_string=example.flag_string,
@@ -199,24 +198,6 @@ def clash(flags_a, flags_b):
     return (clashes != [])
 
 
-# Recursive function for all combinations of features
-def feature_recipes(recipe_prefix, features, previous_macros):
-    new_feats = list(features)
-    for feature in features:
-        new_feats.remove(feature)
-        if clash(previous_macros, feature.clashing_flags):
-            continue
-        new_recipe = recipe_prefix + "-"
-        new_recipe += feature.makefile_string
-        makefile.write(f"{new_recipe}: ")
-        makefile.write(f"DFLAGS+={feature.flag_string}\n")
-        makefile.write(f"{new_recipe}: ")
-        makefile.write(f"{recipe_prefix}\n\n")
-        testing_recipes.append(new_recipe)
-        new_prev_macros = previous_macros + [feature]
-        feature_recipes(new_recipe, new_feats, new_prev_macros)
-
-
 # Now for the recipes for individual simulators
 for simulator in simulators:
     makefile.write("\n# ************** Simulator: ")
@@ -231,6 +212,8 @@ for simulator in simulators:
         makefile.write(sim_op_recipe + ": ")
         makefile.write(f"OBJS+=$({simulator.objs})\n")
         makefile.write(sim_op_recipe + ": ")
+        makefile.write(f"METIS={simulator.metis}\n")
+        makefile.write(f"{sim_op_recipe}: ")
         makefile.write(f"DFLAGS+={operation.flag_string}\n")
         makefile.write(sim_op_recipe + ": ")
         makefile.write(f"{simulator.sim_recipe}\n")
@@ -295,6 +278,8 @@ for simulator in simulators:
     test_sim_recipe = f"test-{simulator.makefile_string}"
     makefile.write(f"{test_sim_recipe}: ")
     makefile.write(f"OBJS=$({simulator.objs})\n")
+    makefile.write(f"{test_sim_recipe}: ")
+    makefile.write(f"METIS={simulator.metis}\n")
     makefile.write(f"{test_sim_recipe}: ")
     makefile.write(f"DFLAGS+={testing.flag_string} ")
     makefile.write(f"{simulator.flag_string}\n")
