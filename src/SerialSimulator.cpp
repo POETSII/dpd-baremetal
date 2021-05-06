@@ -152,9 +152,11 @@ void SerialSimulator::run() {
     this->messenger->set_number_of_beads(this->volume->get_number_of_beads());
 
     // Spawn a thread that handles the messages from this
+  #ifndef TESTING
     std::thread messaging_thread = std::thread(&SerialMessenger::run_wrapper, this->messenger);
 
     std::cout << "Running...\n";
+  #endif
 
     uint32_t total_beads = 0;
     // Initialise the system
@@ -347,11 +349,55 @@ void SerialSimulator::run() {
     #endif
     }
     std::cout << "COMPLETE         \n";
+  #ifndef TESTING
     messaging_thread.join();
+  #endif
+    return;
 }
 
 void SerialSimulator::test(void *result) {
-    // Blank for now
+    std::map<uint32_t, bead_t> *res = (std::map<uint32_t, bead_t> *)result;
+    uint32_t total_cells = volume->get_number_of_cells();
+    uint32_t total_beads_in = volume->get_number_of_beads();
+    // Finish counter
+    uint32_t finish = 0;
+
+    // Start the simulation
+    std::thread simulation_thread = std::thread(&SerialSimulator::run, this);
+
+    // enter the main loop
+    while(1) {
+        DPDMessage msg = receiveMessage();
+
+        if (msg.type == 0xE0) {
+            std::cout << "ERROR: A cell was too full at timestep " << msg.timestep << "\n";
+            std::cout << "Cell " << msg.from.x << ", " << msg.from.y << ", " << msg.from.z << "\n";
+            std::cout << "Num beads = " << msg.beads[0].id << "\n";
+            exit(1);
+        }
+
+        if (msg.type != 0xAB) {
+            bead_t b;
+            b.id = msg.beads[0].id;
+            b.type = msg.beads[0].type;
+            b.pos.set(msg.beads[0].pos.x() + msg.from.x, msg.beads[0].pos.y() + msg.from.y, msg.beads[0].pos.z() + msg.from.z);
+            (*res)[b.id] = b;
+            std::cout << "Finished = " << finish << "/" << total_cells << " ";
+            std::cout << "Beads = " << res->size() << "/" << total_beads_in << "\r";
+        }
+
+        if (msg.type == 0xAA || msg.type == 0xAB) {
+            finish++;
+            std::cout << "Finished = " << finish << "/" << total_cells << " ";
+            std::cout << "Beads = " << res->size() << "/" << total_beads_in << "\r";
+            if (finish >= total_cells && res->size() >= total_beads_in) {
+                std::cout << "\n";
+                simulation_thread.join();
+                return;
+            }
+        }
+    }
+
 }
 
 #endif /*_SERIAL_SIM_IMPL */
