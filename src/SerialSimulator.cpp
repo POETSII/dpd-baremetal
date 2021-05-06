@@ -191,7 +191,7 @@ void SerialSimulator::run() {
            #endif
         #else
            #ifndef SINGLE_FORCE_LOOP
-            local_calcs(ci, bead_map, s);
+            local_calcs(s);
            #else
             calc_bead_force_on_beads(&s->bead_slot[ci], bead_map, s);
            #endif
