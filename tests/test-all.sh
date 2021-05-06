@@ -204,7 +204,8 @@ function build_and_run {
     timeout 60s ./test
     result=$?
     if [[ $result -ne 0 ]] ; then
-      exit $result
+        echo "$1 failed"
+        exit $result
     fi
     cd ..
     sleep 10s
