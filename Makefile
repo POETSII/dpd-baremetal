@@ -1242,9 +1242,6 @@ test-improvedgals-dtchange: test-improvedgals
 test-improvedgals-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-doublesqrt: test-improvedgals
 
-test-improvedgals-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
-test-improvedgals-msgmgmt: test-improvedgals
-
 test-improvedgals-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-reducedlocalcalcs: test-improvedgals
 
@@ -1267,9 +1264,6 @@ test-improvedgals-onebyone-dtchange: test-improvedgals-onebyone
 test-improvedgals-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-onebyone-doublesqrt: test-improvedgals-onebyone
 
-test-improvedgals-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
-test-improvedgals-onebyone-msgmgmt: test-improvedgals-onebyone
-
 test-improvedgals-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-onebyone-reducedlocalcalcs: test-improvedgals-onebyone
 
@@ -1290,9 +1284,6 @@ test-improvedgals-large-dtchange: test-improvedgals-large
 
 test-improvedgals-large-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-large-doublesqrt: test-improvedgals-large
-
-test-improvedgals-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
-test-improvedgals-large-msgmgmt: test-improvedgals-large
 
 test-improvedgals-large-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-large-reducedlocalcalcs: test-improvedgals-large
@@ -1316,9 +1307,6 @@ test-improvedgals-large-onebyone-dtchange: test-improvedgals-large-onebyone
 test-improvedgals-large-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-large-onebyone-doublesqrt: test-improvedgals-large-onebyone
 
-test-improvedgals-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
-test-improvedgals-large-onebyone-msgmgmt: test-improvedgals-large-onebyone
-
 test-improvedgals-large-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-large-onebyone-reducedlocalcalcs: test-improvedgals-large-onebyone
 
@@ -1339,9 +1327,6 @@ test-improvedgals-bonds-dtchange: test-improvedgals-bonds
 
 test-improvedgals-bonds-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-bonds-doublesqrt: test-improvedgals-bonds
-
-test-improvedgals-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
-test-improvedgals-bonds-msgmgmt: test-improvedgals-bonds
 
 test-improvedgals-bonds-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-bonds-reducedlocalcalcs: test-improvedgals-bonds
@@ -1364,9 +1349,6 @@ test-improvedgals-bonds-onebyone-dtchange: test-improvedgals-bonds-onebyone
 
 test-improvedgals-bonds-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-bonds-onebyone-doublesqrt: test-improvedgals-bonds-onebyone
-
-test-improvedgals-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
-test-improvedgals-bonds-onebyone-msgmgmt: test-improvedgals-bonds-onebyone
 
 test-improvedgals-bonds-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-bonds-onebyone-reducedlocalcalcs: test-improvedgals-bonds-onebyone

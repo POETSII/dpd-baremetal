@@ -132,7 +132,7 @@ smallest = [sendtoself, single_force_loop]
 # Simulator choices
 sync.add_clashing_flags([gals, serial, improved_gals])
 gals.add_clashing_flags([sync, serial, sendtoself])
-improved_gals.add_clashing_flags([sync, serial, sendtoself])
+improved_gals.add_clashing_flags([sync, serial, sendtoself, msg_mgmt])
 serial.add_clashing_flags([sync, gals, stats, onebyone,
                            sendtoself, improved_gals, msg_mgmt])
 
@@ -165,7 +165,7 @@ bonds.add_clashing_flags([large_test])
 improved_verlet.add_clashing_flags([])
 small_dt_early.add_clashing_flags([])
 double_sqrt.add_clashing_flags([])
-msg_mgmt.add_clashing_flags([serial])
+msg_mgmt.add_clashing_flags([serial, improved_gals])
 float_only.add_clashing_flags([testing])
 reduced_local_calcs.add_clashing_flags([sendtoself])
 single_force_loop.add_clashing_flags([])

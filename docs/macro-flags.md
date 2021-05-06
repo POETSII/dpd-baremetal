@@ -427,7 +427,8 @@ during testing.
 
 This macro affects the messaging of the POETS simulators, and therefore does not
 work with the serial simulator which does not use messaging to communicate
-between cells.
+between cells. This also clashes with `improvedgals` and therefore these cannot
+be used together, or the simulation will lock-up.
 
 The idea of this was to reduce the strain on the messaging system of the
 POETS Tinsel hardware. By default, cells try to send all their beads as fast as
