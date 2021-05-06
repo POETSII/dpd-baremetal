@@ -399,10 +399,8 @@ inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, 
     uint16_t i = bslot;
     while(i) {
         uint8_t ci = get_next_slot(i);
-      #ifdef SEND_TO_SELF
-        if(acting_bead->id != s->bead_slot[ci]->id) {
-      #endif
 
+        if(acting_bead->id != s->bead_slot[ci].id) {
         #ifndef ACCELERATE
             Vector3D<ptype> f = force_update(&s->bead_slot[ci], acting_bead, s);
         #else
@@ -432,9 +430,7 @@ inline void calc_bead_force_on_beads(bead_t *acting_bead, const uint16_t bslot, 
             }
           #endif
         #endif
-      #ifdef SEND_TO_SELF
         }
-      #endif
         i = clear_slot(i, ci);
     }
 }
