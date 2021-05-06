@@ -31,7 +31,7 @@ SimulationVolume<V>::SimulationVolume(const float volume_length, const unsigned 
 #endif
 
 #ifdef DOUBLE_SQRT
-    std::cout << "Sqrt will run double number of calculations. NOTE: This will fail testing\n";
+    std::cout << "Sqrt will run double number of calculations.\n";
 #endif
 
 #ifdef REDUCED_LOCAL_CALCS
