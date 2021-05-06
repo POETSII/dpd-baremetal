@@ -76,7 +76,7 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
   #endif
 
   #ifdef SERIAL
-    printf("Running on an x86 naive serial simulator");
+    printf("Running on an x86 naive serial simulator\n");
     *expected += "_serial";
   #endif
 
