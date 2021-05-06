@@ -7,55 +7,193 @@ cd ..
 make clean
 make clean-tinsel
 
-tests=(test
-       test-new-verlet
-       test-large
-       test-new-verlet-large
-       test-bonds
-       test-bonds-new-verlet
-       test-dt-change
-       test-new-verlet-dt-change
-       test-large-dt-change
-       test-new-verlet-large-dt-change
-       test-bonds-dt-change
-       test-bonds-new-verlet-dt-change
-       test-reduced-local-calcs
-       test-new-verlet-reduced-local-calcs
-       test-large-reduced-local-calcs
-       test-new-verlet-large-reduced-local-calcs
-       test-bonds-reduced-local-calcs
-       test-bonds-new-verlet-reduced-local-calcs
-       test-dt-change-reduced-local-calcs
-       test-new-verlet-dt-change-reduced-local-calcs
-       test-large-dt-change-reduced-local-calcs
-       test-new-verlet-large-dt-change-reduced-local-calcs
-       test-bonds-dt-change-reduced-local-calcs
-       test-bonds-new-verlet-dt-change-reduced-local-calcs
-       test-gals
-       test-gals-new-verlet
-       test-gals-large
-       test-gals-new-verlet-large
-       test-gals-bonds
-       test-gals-bonds-new-verlet
-       test-gals-dt-change
-       test-gals-new-verlet-dt-change
-       test-gals-large-dt-change
-       test-gals-new-verlet-large-dt-change
-       test-gals-bonds-dt-change
-       test-gals-bonds-new-verlet-dt-change
-       test-gals-reduced-local-calcs
-       test-gals-new-verlet-reduced-local-calcs
-       test-gals-large-reduced-local-calcs
-       test-gals-new-verlet-large-reduced-local-calcs
-       test-gals-bonds-reduced-local-calcs
-       test-gals-bonds-new-verlet-reduced-local-calcs
-       test-gals-dt-change-reduced-local-calcs
-       test-gals-new-verlet-dt-change-reduced-local-calcs
-       test-gals-large-dt-change-reduced-local-calcs
-       test-gals-new-verlet-large-dt-change-reduced-local-calcs
-       test-gals-bonds-dt-change-reduced-local-calcs
-       test-gals-bonds-new-verlet-dt-change-reduced-local-calcs
-       )
+tests=(test-sync
+test-sync-betterverlet
+test-sync-dtchange
+test-sync-doublesqrt
+test-sync-msgmgmt
+test-sync-floatonly
+test-sync-reducedlocalcalcs
+test-sync-singleforceloop
+test-sync-onebyone
+test-sync-onebyone-betterverlet
+test-sync-onebyone-dtchange
+test-sync-onebyone-doublesqrt
+test-sync-onebyone-msgmgmt
+test-sync-onebyone-floatonly
+test-sync-onebyone-reducedlocalcalcs
+test-sync-onebyone-singleforceloop
+test-sync-sendtoself
+test-sync-sendtoself-betterverlet
+test-sync-sendtoself-dtchange
+test-sync-sendtoself-doublesqrt
+test-sync-sendtoself-msgmgmt
+test-sync-sendtoself-floatonly
+test-sync-sendtoself-singleforceloop
+test-sync-large
+test-sync-large-betterverlet
+test-sync-large-dtchange
+test-sync-large-doublesqrt
+test-sync-large-msgmgmt
+test-sync-large-floatonly
+test-sync-large-reducedlocalcalcs
+test-sync-large-singleforceloop
+test-sync-large-onebyone
+test-sync-large-onebyone-betterverlet
+test-sync-large-onebyone-dtchange
+test-sync-large-onebyone-doublesqrt
+test-sync-large-onebyone-msgmgmt
+test-sync-large-onebyone-floatonly
+test-sync-large-onebyone-reducedlocalcalcs
+test-sync-large-onebyone-singleforceloop
+test-sync-large-sendtoself
+test-sync-large-sendtoself-betterverlet
+test-sync-large-sendtoself-dtchange
+test-sync-large-sendtoself-doublesqrt
+test-sync-large-sendtoself-msgmgmt
+test-sync-large-sendtoself-floatonly
+test-sync-large-sendtoself-singleforceloop
+test-sync-bonds
+test-sync-bonds-betterverlet
+test-sync-bonds-dtchange
+test-sync-bonds-doublesqrt
+test-sync-bonds-msgmgmt
+test-sync-bonds-floatonly
+test-sync-bonds-reducedlocalcalcs
+test-sync-bonds-singleforceloop
+test-sync-bonds-onebyone
+test-sync-bonds-onebyone-betterverlet
+test-sync-bonds-onebyone-dtchange
+test-sync-bonds-onebyone-doublesqrt
+test-sync-bonds-onebyone-msgmgmt
+test-sync-bonds-onebyone-floatonly
+test-sync-bonds-onebyone-reducedlocalcalcs
+test-sync-bonds-onebyone-singleforceloop
+test-sync-bonds-sendtoself
+test-sync-bonds-sendtoself-betterverlet
+test-sync-bonds-sendtoself-dtchange
+test-sync-bonds-sendtoself-doublesqrt
+test-sync-bonds-sendtoself-msgmgmt
+test-sync-bonds-sendtoself-floatonly
+test-sync-bonds-sendtoself-singleforceloop
+test-gals
+test-gals-betterverlet
+test-gals-dtchange
+test-gals-doublesqrt
+test-gals-msgmgmt
+test-gals-floatonly
+test-gals-reducedlocalcalcs
+test-gals-singleforceloop
+test-gals-onebyone
+test-gals-onebyone-betterverlet
+test-gals-onebyone-dtchange
+test-gals-onebyone-doublesqrt
+test-gals-onebyone-msgmgmt
+test-gals-onebyone-floatonly
+test-gals-onebyone-reducedlocalcalcs
+test-gals-onebyone-singleforceloop
+test-gals-large
+test-gals-large-betterverlet
+test-gals-large-dtchange
+test-gals-large-doublesqrt
+test-gals-large-msgmgmt
+test-gals-large-floatonly
+test-gals-large-reducedlocalcalcs
+test-gals-large-singleforceloop
+test-gals-large-onebyone
+test-gals-large-onebyone-betterverlet
+test-gals-large-onebyone-dtchange
+test-gals-large-onebyone-doublesqrt
+test-gals-large-onebyone-msgmgmt
+test-gals-large-onebyone-floatonly
+test-gals-large-onebyone-reducedlocalcalcs
+test-gals-large-onebyone-singleforceloop
+test-gals-bonds
+test-gals-bonds-betterverlet
+test-gals-bonds-dtchange
+test-gals-bonds-doublesqrt
+test-gals-bonds-msgmgmt
+test-gals-bonds-floatonly
+test-gals-bonds-reducedlocalcalcs
+test-gals-bonds-singleforceloop
+test-gals-bonds-onebyone
+test-gals-bonds-onebyone-betterverlet
+test-gals-bonds-onebyone-dtchange
+test-gals-bonds-onebyone-doublesqrt
+test-gals-bonds-onebyone-msgmgmt
+test-gals-bonds-onebyone-floatonly
+test-gals-bonds-onebyone-reducedlocalcalcs
+test-gals-bonds-onebyone-singleforceloop
+test-improvedgals
+test-improvedgals-betterverlet
+test-improvedgals-dtchange
+test-improvedgals-doublesqrt
+test-improvedgals-msgmgmt
+test-improvedgals-floatonly
+test-improvedgals-reducedlocalcalcs
+test-improvedgals-singleforceloop
+test-improvedgals-onebyone
+test-improvedgals-onebyone-betterverlet
+test-improvedgals-onebyone-dtchange
+test-improvedgals-onebyone-doublesqrt
+test-improvedgals-onebyone-msgmgmt
+test-improvedgals-onebyone-floatonly
+test-improvedgals-onebyone-reducedlocalcalcs
+test-improvedgals-onebyone-singleforceloop
+test-improvedgals-large
+test-improvedgals-large-betterverlet
+test-improvedgals-large-dtchange
+test-improvedgals-large-doublesqrt
+test-improvedgals-large-msgmgmt
+test-improvedgals-large-floatonly
+test-improvedgals-large-reducedlocalcalcs
+test-improvedgals-large-singleforceloop
+test-improvedgals-large-onebyone
+test-improvedgals-large-onebyone-betterverlet
+test-improvedgals-large-onebyone-dtchange
+test-improvedgals-large-onebyone-doublesqrt
+test-improvedgals-large-onebyone-msgmgmt
+test-improvedgals-large-onebyone-floatonly
+test-improvedgals-large-onebyone-reducedlocalcalcs
+test-improvedgals-large-onebyone-singleforceloop
+test-improvedgals-bonds
+test-improvedgals-bonds-betterverlet
+test-improvedgals-bonds-dtchange
+test-improvedgals-bonds-doublesqrt
+test-improvedgals-bonds-msgmgmt
+test-improvedgals-bonds-floatonly
+test-improvedgals-bonds-reducedlocalcalcs
+test-improvedgals-bonds-singleforceloop
+test-improvedgals-bonds-onebyone
+test-improvedgals-bonds-onebyone-betterverlet
+test-improvedgals-bonds-onebyone-dtchange
+test-improvedgals-bonds-onebyone-doublesqrt
+test-improvedgals-bonds-onebyone-msgmgmt
+test-improvedgals-bonds-onebyone-floatonly
+test-improvedgals-bonds-onebyone-reducedlocalcalcs
+test-improvedgals-bonds-onebyone-singleforceloop
+test-serial
+test-serial-betterverlet
+test-serial-dtchange
+test-serial-doublesqrt
+test-serial-floatonly
+test-serial-reducedlocalcalcs
+test-serial-singleforceloop
+test-serial-large
+test-serial-large-betterverlet
+test-serial-large-dtchange
+test-serial-large-doublesqrt
+test-serial-large-floatonly
+test-serial-large-reducedlocalcalcs
+test-serial-large-singleforceloop
+test-serial-bonds
+test-serial-bonds-betterverlet
+test-serial-bonds-dtchange
+test-serial-bonds-doublesqrt
+test-serial-bonds-floatonly
+test-serial-bonds-reducedlocalcalcs
+test-serial-bonds-singleforceloop
+)
 
 function build_and_run {
     make clean

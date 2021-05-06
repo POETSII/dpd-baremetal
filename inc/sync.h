@@ -258,7 +258,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                    #endif
                   #else
                    #ifndef SINGLE_FORCE_LOOP
-                    local_calcs(ci, s->inv_sqrt_dt, s->bslot, s);
+                    local_calcs(s);
                    #else
                     calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s->inv_sqrt_dt, s);
                    #endif
@@ -272,7 +272,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                    #endif
                   #else
                    #ifndef SINGLE_FORCE_LOOP
-                    local_calcs(inv_sqrt_dt, s->bslot, s);
+                    local_calcs(s);
                    #else
                     calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
                    #endif
@@ -311,7 +311,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                    #endif
                   #else
                    #ifndef SINGLE_FORCE_LOOP
-                    local_calcs(ci, inv_sqrt_dt, s->bslot, s);
+                    local_calcs(s);
                    #else
                     calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, inv_sqrt_dt, s);
                    #endif

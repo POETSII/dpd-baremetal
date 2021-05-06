@@ -24,8 +24,9 @@ class MacroFlag:
 class SimulatorFlag(MacroFlag):
     sim_recipe = ""
     objs = ""
+    metis = ""
 
-    def __init__(self, sim_recipe, objs, *args, **kwargs):
+    def __init__(self, sim_recipe, objs, metis, *args, **kwargs):
         self.sim_recipe = sim_recipe
         self.objs = objs
         super().__init__(*args, **kwargs)
@@ -50,11 +51,11 @@ shutil.copyfile(makefile_helper_path, new_makefile_path)
 # *****************************Create the flags********************************
 
 # Simulator choices
-sync = SimulatorFlag("base-sync", "POLITE_OBJS", "", "sync")
-gals = SimulatorFlag("base-gals", "POLITE_OBJS", "-DGALS", "gals")
-improved_gals = SimulatorFlag("base-gals", "POLITE_OBJS",
+sync = SimulatorFlag("base-sync", "POLITE_OBJS", "-lmetis", "", "sync")
+gals = SimulatorFlag("base-gals", "POLITE_OBJS", "-lmetis", "-DGALS", "gals")
+improved_gals = SimulatorFlag("base-gals", "-lmetis", "POLITE_OBJS",
                               "-DGALS -DIMPROVED_GALS", "improvedgals")
-serial = SimulatorFlag("serial", "SERIAL_OBJS", "-DSERIAL", "serial")
+serial = SimulatorFlag("serial", "SERIAL_OBJS", "", "-DSERIAL", "serial")
 
 simulators = [sync, gals, improved_gals, serial]
 
@@ -92,8 +93,7 @@ examples = [oilwater, vesicle, corners, gravity]
 onebyone = MacroFlag("-DONE_BY_ONE", "onebyone")
 sendtoself = MacroFlag("-DSEND_TO_SELF", "sendtoself")
 
-# local_calcs = [default, onebyone, sendtoself]
-local_calcs = [onebyone, sendtoself]
+local_calcs = [default, onebyone, sendtoself]
 
 # Features
 improved_verlet = MacroFlag("-DBETTER_VERLET", "betterverlet")
@@ -126,8 +126,8 @@ smallest = [sendtoself, single_force_loop]
 # ********************State what can't be used together***********************
 # Simulator choices
 sync.add_clashing_flags([gals, serial, improved_gals])
-gals.add_clashing_flags([sync, serial])
-improved_gals.add_clashing_flags([sync, serial])
+gals.add_clashing_flags([sync, serial, sendtoself])
+improved_gals.add_clashing_flags([sync, serial, sendtoself])
 serial.add_clashing_flags([sync, gals, stats, onebyone,
                            sendtoself, improved_gals, msg_mgmt])
 
@@ -135,7 +135,7 @@ serial.add_clashing_flags([sync, gals, stats, onebyone,
 visual.add_clashing_flags([timed, stats, testing, large_test])
 timed.add_clashing_flags([visual, stats, testing, large_test])
 stats.add_clashing_flags([serial, visual, timed, testing, large_test])
-testing.add_clashing_flags([visual, timed, stats, large_test])
+testing.add_clashing_flags([visual, timed, stats, large_test, float_only])
 
 # Testing flags
 large_test.add_clashing_flags([visual, timed, stats, testing, bonds])
@@ -152,7 +152,8 @@ gravity.add_clashing_flags([testing, large_test, oilwater, vesicle, corners])
 # Local calculation options
 # default.add_clashing_flags([])
 onebyone.add_clashing_flags([serial, ])
-sendtoself.add_clashing_flags([serial, reduced_local_calcs])
+sendtoself.add_clashing_flags(
+    [serial, reduced_local_calcs, gals, improved_gals])
 
 # Features
 bonds.add_clashing_flags([large_test])
@@ -179,7 +180,7 @@ for example in examples:
 $(DPD_EXAMPLES)/{filename}.cpp
 \tg++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/{filename}.o \\
 \t\t-static-libgcc -static-libstdc++ \
--lscotch -L$(QUARTUS_ROOTDIR)/linux64 \\
+-L$(QUARTUS_ROOTDIR)/linux64 \\
 \t\t-Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 \
 -lmetis -lpthread -lboost_program_options \\
 \t\t-lboost_filesystem -lboost_system -fopenmp
@@ -187,17 +188,23 @@ $(DPD_EXAMPLES)/{filename}.cpp
            flag_string=example.flag_string,
            filename=example.filename))
 
-
+# Store all testing recipes so we can run all tests
 testing_recipes = []
+
+
+def clash(flags_a, flags_b):
+    # Get the intersection of the flags and clashes
+    # If this is empty there is no clash
+    clashes = list(set(flags_a) & set(flags_b))
+    return (clashes != [])
+
 
 # Recursive function for all combinations of features
 def feature_recipes(recipe_prefix, features, previous_macros):
     new_feats = list(features)
     for feature in features:
-        # Get the intersection of the flags and clashes
-        # If this is empty there is no clash
-        clashes = list(set(previous_macros) & set(feature.clashing_flags))
-        if clashes != []:
+        new_feats.remove(feature)
+        if clash(previous_macros, feature.clashing_flags):
             continue
         new_recipe = recipe_prefix + "-"
         new_recipe += feature.makefile_string
@@ -205,7 +212,7 @@ def feature_recipes(recipe_prefix, features, previous_macros):
         makefile.write(f"DFLAGS+={feature.flag_string}\n")
         makefile.write(f"{new_recipe}: ")
         makefile.write(f"{recipe_prefix}\n\n")
-        new_feats.remove(feature)
+        testing_recipes.append(new_recipe)
         new_prev_macros = previous_macros + [feature]
         feature_recipes(new_recipe, new_feats, new_prev_macros)
 
@@ -215,6 +222,8 @@ for simulator in simulators:
     makefile.write("\n# ************** Simulator: ")
     makefile.write(f"{simulator.makefile_string}**************\n")
     for operation in operations:
+        if clash(operation.clashing_flags, [simulator]):
+            continue
         sim_op_recipe = simulator.makefile_string + "-"
         sim_op_recipe += operation.makefile_string
         makefile.write("\n# **********Operation: ")
@@ -226,6 +235,9 @@ for simulator in simulators:
         makefile.write(sim_op_recipe + ": ")
         makefile.write(f"{simulator.sim_recipe}\n")
         for example in examples:
+            if clash(example.clashing_flags, [simulator, operation]):
+                continue
+
             makefile.write("\n# ******Example: ")
             makefile.write(f"{example.makefile_string}******\n\n")
             sim_op_example_recipe = f"{sim_op_recipe}-"
@@ -238,6 +250,13 @@ for simulator in simulators:
             # Build the fastest and smallest recipes
             fastest_flags = ""
             smallest_flags = ""
+
+            if clash(best_result, [simulator, operation, example]):
+                continue
+            if clash(fastest, [simulator, operation, example]):
+                continue
+            if clash(smallest, [simulator, operation, example]):
+                continue
 
             # Best are all used in fastest and smallest
             for best_flag in best_result:
@@ -275,14 +294,18 @@ for simulator in simulators:
     makefile.write(f"{simulator.makefile_string}**************\n\n")
     test_sim_recipe = f"test-{simulator.makefile_string}"
     makefile.write(f"{test_sim_recipe}: ")
-    makefile.write(f"OBJS={simulator.objs}\n")
+    makefile.write(f"OBJS=$({simulator.objs})\n")
     makefile.write(f"{test_sim_recipe}: ")
     makefile.write(f"DFLAGS+={testing.flag_string} ")
     makefile.write(f"{simulator.flag_string}\n")
     makefile.write(f"{test_sim_recipe}: ")
+    makefile.write(f"{simulator.sim_recipe} ")
     makefile.write(f"test\n\n")
+    testing_recipes.append(test_sim_recipe)
     # Test the testing options (large and bonds)
     for test_flag in test_flags:
+        if clash(test_flag.clashing_flags, [simulator]):
+            continue
         recipe_with_test_flag = test_sim_recipe
         if test_flag.makefile_string != "":
             recipe_with_test_flag += "-" + test_flag.makefile_string
@@ -290,19 +313,42 @@ for simulator in simulators:
             makefile.write(f"DFLAGS+={test_flag.flag_string}\n")
             makefile.write(f"{recipe_with_test_flag}: ")
             makefile.write(f"{test_sim_recipe}\n\n")
+            testing_recipes.append(recipe_with_test_flag)
 
         # Test each of the local calculation options
         for local_calc in local_calcs:
-            makefile.write("# **TEST Local calculation method: ")
-            makefile.write(f"{local_calc.makefile_string}**\n")
-            recipe_with_loc = f"{recipe_with_test_flag}-"
-            recipe_with_loc += f"{local_calc.makefile_string}"
-            makefile.write(f"{recipe_with_loc}: ")
-            makefile.write(f"DFLAGS+={local_calc.flag_string}\n")
-            makefile.write(f"{recipe_with_loc}: ")
-            makefile.write(f"{recipe_with_test_flag}\n\n")
-            existing_macros = [simulator, local_calc]
-            feature_recipes(recipe_with_loc, features, existing_macros)
+            if clash(local_calc.clashing_flags, [simulator, test_flag]):
+                continue
+            recipe_with_loc = f"{recipe_with_test_flag}"
+            if local_calc.makefile_string != "":
+                makefile.write("# **TEST Local calculation method: ")
+                makefile.write(f"{local_calc.makefile_string}**\n")
+                recipe_with_loc += f"-{local_calc.makefile_string}"
+                makefile.write(f"{recipe_with_loc}: ")
+                makefile.write(f"DFLAGS+={local_calc.flag_string}\n")
+                makefile.write(f"{recipe_with_loc}: ")
+                makefile.write(f"{recipe_with_test_flag}\n\n")
+                testing_recipes.append(recipe_with_loc)
+
+            for feature in features:
+                if clash(feature.clashing_flags,
+                         [simulator, test_flag, local_calc]):
+                    continue
+                new_recipe = recipe_with_loc + "-"
+                new_recipe += feature.makefile_string
+                makefile.write(f"{new_recipe}: ")
+                makefile.write(f"DFLAGS+={feature.flag_string}\n")
+                makefile.write(f"{new_recipe}: ")
+                makefile.write(f"{recipe_with_loc}\n\n")
+                testing_recipes.append(new_recipe)
 
 # Close the file
 makefile.close()
+
+# Write all test options to a file so we can run them
+test_file = open("test-options.txt", "w+")
+
+for test in testing_recipes:
+    test_file.write(test + "\n")
+
+test_file.close()

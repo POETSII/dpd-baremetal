@@ -20,7 +20,7 @@
 #ifdef GALS
 #include "gals.h"
 #elif defined(SERIAL)
-#include "serial.hpp"
+#include "SerialSimulator.hpp"
 #else
 #include "sync.h"
 #endif
@@ -140,51 +140,53 @@ int main() {
 
     std::ifstream expected_out(expected);
     bool expected_exists = !expected_out.fail();
-    // Reuse line from above
-    // Loop through and add the beads to the expected output map
-    while(std::getline(expected_out, line)) {
-        // Used for splitting line into separate parts of bead info
-        std::stringstream ss(line);
-        // Holds individual peices of information
-        std::string s;
-        // Vector holding all information used to create the bead
-        std::vector<std::string> lines;
-        // Loop through the line, split it into separate parts
-        while (std::getline(ss, s, ',')) {
-            // Remove whitespaces
-            boost::trim(s);
-            // Add to vector
-            lines.push_back(s);
-        }
-        // Cell that bead ends up in
-        cell_t cell;
-        cell.x = std::stoi(lines.at(5));
-        cell.y = std::stoi(lines.at(6));
-        cell.z = std::stoi(lines.at(7));
 
-        // Create the bead
-        bead_t b1;
-        b1.id = std::stol(lines.at(0));
-        b1.type = std::stoi(lines.at(1));
-        b1.pos.set(std::stof(lines.at(2)) + cell.x, std::stof(lines.at(3)) + cell.y, std::stof(lines.at(4)) + cell.z);
-        b1.velo.set(0.0, 0.0, 0.0);
-    #ifdef BETTER_VERLET
-        b1.acc.set(0.0, 0.0, 0.0);
-    #endif
-        // Add it to the map
-        expected_beads_map[b1.id] = b1;
+    if (expected_exists) {
+        // Reuse line from above
+        // Loop through and add the beads to the expected output map
+        while(std::getline(expected_out, line)) {
+            // Used for splitting line into separate parts of bead info
+            std::stringstream ss(line);
+            // Holds individual peices of information
+            std::string s;
+            // Vector holding all information used to create the bead
+            std::vector<std::string> lines;
+            // Loop through the line, split it into separate parts
+            while (std::getline(ss, s, ',')) {
+                // Remove whitespaces
+                boost::trim(s);
+                // Add to vector
+                lines.push_back(s);
+            }
+            // Cell that bead ends up in
+            cell_t cell;
+            cell.x = std::stoi(lines.at(5));
+            cell.y = std::stoi(lines.at(6));
+            cell.z = std::stoi(lines.at(7));
+
+            // Create the bead
+            bead_t b1;
+            b1.id = std::stol(lines.at(0));
+            b1.type = std::stoi(lines.at(1));
+            b1.pos.set(std::stof(lines.at(2)) + cell.x, std::stof(lines.at(3)) + cell.y, std::stof(lines.at(4)) + cell.z);
+            b1.velo.set(0.0, 0.0, 0.0);
+        #ifdef BETTER_VERLET
+            b1.acc.set(0.0, 0.0, 0.0);
+        #endif
+            // Add it to the map
+            expected_beads_map[b1.id] = b1;
+        }
     }
 
     simulator.write(); // write the universe into the POETS memory
 
-    // volume.print_occupancy();
-
-    printf("running...\n");
 
     struct timeval start, finish, elapsedTime; // Time the test
 
     // Time it for interest
     gettimeofday(&start, NULL);
+
+    printf("Running...\n");
 
     // Run the test and get the result
     simulator.test(&actual_out);
@@ -197,7 +199,11 @@ int main() {
 
     bool fail = false;
 
-    // FILE* newFile = fopen(expected.c_str(), "w+");
+    FILE* newFile;
+
+    if (!expected_exists) {
+        newFile = fopen(expected.c_str(), "w+");
+    }
 
     // Ensure the number of input beads is the same as the number of output beads
     if (actual_out.size() != num_beads_in) {
@@ -219,43 +225,54 @@ int main() {
 
             bool this_failed = false;
 
-            // cell_t actual_cell;
-            // actual_cell.x = floor(actual_pos.x());
-            // actual_cell.y = floor(actual_pos.y());
-            // actual_cell.z = floor(actual_pos.z());
-            // actual_pos.set(actual_pos.x() - actual_cell.x, actual_pos.y() - actual_cell.y, actual_pos.z() - actual_cell.z);
-            // fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
+            if (!expected_exists) {
+                cell_t actual_cell;
+                actual_cell.x = floor(actual_pos.x());
+                actual_cell.y = floor(actual_pos.y());
+                actual_cell.z = floor(actual_pos.z());
+                actual_pos.set(actual_pos.x() - actual_cell.x, actual_pos.y() - actual_cell.y, actual_pos.z() - actual_cell.z);
+                fprintf(newFile, "%u, %u, %1.20f, %1.20f, %1.20f, %u, %u, %u\n", actual_id, actual_type, actual_pos.x(), actual_pos.y(), actual_pos.z(), actual_cell.x, actual_cell.y, actual_cell.z);
+            } else {
 
-            if (expected_type != actual_type) {
-                fail = true;
-                this_failed = true;
-            }
+                if (expected_type != actual_type) {
+                    fail = true;
+                    this_failed = true;
+                }
 
-            if (expected_pos.x() != actual_pos.x() || expected_pos.y() != actual_pos.y() || expected_pos.z() != actual_pos.z()) {
-                fail = true;
-                this_failed = true;
-            }
+                if (expected_pos.x() != actual_pos.x() || expected_pos.y() != actual_pos.y() || expected_pos.z() != actual_pos.z()) {
+                    fail = true;
+                    this_failed = true;
+                }
 
-            if (this_failed) {
-                std::cerr << "ID: " << actual_id << "\n";
-                std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << "\n";
-                printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
-                printf("          Actual   (%1.20f, %1.20f, %1.20f)\n", actual_pos.x(), actual_pos.y() , actual_pos.z());
+                if (this_failed) {
+                    std::cerr << "ID: " << actual_id << "\n";
+                    std::cerr << "Type: Expected " << (uint32_t) expected_type << " Actual " << (uint32_t) actual_type << "\n";
+                    printf("Position: Expected (%1.20f, %1.20f, %1.20f)\n", expected_pos.x(), expected_pos.y(), expected_pos.z());
+                    printf("          Actual   (%1.20f, %1.20f, %1.20f)\n", actual_pos.x(), actual_pos.y() , actual_pos.z());
+                }
             }
 
         }
     }
-    // fclose(newFile);
+    if (!expected_exists) {
+        fclose(newFile);
+    }
 
     uint8_t exit_code = 0;
-    printf("TESTING HAS ");
-    if (fail) {
-        printf("FAILED\n");
-        exit_code = 55;
+
+    if (expected_exists) {
+        printf("TESTING HAS ");
+        if (fail) {
+            printf("FAILED\n");
+            exit_code = 55;
+        } else {
+            printf("PASSED\n");
+            exit_code = 0;
+        }
     } else {
-        printf("PASSED\n");
-        exit_code = 0;
+        printf("Expected output file did not exist, it has been created for next time\n");
     }
+
     printf("Runtime = %1.10f\n", duration);
     return exit_code;
 }

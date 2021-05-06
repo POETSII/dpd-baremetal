@@ -22,7 +22,7 @@ DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 COMMON_OBJS = $(DPD_BIN)/HostMessenger.o $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o \
  			  $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/Simulator.o
-POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteMessenger.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
@@ -80,6 +80,10 @@ $(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
 
 # -------------- POLite Object files --------------------------
+$(DPD_BIN)/POLiteMessenger.o: $(DPD_SRC)/POLiteMessenger.cpp $(DPD_INC)/POLiteMessenger.hpp
+	mkdir -p $(DPD_BIN)
+	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteMessenger.o $(DPD_SRC)/POLiteMessenger.cpp
+
 $(DPD_BIN)/POLiteCells.o: $(DPD_SRC)/POLiteCells.cpp $(DPD_INC)/POLiteCells.hpp
 	mkdir -p $(DPD_BIN)
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteCells.o $(DPD_SRC)/POLiteCells.cpp
@@ -188,13 +192,13 @@ serial: $(SERIAL_OBJS)
 
 # ---------------------------- Build the test file ---------------------------------
 
-test: DFLAGS+=-DTESTING -DONE_BY_ONE
+test: DFLAGS+=-DTESTING
 test: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-sync
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
-      -lscotch -L$(QUARTUS_ROOTDIR)/linux64 \
-      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 -lmetis -lpthread -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
+      -L$(QUARTUS_ROOTDIR)/linux64 \
+      -Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 $(METIS)-lmetis -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
 # ---------------------------- Cleaner --------------------------------
 .PHONY: clean
