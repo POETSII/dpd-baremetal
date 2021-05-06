@@ -193,7 +193,7 @@ serial: $(SERIAL_OBJS)
 # ---------------------------- Build the test file ---------------------------------
 
 test: DFLAGS+=-DTESTING
-test: $($(OBJS)) $(INC)/config.h $(HL)/*.o
+test:
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
