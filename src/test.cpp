@@ -38,7 +38,7 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
     *expected += "bonds_out_25";
     *volume_length = 25;
     *cells_per_dimension = 25;
-    *test_length = 1000;
+    *test_length = 10;
 
 #elif defined(LARGE_TEST)
     printf("Testing a system with a larger volume (no bonds)\n");
@@ -46,15 +46,7 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
     *expected += "out_40";
     *volume_length = 40;
     *cells_per_dimension = 40;
-    *test_length = 100;
-
-#elif defined(FLOAT_ONLY)
-    printf("Testing a system with 2 beads for floating point correctness\n");
-    *bead_file += "in_3_float";
-    *expected += "out_3_float";
-    *volume_length = 3;
-    *cells_per_dimension = 3;
-    *test_length = 10000;
+    *test_length = 10;
 
 #else
     printf("Testing a smaller system without bonds\n");
@@ -62,7 +54,7 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
     *expected += "out_18";
     *volume_length = 18;
     *cells_per_dimension = 18;
-    *test_length = 1000;
+    *test_length = 10;
 #endif
 
   #ifdef BETTER_VERLET
@@ -74,7 +66,7 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
   #endif
 
   #ifdef SMALL_DT_EARLY
-    printf("Using a smaller dt for the first 1000 timestep\n");
+    printf("Using a smaller dt\n");
     *expected += "_small_dt_early";
   #endif
 
@@ -147,6 +139,7 @@ int main() {
     std::map<uint32_t, bead_t> actual_out;
 
     std::ifstream expected_out(expected);
+    bool expected_exists = !expected_out.fail();
     // Reuse line from above
     // Loop through and add the beads to the expected output map
     while(std::getline(expected_out, line)) {

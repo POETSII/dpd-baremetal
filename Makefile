@@ -167,6 +167,9 @@ $(DPD_BIN)/dpd.elf: $(DPD_SRC)/sync.cpp $(DPD_INC)/sync.h $(DPD_BIN)/link.ld $(I
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/sync.o $<
 	$(RV_LD) $(LDFLAGS) -T $(DPD_BIN)/link.ld -o $@ $(DPD_BIN)/entry.o $(DPD_BIN)/sync.o $(TINSEL_LIB_INC) $(DPD_OBJS)
 
+base-sync: DFLAGS+=
+base-sync: $(DPD_BIN) $(HL)/*.o $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+
 # ----------------- GALS elf ------------------------------
 $(DPD_BIN)/galsCode.v: $(DPD_BIN)/gals.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/gals.elf
@@ -254,7 +257,7 @@ restart: $(DPD_SRC)/restart.cpp $(DPD_INC)/sync.h $(DPD_INC)/gals.h $(HL)/*.o $(
 # Base for testing synchronous application
 .PHONY: test
 test: DFLAGS+=-DTESTING -DONE_BY_ONE
-test: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v
+test: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-sync
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
@@ -972,10 +975,10 @@ visual-vesicle-dram: DFLAGS=-DVISUALISE -DGALS -DIMPROVED_GALS -DBETTER_VERLET -
 visual-vesicle-dram: base-gals $(POLITE_OBJS) $(DPD_BIN) $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp vesicle
 
 visual-sync-oil-water-bonds: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS
-visual-sync-oil-water-bonds: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
+visual-sync-oil-water-bonds: $(DPD_BIN) base-sync $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 visual-sync-oil-water-bonds-dram: DFLAGS=-DVISUALISE -DBETTER_VERLET -DONE_BY_ONE -DSMALL_DT_EARLY -DBONDS -DDRAM
-visual-sync-oil-water-bonds-dram: $(DPD_BIN) $(DPD_BIN)/code.v $(DPD_BIN)/data.v $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
+visual-sync-oil-water-bonds-dram: $(DPD_BIN) base-sync $(DPD_SRC)/OilWaterBonds.cpp oil-water-bonds
 
 # -------------- WATER ONLY SIMULATION ------------------------------------------------------
 timed-water-only: DFLAGS=-DTIMER -DGALS -DIMPROVED_GALS -DBETTER_VERLET -DONE_BY_ONE
@@ -1115,7 +1118,7 @@ visual-gals-gravity: gals-gravity
 
 sync-gravity: OBJS=$(POLITE_OBJS)
 sync-gravity: DFLAGS+=-DGRAVITY -DREDUCE_LOCAL_CALCS -DONE_BY_ONE -DSINGLE_FORCE_LOOP -DSMALL_DT_EARLY -DBETTER_VERLET
-sync-gravity: $(POLITE_OBJS) $(DPD_BIN)/code.v $(DPD_BIN)/data.v gravity
+sync-gravity: $(POLITE_OBJS) base-sync gravity
 
 visual-sync-gravity: DFLAGS+=-DVISUALISE
 visual-sync-gravity: sync-gravity

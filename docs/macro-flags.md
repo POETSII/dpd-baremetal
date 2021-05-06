@@ -16,6 +16,43 @@ the end.
 
 This will also explain how to use these in combinations for Makefile recipes.
 
+## Usage
+
+The most important flags are pre-defined in the Makefile. These fall into the
+category of:
+
+1. Fastest
+2. Smallest
+
+The fastest includes those macros that improve performance. The smallest
+includes those that reduce the instruction count. At the end of the document.
+
+All Makefile recipes include the macros which produce the best results.
+
+To use these, in the root directory (where the Makefile is), run:
+
+```bash
+make [simulator]-[operation]-[example]-fastest
+```
+or
+```
+make [simulator]-[operation]-[example]-smallest
+```
+
+Where `[simulator]` is any of `sync/gals/improvedgals/serial`.
+
+Where `[operation]` is any of `visual/timed/stats`.
+
+Where `[example]` is any of `oilwater/vesicle/corners/gravity`.
+
+If you wish to include any extra flags for these, an `EXTERNAL_FLAGS` option is
+provided. For example, if you wish for any of these to include `float_only` and
+`doublesqrt` add the following infront of a `make` command:
+
+```bash
+EXTERNAL_FLAGS=-DFLOAT_ONLY\ -DDOUBLE_SQRT
+```
+
 ## Simulator choice
 
 These are the flags and recipes which choose which simulation implementation to
@@ -38,6 +75,30 @@ This will ensure that the compiled simulator uses the GALS method of
 synchronisations. The sync and gals simulator will
 produce the same result (when the same macro flags are used), with differing
 performance.
+
+### Improved GALS
+
+**FLAG: `-DIMPROVED_GALS`** - **makefile: `-improvedgals-`**
+
+Improved GALS can only be applied to the GALS simulator, but in combination with
+any other flag. This improves upon the base GALS by reducing the number of
+messages that are sent.
+
+The first message sent by a cell in a phase is still sent and counted by
+receiving cells, and the number of beads to be sent are still sent and counted
+by receiving cells. The major change comes when the last bead a cell has is sent
+(including if it is the only bead, making it the first and last bead). This is
+encoded in the bead message itself, and the sending cell will move into the
+phase complete stage. The receiving cell detects if this is the first, last or
+first and last bead, and will update the counter for number of neighbours in the
+phase complete phase.
+
+The update complete and migrate complete messages are now **only** sent when a
+cell has no beads to share or migrate. This is detected in the same way as
+normal GALS, and will increment/decrement counters appropriately.
+
+This improves performance of the GALS simulator greatly, and if the GALS
+simulator is to be used it is strongly suggested that this macro flag is used.
 
 ### Serial
 
@@ -296,30 +357,6 @@ included in the recipe automatically by including `-vesicle-`.
 This is not included on its own in any recipes, but it can be included manually
 to any simulation regardless of whether bonds are used or not.
 
-### Improved GALS
-
-**FLAG: `-DIMPROVED_GALS`** - **makefile: `-improvedgals-`**
-
-Improved GALS can only be applied to the GALS simulator, but in combination with
-any other flag. This improves upon the base GALS by reducing the number of
-messages that are sent.
-
-The first message sent by a cell in a phase is still sent and counted by
-receiving cells, and the number of beads to be sent are still sent and counted
-by receiving cells. The major change comes when the last bead a cell has is sent
-(including if it is the only bead, making it the first and last bead). This is
-encoded in the bead message itself, and the sending cell will move into the
-phase complete stage. The receiving cell detects if this is the first, last or
-first and last bead, and will update the counter for number of neighbours in the
-phase complete phase.
-
-The update complete and migrate complete messages are now **only** sent when a
-cell has no beads to share or migrate. This is detected in the same way as
-normal GALS, and will increment/decrement counters appropriately.
-
-This improves performance of the GALS simulator greatly, and if the GALS
-simulator is to be used it is strongly suggested that this macro flag is used.
-
 ### Improved Verlet
 
 **FLAG: `-DBETTER_VERLET`** - **makefile: `-betterverlet-`**
@@ -499,7 +536,10 @@ also primarily use oil and water or vesicle self-assembly simulation examples,
 as these are the examples which produce interesting results.
 
 This section will suggest combinations for the fastest of each POETS simulator,
-and the smallest in terms of total instructions.
+and the smallest in terms of total instructions. As discussed earlier in this
+document, the fastest and smallest combinations are provided for every
+combination of simulator/operation/example in the Makefile (using the suffixes
+`-fastest` or `-smallest`).
 
 ### Fastest combination
 
@@ -519,15 +559,6 @@ overall temperature of the volume more quickly
 - `-floatonly-` if you do not mind about reproducible results. This provides a
 nice speed up.
 - `-reducelocalcalcs` as this provides a nice speed boost as well.
-
-Specifically for the makefile here are some example recipes for either
-simulator.
-
-```bash
-sync-timed-oilwater-onebyone-betterverlet-dtchange-floatonly-reducelocalcals
-
-gals-visual-vesicle-onebyone-improvedgals-betterverlet-dtchange-reducelocalcalcs
-```
 
 ### Smallest combination
 
