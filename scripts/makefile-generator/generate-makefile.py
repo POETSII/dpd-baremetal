@@ -99,7 +99,7 @@ local_calcs = [default, onebyone, sendtoself]
 # Features
 improved_verlet = MacroFlag("-DBETTER_VERLET", "betterverlet")
 small_dt_early = MacroFlag("-DSMALL_DT_EARLY", "dtchange")
-double_sqrt = MacroFlag("-DOUBLE_SQRT", "doublesqrt")
+double_sqrt = MacroFlag("-DDOUBLE_SQRT", "doublesqrt")
 msg_mgmt = MacroFlag("-DMESSAGE_MANAGEMENT", "msgmgmt")
 float_only = MacroFlag("-DFLOAT_ONLY", "floatonly")
 reduced_local_calcs = MacroFlag("-DREDUCED_LOCAL_CALCS", "reducedlocalcalcs")

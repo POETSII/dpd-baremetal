@@ -869,7 +869,7 @@ test-sync-betterverlet: test-sync
 test-sync-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-dtchange: test-sync
 
-test-sync-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-doublesqrt: test-sync
 
 test-sync-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -891,7 +891,7 @@ test-sync-onebyone-betterverlet: test-sync-onebyone
 test-sync-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-onebyone-dtchange: test-sync-onebyone
 
-test-sync-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-onebyone-doublesqrt: test-sync-onebyone
 
 test-sync-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -913,7 +913,7 @@ test-sync-sendtoself-betterverlet: test-sync-sendtoself
 test-sync-sendtoself-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-sendtoself-dtchange: test-sync-sendtoself
 
-test-sync-sendtoself-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-sendtoself-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-sendtoself-doublesqrt: test-sync-sendtoself
 
 test-sync-sendtoself-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -931,7 +931,7 @@ test-sync-large-betterverlet: test-sync-large
 test-sync-large-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-large-dtchange: test-sync-large
 
-test-sync-large-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-large-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-large-doublesqrt: test-sync-large
 
 test-sync-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -953,7 +953,7 @@ test-sync-large-onebyone-betterverlet: test-sync-large-onebyone
 test-sync-large-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-large-onebyone-dtchange: test-sync-large-onebyone
 
-test-sync-large-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-large-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-large-onebyone-doublesqrt: test-sync-large-onebyone
 
 test-sync-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -975,7 +975,7 @@ test-sync-large-sendtoself-betterverlet: test-sync-large-sendtoself
 test-sync-large-sendtoself-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-large-sendtoself-dtchange: test-sync-large-sendtoself
 
-test-sync-large-sendtoself-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-large-sendtoself-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-large-sendtoself-doublesqrt: test-sync-large-sendtoself
 
 test-sync-large-sendtoself-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -993,7 +993,7 @@ test-sync-bonds-betterverlet: test-sync-bonds
 test-sync-bonds-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-bonds-dtchange: test-sync-bonds
 
-test-sync-bonds-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-bonds-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-bonds-doublesqrt: test-sync-bonds
 
 test-sync-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1015,7 +1015,7 @@ test-sync-bonds-onebyone-betterverlet: test-sync-bonds-onebyone
 test-sync-bonds-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-bonds-onebyone-dtchange: test-sync-bonds-onebyone
 
-test-sync-bonds-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-bonds-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-bonds-onebyone-doublesqrt: test-sync-bonds-onebyone
 
 test-sync-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1037,7 +1037,7 @@ test-sync-bonds-sendtoself-betterverlet: test-sync-bonds-sendtoself
 test-sync-bonds-sendtoself-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-sync-bonds-sendtoself-dtchange: test-sync-bonds-sendtoself
 
-test-sync-bonds-sendtoself-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-sync-bonds-sendtoself-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-sync-bonds-sendtoself-doublesqrt: test-sync-bonds-sendtoself
 
 test-sync-bonds-sendtoself-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1060,7 +1060,7 @@ test-gals-betterverlet: test-gals
 test-gals-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-gals-dtchange: test-gals
 
-test-gals-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-gals-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-gals-doublesqrt: test-gals
 
 test-gals-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1082,7 +1082,7 @@ test-gals-onebyone-betterverlet: test-gals-onebyone
 test-gals-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-gals-onebyone-dtchange: test-gals-onebyone
 
-test-gals-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-gals-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-gals-onebyone-doublesqrt: test-gals-onebyone
 
 test-gals-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1103,7 +1103,7 @@ test-gals-large-betterverlet: test-gals-large
 test-gals-large-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-gals-large-dtchange: test-gals-large
 
-test-gals-large-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-gals-large-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-gals-large-doublesqrt: test-gals-large
 
 test-gals-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1125,7 +1125,7 @@ test-gals-large-onebyone-betterverlet: test-gals-large-onebyone
 test-gals-large-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-gals-large-onebyone-dtchange: test-gals-large-onebyone
 
-test-gals-large-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-gals-large-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-gals-large-onebyone-doublesqrt: test-gals-large-onebyone
 
 test-gals-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1146,7 +1146,7 @@ test-gals-bonds-betterverlet: test-gals-bonds
 test-gals-bonds-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-gals-bonds-dtchange: test-gals-bonds
 
-test-gals-bonds-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-gals-bonds-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-gals-bonds-doublesqrt: test-gals-bonds
 
 test-gals-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1168,7 +1168,7 @@ test-gals-bonds-onebyone-betterverlet: test-gals-bonds-onebyone
 test-gals-bonds-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-gals-bonds-onebyone-dtchange: test-gals-bonds-onebyone
 
-test-gals-bonds-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-gals-bonds-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-gals-bonds-onebyone-doublesqrt: test-gals-bonds-onebyone
 
 test-gals-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1194,7 +1194,7 @@ test-improvedgals-betterverlet: test-improvedgals
 test-improvedgals-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-improvedgals-dtchange: test-improvedgals
 
-test-improvedgals-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-improvedgals-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-doublesqrt: test-improvedgals
 
 test-improvedgals-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1216,7 +1216,7 @@ test-improvedgals-onebyone-betterverlet: test-improvedgals-onebyone
 test-improvedgals-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-improvedgals-onebyone-dtchange: test-improvedgals-onebyone
 
-test-improvedgals-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-improvedgals-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-onebyone-doublesqrt: test-improvedgals-onebyone
 
 test-improvedgals-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1237,7 +1237,7 @@ test-improvedgals-large-betterverlet: test-improvedgals-large
 test-improvedgals-large-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-improvedgals-large-dtchange: test-improvedgals-large
 
-test-improvedgals-large-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-improvedgals-large-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-large-doublesqrt: test-improvedgals-large
 
 test-improvedgals-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1259,7 +1259,7 @@ test-improvedgals-large-onebyone-betterverlet: test-improvedgals-large-onebyone
 test-improvedgals-large-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-improvedgals-large-onebyone-dtchange: test-improvedgals-large-onebyone
 
-test-improvedgals-large-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-improvedgals-large-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-large-onebyone-doublesqrt: test-improvedgals-large-onebyone
 
 test-improvedgals-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1280,7 +1280,7 @@ test-improvedgals-bonds-betterverlet: test-improvedgals-bonds
 test-improvedgals-bonds-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-improvedgals-bonds-dtchange: test-improvedgals-bonds
 
-test-improvedgals-bonds-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-improvedgals-bonds-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-bonds-doublesqrt: test-improvedgals-bonds
 
 test-improvedgals-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1302,7 +1302,7 @@ test-improvedgals-bonds-onebyone-betterverlet: test-improvedgals-bonds-onebyone
 test-improvedgals-bonds-onebyone-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-improvedgals-bonds-onebyone-dtchange: test-improvedgals-bonds-onebyone
 
-test-improvedgals-bonds-onebyone-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-improvedgals-bonds-onebyone-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-improvedgals-bonds-onebyone-doublesqrt: test-improvedgals-bonds-onebyone
 
 test-improvedgals-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
@@ -1328,7 +1328,7 @@ test-serial-betterverlet: test-serial
 test-serial-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-serial-dtchange: test-serial
 
-test-serial-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-serial-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-serial-doublesqrt: test-serial
 
 test-serial-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
@@ -1346,7 +1346,7 @@ test-serial-large-betterverlet: test-serial-large
 test-serial-large-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-serial-large-dtchange: test-serial-large
 
-test-serial-large-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-serial-large-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-serial-large-doublesqrt: test-serial-large
 
 test-serial-large-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
@@ -1364,7 +1364,7 @@ test-serial-bonds-betterverlet: test-serial-bonds
 test-serial-bonds-dtchange: DFLAGS+=-DSMALL_DT_EARLY
 test-serial-bonds-dtchange: test-serial-bonds
 
-test-serial-bonds-doublesqrt: DFLAGS+=-DOUBLE_SQRT
+test-serial-bonds-doublesqrt: DFLAGS+=-DDOUBLE_SQRT
 test-serial-bonds-doublesqrt: test-serial-bonds
 
 test-serial-bonds-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS

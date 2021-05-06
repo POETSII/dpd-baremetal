@@ -418,7 +418,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
             #ifdef SEND_TO_SELF
                 if(s->bead_slot[ci].id != b.id) {
                 #ifndef ACCELERATE
-                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b);
+                    Vector3D<ptype> f = force_update(&s->bead_slot[ci], &b, s);
                 #else
                     return_message r = force_update(s->bead_slot[ci].pos.x(), s->bead_slot[ci].pos.y(), s->bead_slot[ci].pos.z(),
                                                      b.pos.x(), b.pos.y(), b.pos.z(),
