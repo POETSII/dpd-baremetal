@@ -247,6 +247,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                 *readyToSend = No;
             #if !defined(ONE_BY_ONE) && !defined(SEND_TO_SELF)
                 // Calculate all local interactions
+              #if defined(REDUCE_LOCAL_CALCS) || defined(SINGLE_FORCE_LOOP)
                 uint16_t i = s->bslot;
                 while (i) {
                     uint8_t ci = get_next_slot(i);
@@ -258,14 +259,15 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
                     calc_bead_force_on_beads(&s->bead_slot[ci], i, s, ci);
                    #endif
                   #else
-                   #ifndef SINGLE_FORCE_LOOP
-                    local_calcs(s);
-                   #else
+                   #ifdef SINGLE_FORCE_LOOP
                     calc_bead_force_on_beads(&s->bead_slot[ci], s->bslot, s);
                    #endif
                   #endif
-                #endif
                 }
+              #else
+                local_calcs(s);
+              #endif
+            #endif
 	        }
         #else
             if (s->sentslot == 0) {
