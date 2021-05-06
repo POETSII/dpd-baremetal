@@ -70,6 +70,16 @@ void getParameters(std::string *bead_file, std::string *expected, float *volume_
     *expected += "_small_dt_early";
   #endif
 
+  #ifdef DOUBLE_SQRT
+    printf("Using a more accurate square root\n");
+    *expected += "_double_sqrt";
+  #endif
+
+  #ifdef SERIAL
+    printf("Running on an x86 naive serial simulator");
+    *expected += "_serial";
+  #endif
+
     *bead_file += ".csv";
     *expected += ".csv";
 }
