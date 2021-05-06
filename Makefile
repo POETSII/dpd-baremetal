@@ -193,9 +193,9 @@ serial: $(SERIAL_OBJS)
 # ---------------------------- Build the test file ---------------------------------
 
 test: DFLAGS+=-DTESTING
-test: $(INC)/config.h $(HL)/*.o $(POLITE_OBJS) base-sync
+test: $($(OBJS)) $(INC)/config.h $(HL)/*.o
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/test.o $(DPD_SRC)/test.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(POLITE_OBJS) $(DPD_BIN)/test.o \
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/test $(OBJS) $(DPD_BIN)/test.o \
 	  -static-libgcc -static-libstdc++ \
       -Wl,-rpath, $(METIS) -lboost_program_options -lboost_filesystem -lboost_system -fopenmp
 
@@ -216,8 +216,7 @@ oilwater: $(DPD_EXAMPLES)/oilWater
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
 	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/oilWater.o $(DPD_EXAMPLES)/oilWater.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/oilWater.o \
-		-static-libgcc -static-libstdc++ -L$(QUARTUS_ROOTDIR)/linux64 \
-		-Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
@@ -225,8 +224,7 @@ vesicle: $(DPD_EXAMPLES)/VesicleSelfAssembly
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
 	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/VesicleSelfAssembly.o $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/VesicleSelfAssembly.o \
-		-static-libgcc -static-libstdc++ -L$(QUARTUS_ROOTDIR)/linux64 \
-		-Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 corners: DFLAGS+=
@@ -234,8 +232,7 @@ corners: $(DPD_EXAMPLES)/corner-tests
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
 	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/corner-tests.o $(DPD_EXAMPLES)/corner-tests.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/corner-tests.o \
-		-static-libgcc -static-libstdc++ -L$(QUARTUS_ROOTDIR)/linux64 \
-		-Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 gravity: DFLAGS+=-DGRAVITY
@@ -243,8 +240,7 @@ gravity: $(DPD_EXAMPLES)/BoxOilWaterGravity
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
 	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/BoxOilWaterGravity.o $(DPD_EXAMPLES)/BoxOilWaterGravity.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/BoxOilWaterGravity.o \
-		-static-libgcc -static-libstdc++ -L$(QUARTUS_ROOTDIR)/linux64 \
-		-Wl,-rpath,$(QUARTUS_ROOTDIR)/linux64 $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 # ************** Simulator: sync**************
@@ -254,7 +250,7 @@ gravity: $(DPD_EXAMPLES)/BoxOilWaterGravity
 sync-visual: OBJS+=$(POLITE_OBJS)
 sync-visual: METIS=-lmetis
 sync-visual: DFLAGS+=-DVISUALISE
-sync-visual: base-sync
+sync-visual: $(POLITE_OBJS) base-sync
 
 # ******Example: oilwater******
 
@@ -309,7 +305,7 @@ sync-visual-gravity-smallest: sync-visual-gravity
 sync-timed: OBJS+=$(POLITE_OBJS)
 sync-timed: METIS=-lmetis
 sync-timed: DFLAGS+=-DTIMER
-sync-timed: base-sync
+sync-timed: $(POLITE_OBJS) base-sync
 
 # ******Example: oilwater******
 
@@ -364,7 +360,7 @@ sync-timed-gravity-smallest: sync-timed-gravity
 sync-stats: OBJS+=$(POLITE_OBJS)
 sync-stats: METIS=-lmetis
 sync-stats: DFLAGS+=-DSTATS
-sync-stats: base-sync
+sync-stats: $(POLITE_OBJS) base-sync
 
 # ******Example: oilwater******
 
@@ -421,7 +417,7 @@ sync-stats-gravity-smallest: sync-stats-gravity
 gals-visual: OBJS+=$(POLITE_OBJS)
 gals-visual: METIS=-lmetis
 gals-visual: DFLAGS+=-DVISUALISE
-gals-visual: base-gals
+gals-visual: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
@@ -476,7 +472,7 @@ gals-visual-gravity-smallest: gals-visual-gravity
 gals-timed: OBJS+=$(POLITE_OBJS)
 gals-timed: METIS=-lmetis
 gals-timed: DFLAGS+=-DTIMER
-gals-timed: base-gals
+gals-timed: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
@@ -531,7 +527,7 @@ gals-timed-gravity-smallest: gals-timed-gravity
 gals-stats: OBJS+=$(POLITE_OBJS)
 gals-stats: METIS=-lmetis
 gals-stats: DFLAGS+=-DSTATS
-gals-stats: base-gals
+gals-stats: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
@@ -585,10 +581,10 @@ gals-stats-gravity-smallest: gals-stats-gravity
 
 # **********Operation: visual**********
 
-improvedgals-visual: OBJS+=$(-lmetis)
-improvedgals-visual: METIS=POLITE_OBJS
+improvedgals-visual: OBJS+=$(POLITE_OBJS)
+improvedgals-visual: METIS=-lmetis
 improvedgals-visual: DFLAGS+=-DVISUALISE
-improvedgals-visual: base-gals
+improvedgals-visual: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
@@ -640,10 +636,10 @@ improvedgals-visual-gravity-smallest: improvedgals-visual-gravity
 
 # **********Operation: timed**********
 
-improvedgals-timed: OBJS+=$(-lmetis)
-improvedgals-timed: METIS=POLITE_OBJS
+improvedgals-timed: OBJS+=$(POLITE_OBJS)
+improvedgals-timed: METIS=-lmetis
 improvedgals-timed: DFLAGS+=-DTIMER
-improvedgals-timed: base-gals
+improvedgals-timed: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
@@ -695,10 +691,10 @@ improvedgals-timed-gravity-smallest: improvedgals-timed-gravity
 
 # **********Operation: stats**********
 
-improvedgals-stats: OBJS+=$(-lmetis)
-improvedgals-stats: METIS=POLITE_OBJS
+improvedgals-stats: OBJS+=$(POLITE_OBJS)
+improvedgals-stats: METIS=-lmetis
 improvedgals-stats: DFLAGS+=-DSTATS
-improvedgals-stats: base-gals
+improvedgals-stats: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
@@ -755,7 +751,7 @@ improvedgals-stats-gravity-smallest: improvedgals-stats-gravity
 serial-visual: OBJS+=$(SERIAL_OBJS)
 serial-visual: METIS=
 serial-visual: DFLAGS+=-DVISUALISE
-serial-visual: serial
+serial-visual: $(SERIAL_OBJS) serial
 
 # ******Example: oilwater******
 
@@ -810,7 +806,7 @@ serial-visual-gravity-smallest: serial-visual-gravity
 serial-timed: OBJS+=$(SERIAL_OBJS)
 serial-timed: METIS=
 serial-timed: DFLAGS+=-DTIMER
-serial-timed: serial
+serial-timed: $(SERIAL_OBJS) serial
 
 # ******Example: oilwater******
 
@@ -865,7 +861,7 @@ serial-timed-gravity-smallest: serial-timed-gravity
 test-sync: OBJS=$(POLITE_OBJS)
 test-sync: METIS=-lmetis
 test-sync: DFLAGS+=-DTESTING 
-test-sync: base-sync test
+test-sync: $(POLITE_OBJS) base-sync test
 
 test-sync-betterverlet: DFLAGS+=-DBETTER_VERLET
 test-sync-betterverlet: test-sync
@@ -1083,7 +1079,7 @@ test-sync-bonds-sendtoself-singleforceloop: test-sync-bonds-sendtoself
 test-gals: OBJS=$(POLITE_OBJS)
 test-gals: METIS=-lmetis
 test-gals: DFLAGS+=-DTESTING -DGALS
-test-gals: base-gals test
+test-gals: $(POLITE_OBJS) base-gals test
 
 test-gals-betterverlet: DFLAGS+=-DBETTER_VERLET
 test-gals-betterverlet: test-gals
@@ -1232,10 +1228,10 @@ test-gals-bonds-onebyone-singleforceloop: test-gals-bonds-onebyone
 
 # ************** TEST Simulator: improvedgals**************
 
-test-improvedgals: OBJS=$(-lmetis)
-test-improvedgals: METIS=POLITE_OBJS
+test-improvedgals: OBJS=$(POLITE_OBJS)
+test-improvedgals: METIS=-lmetis
 test-improvedgals: DFLAGS+=-DTESTING -DGALS -DIMPROVED_GALS
-test-improvedgals: base-gals test
+test-improvedgals: $(POLITE_OBJS) base-gals test
 
 test-improvedgals-betterverlet: DFLAGS+=-DBETTER_VERLET
 test-improvedgals-betterverlet: test-improvedgals
@@ -1387,7 +1383,7 @@ test-improvedgals-bonds-onebyone-singleforceloop: test-improvedgals-bonds-onebyo
 test-serial: OBJS=$(SERIAL_OBJS)
 test-serial: METIS=
 test-serial: DFLAGS+=-DTESTING -DSERIAL
-test-serial: serial test
+test-serial: $(SERIAL_OBJS) serial test
 
 test-serial-betterverlet: DFLAGS+=-DBETTER_VERLET
 test-serial-betterverlet: test-serial

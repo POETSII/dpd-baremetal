@@ -54,7 +54,7 @@ shutil.copyfile(makefile_helper_path, new_makefile_path)
 # Simulator choices
 sync = SimulatorFlag("base-sync", "POLITE_OBJS", "-lmetis", "", "sync")
 gals = SimulatorFlag("base-gals", "POLITE_OBJS", "-lmetis", "-DGALS", "gals")
-improved_gals = SimulatorFlag("base-gals", "-lmetis", "POLITE_OBJS",
+improved_gals = SimulatorFlag("base-gals", "POLITE_OBJS", "-lmetis",
                               "-DGALS -DIMPROVED_GALS", "improvedgals")
 serial = SimulatorFlag("serial", "SERIAL_OBJS", "", "-DSERIAL", "serial")
 
@@ -216,6 +216,7 @@ for simulator in simulators:
         makefile.write(f"{sim_op_recipe}: ")
         makefile.write(f"DFLAGS+={operation.flag_string}\n")
         makefile.write(sim_op_recipe + ": ")
+        makefile.write(f"$({simulator.objs}) ")
         makefile.write(f"{simulator.sim_recipe}\n")
         for example in examples:
             if clash(example.clashing_flags, [simulator, operation]):
@@ -284,6 +285,7 @@ for simulator in simulators:
     makefile.write(f"DFLAGS+={testing.flag_string} ")
     makefile.write(f"{simulator.flag_string}\n")
     makefile.write(f"{test_sim_recipe}: ")
+    makefile.write(f"$({simulator.objs}) ")
     makefile.write(f"{simulator.sim_recipe} ")
     makefile.write(f"test\n\n")
     testing_recipes.append(test_sim_recipe)
