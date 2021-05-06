@@ -875,9 +875,6 @@ test-sync-doublesqrt: test-sync
 test-sync-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-msgmgmt: test-sync
 
-test-sync-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-floatonly: test-sync
-
 test-sync-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-sync-reducedlocalcalcs: test-sync
 
@@ -899,9 +896,6 @@ test-sync-onebyone-doublesqrt: test-sync-onebyone
 
 test-sync-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-onebyone-msgmgmt: test-sync-onebyone
-
-test-sync-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-onebyone-floatonly: test-sync-onebyone
 
 test-sync-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-sync-onebyone-reducedlocalcalcs: test-sync-onebyone
@@ -925,9 +919,6 @@ test-sync-sendtoself-doublesqrt: test-sync-sendtoself
 test-sync-sendtoself-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-sendtoself-msgmgmt: test-sync-sendtoself
 
-test-sync-sendtoself-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-sendtoself-floatonly: test-sync-sendtoself
-
 test-sync-sendtoself-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-sendtoself-singleforceloop: test-sync-sendtoself
 
@@ -945,9 +936,6 @@ test-sync-large-doublesqrt: test-sync-large
 
 test-sync-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-large-msgmgmt: test-sync-large
-
-test-sync-large-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-large-floatonly: test-sync-large
 
 test-sync-large-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-sync-large-reducedlocalcalcs: test-sync-large
@@ -971,9 +959,6 @@ test-sync-large-onebyone-doublesqrt: test-sync-large-onebyone
 test-sync-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-large-onebyone-msgmgmt: test-sync-large-onebyone
 
-test-sync-large-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-large-onebyone-floatonly: test-sync-large-onebyone
-
 test-sync-large-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-sync-large-onebyone-reducedlocalcalcs: test-sync-large-onebyone
 
@@ -996,9 +981,6 @@ test-sync-large-sendtoself-doublesqrt: test-sync-large-sendtoself
 test-sync-large-sendtoself-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-large-sendtoself-msgmgmt: test-sync-large-sendtoself
 
-test-sync-large-sendtoself-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-large-sendtoself-floatonly: test-sync-large-sendtoself
-
 test-sync-large-sendtoself-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-large-sendtoself-singleforceloop: test-sync-large-sendtoself
 
@@ -1016,9 +998,6 @@ test-sync-bonds-doublesqrt: test-sync-bonds
 
 test-sync-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-bonds-msgmgmt: test-sync-bonds
-
-test-sync-bonds-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-bonds-floatonly: test-sync-bonds
 
 test-sync-bonds-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-sync-bonds-reducedlocalcalcs: test-sync-bonds
@@ -1042,9 +1021,6 @@ test-sync-bonds-onebyone-doublesqrt: test-sync-bonds-onebyone
 test-sync-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-bonds-onebyone-msgmgmt: test-sync-bonds-onebyone
 
-test-sync-bonds-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-bonds-onebyone-floatonly: test-sync-bonds-onebyone
-
 test-sync-bonds-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-sync-bonds-onebyone-reducedlocalcalcs: test-sync-bonds-onebyone
 
@@ -1066,9 +1042,6 @@ test-sync-bonds-sendtoself-doublesqrt: test-sync-bonds-sendtoself
 
 test-sync-bonds-sendtoself-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-sync-bonds-sendtoself-msgmgmt: test-sync-bonds-sendtoself
-
-test-sync-bonds-sendtoself-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-sync-bonds-sendtoself-floatonly: test-sync-bonds-sendtoself
 
 test-sync-bonds-sendtoself-singleforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP
 test-sync-bonds-sendtoself-singleforceloop: test-sync-bonds-sendtoself
@@ -1093,9 +1066,6 @@ test-gals-doublesqrt: test-gals
 test-gals-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-gals-msgmgmt: test-gals
 
-test-gals-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-gals-floatonly: test-gals
-
 test-gals-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-gals-reducedlocalcalcs: test-gals
 
@@ -1118,9 +1088,6 @@ test-gals-onebyone-doublesqrt: test-gals-onebyone
 test-gals-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-gals-onebyone-msgmgmt: test-gals-onebyone
 
-test-gals-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-gals-onebyone-floatonly: test-gals-onebyone
-
 test-gals-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-gals-onebyone-reducedlocalcalcs: test-gals-onebyone
 
@@ -1141,9 +1108,6 @@ test-gals-large-doublesqrt: test-gals-large
 
 test-gals-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-gals-large-msgmgmt: test-gals-large
-
-test-gals-large-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-gals-large-floatonly: test-gals-large
 
 test-gals-large-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-gals-large-reducedlocalcalcs: test-gals-large
@@ -1167,9 +1131,6 @@ test-gals-large-onebyone-doublesqrt: test-gals-large-onebyone
 test-gals-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-gals-large-onebyone-msgmgmt: test-gals-large-onebyone
 
-test-gals-large-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-gals-large-onebyone-floatonly: test-gals-large-onebyone
-
 test-gals-large-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-gals-large-onebyone-reducedlocalcalcs: test-gals-large-onebyone
 
@@ -1190,9 +1151,6 @@ test-gals-bonds-doublesqrt: test-gals-bonds
 
 test-gals-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-gals-bonds-msgmgmt: test-gals-bonds
-
-test-gals-bonds-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-gals-bonds-floatonly: test-gals-bonds
 
 test-gals-bonds-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-gals-bonds-reducedlocalcalcs: test-gals-bonds
@@ -1215,9 +1173,6 @@ test-gals-bonds-onebyone-doublesqrt: test-gals-bonds-onebyone
 
 test-gals-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-gals-bonds-onebyone-msgmgmt: test-gals-bonds-onebyone
-
-test-gals-bonds-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-gals-bonds-onebyone-floatonly: test-gals-bonds-onebyone
 
 test-gals-bonds-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-gals-bonds-onebyone-reducedlocalcalcs: test-gals-bonds-onebyone
@@ -1245,9 +1200,6 @@ test-improvedgals-doublesqrt: test-improvedgals
 test-improvedgals-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-improvedgals-msgmgmt: test-improvedgals
 
-test-improvedgals-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-improvedgals-floatonly: test-improvedgals
-
 test-improvedgals-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-reducedlocalcalcs: test-improvedgals
 
@@ -1270,9 +1222,6 @@ test-improvedgals-onebyone-doublesqrt: test-improvedgals-onebyone
 test-improvedgals-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-improvedgals-onebyone-msgmgmt: test-improvedgals-onebyone
 
-test-improvedgals-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-improvedgals-onebyone-floatonly: test-improvedgals-onebyone
-
 test-improvedgals-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-onebyone-reducedlocalcalcs: test-improvedgals-onebyone
 
@@ -1293,9 +1242,6 @@ test-improvedgals-large-doublesqrt: test-improvedgals-large
 
 test-improvedgals-large-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-improvedgals-large-msgmgmt: test-improvedgals-large
-
-test-improvedgals-large-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-improvedgals-large-floatonly: test-improvedgals-large
 
 test-improvedgals-large-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-large-reducedlocalcalcs: test-improvedgals-large
@@ -1319,9 +1265,6 @@ test-improvedgals-large-onebyone-doublesqrt: test-improvedgals-large-onebyone
 test-improvedgals-large-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-improvedgals-large-onebyone-msgmgmt: test-improvedgals-large-onebyone
 
-test-improvedgals-large-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-improvedgals-large-onebyone-floatonly: test-improvedgals-large-onebyone
-
 test-improvedgals-large-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-large-onebyone-reducedlocalcalcs: test-improvedgals-large-onebyone
 
@@ -1342,9 +1285,6 @@ test-improvedgals-bonds-doublesqrt: test-improvedgals-bonds
 
 test-improvedgals-bonds-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-improvedgals-bonds-msgmgmt: test-improvedgals-bonds
-
-test-improvedgals-bonds-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-improvedgals-bonds-floatonly: test-improvedgals-bonds
 
 test-improvedgals-bonds-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-bonds-reducedlocalcalcs: test-improvedgals-bonds
@@ -1367,9 +1307,6 @@ test-improvedgals-bonds-onebyone-doublesqrt: test-improvedgals-bonds-onebyone
 
 test-improvedgals-bonds-onebyone-msgmgmt: DFLAGS+=-DMESSAGE_MANAGEMENT
 test-improvedgals-bonds-onebyone-msgmgmt: test-improvedgals-bonds-onebyone
-
-test-improvedgals-bonds-onebyone-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-improvedgals-bonds-onebyone-floatonly: test-improvedgals-bonds-onebyone
 
 test-improvedgals-bonds-onebyone-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-improvedgals-bonds-onebyone-reducedlocalcalcs: test-improvedgals-bonds-onebyone
@@ -1394,9 +1331,6 @@ test-serial-dtchange: test-serial
 test-serial-doublesqrt: DFLAGS+=-DOUBLE_SQRT
 test-serial-doublesqrt: test-serial
 
-test-serial-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-serial-floatonly: test-serial
-
 test-serial-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-serial-reducedlocalcalcs: test-serial
 
@@ -1415,9 +1349,6 @@ test-serial-large-dtchange: test-serial-large
 test-serial-large-doublesqrt: DFLAGS+=-DOUBLE_SQRT
 test-serial-large-doublesqrt: test-serial-large
 
-test-serial-large-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-serial-large-floatonly: test-serial-large
-
 test-serial-large-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-serial-large-reducedlocalcalcs: test-serial-large
 
@@ -1435,9 +1366,6 @@ test-serial-bonds-dtchange: test-serial-bonds
 
 test-serial-bonds-doublesqrt: DFLAGS+=-DOUBLE_SQRT
 test-serial-bonds-doublesqrt: test-serial-bonds
-
-test-serial-bonds-floatonly: DFLAGS+=-DFLOAT_ONLY
-test-serial-bonds-floatonly: test-serial-bonds
 
 test-serial-bonds-reducedlocalcalcs: DFLAGS+=-DREDUCED_LOCAL_CALCS
 test-serial-bonds-reducedlocalcalcs: test-serial-bonds

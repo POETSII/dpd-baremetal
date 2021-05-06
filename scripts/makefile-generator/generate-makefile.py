@@ -136,10 +136,10 @@ serial.add_clashing_flags([sync, gals, stats, onebyone,
 visual.add_clashing_flags([timed, stats, testing, large_test])
 timed.add_clashing_flags([visual, stats, testing, large_test])
 stats.add_clashing_flags([serial, visual, timed, testing, large_test])
-testing.add_clashing_flags([visual, timed, stats, large_test, float_only])
+testing.add_clashing_flags([visual, timed, stats, float_only])
 
 # Testing flags
-large_test.add_clashing_flags([visual, timed, stats, testing, bonds])
+large_test.add_clashing_flags([visual, timed, stats, bonds])
 
 # DRAM (can work with anything, but isn't used for testing)
 dram.add_clashing_flags([testing, large_test])
@@ -291,7 +291,7 @@ for simulator in simulators:
     testing_recipes.append(test_sim_recipe)
     # Test the testing options (large and bonds)
     for test_flag in test_flags:
-        if clash(test_flag.clashing_flags, [simulator]):
+        if clash(test_flag.clashing_flags, [testing, simulator]):
             continue
         recipe_with_test_flag = test_sim_recipe
         if test_flag.makefile_string != "":
@@ -304,7 +304,8 @@ for simulator in simulators:
 
         # Test each of the local calculation options
         for local_calc in local_calcs:
-            if clash(local_calc.clashing_flags, [simulator, test_flag]):
+            if clash(local_calc.clashing_flags,
+                     [testing, simulator, test_flag]):
                 continue
             recipe_with_loc = f"{recipe_with_test_flag}"
             if local_calc.makefile_string != "":
@@ -319,7 +320,7 @@ for simulator in simulators:
 
             for feature in features:
                 if clash(feature.clashing_flags,
-                         [simulator, test_flag, local_calc]):
+                         [testing, simulator, test_flag, local_calc]):
                     continue
                 new_recipe = recipe_with_loc + "-"
                 new_recipe += feature.makefile_string
