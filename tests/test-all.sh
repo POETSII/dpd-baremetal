@@ -8,51 +8,51 @@ make clean
 make clean-tinsel
 
 tests=(test-sync
-test-sync-betterverlet
-test-sync-dtchange
-test-sync-doublesqrt
-test-sync-msgmgmt
-test-sync-reducedlocalcalcs
-test-sync-singleforceloop
-test-sync-singlereducedforceloop
-test-sync-onebyone
-test-sync-onebyone-betterverlet
-test-sync-onebyone-dtchange
-test-sync-onebyone-doublesqrt
-test-sync-onebyone-msgmgmt
-test-sync-onebyone-reducedlocalcalcs
-test-sync-onebyone-singleforceloop
-test-sync-onebyone-singlereducedforceloop
-test-sync-sendtoself
-test-sync-sendtoself-betterverlet
-test-sync-sendtoself-dtchange
-test-sync-sendtoself-doublesqrt
-test-sync-sendtoself-msgmgmt
-test-sync-sendtoself-singleforceloop
-test-sync-sendtoself-singlereducedforceloop
-test-sync-large
-test-sync-large-betterverlet
-test-sync-large-dtchange
-test-sync-large-doublesqrt
-test-sync-large-msgmgmt
-test-sync-large-reducedlocalcalcs
-test-sync-large-singleforceloop
-test-sync-large-singlereducedforceloop
-test-sync-large-onebyone
-test-sync-large-onebyone-betterverlet
-test-sync-large-onebyone-dtchange
-test-sync-large-onebyone-doublesqrt
-test-sync-large-onebyone-msgmgmt
-test-sync-large-onebyone-reducedlocalcalcs
-test-sync-large-onebyone-singleforceloop
-test-sync-large-onebyone-singlereducedforceloop
-test-sync-large-sendtoself
-test-sync-large-sendtoself-betterverlet
-test-sync-large-sendtoself-dtchange
-test-sync-large-sendtoself-doublesqrt
-test-sync-large-sendtoself-msgmgmt
-test-sync-large-sendtoself-singleforceloop
-test-sync-large-sendtoself-singlereducedforceloop
+# test-sync-betterverlet
+# test-sync-dtchange
+# test-sync-doublesqrt
+# test-sync-msgmgmt
+# test-sync-reducedlocalcalcs
+# test-sync-singleforceloop
+# test-sync-singlereducedforceloop
+# test-sync-onebyone
+# test-sync-onebyone-betterverlet
+# test-sync-onebyone-dtchange
+# test-sync-onebyone-doublesqrt
+# test-sync-onebyone-msgmgmt
+# test-sync-onebyone-reducedlocalcalcs
+# test-sync-onebyone-singleforceloop
+# test-sync-onebyone-singlereducedforceloop
+# test-sync-sendtoself
+# test-sync-sendtoself-betterverlet
+# test-sync-sendtoself-dtchange
+# test-sync-sendtoself-doublesqrt
+# test-sync-sendtoself-msgmgmt
+# test-sync-sendtoself-singleforceloop
+# test-sync-sendtoself-singlereducedforceloop
+# test-sync-large
+# test-sync-large-betterverlet
+# test-sync-large-dtchange
+# test-sync-large-doublesqrt
+# test-sync-large-msgmgmt
+# test-sync-large-reducedlocalcalcs
+# test-sync-large-singleforceloop
+# test-sync-large-singlereducedforceloop
+# test-sync-large-onebyone
+# test-sync-large-onebyone-betterverlet
+# test-sync-large-onebyone-dtchange
+# test-sync-large-onebyone-doublesqrt
+# test-sync-large-onebyone-msgmgmt
+# test-sync-large-onebyone-reducedlocalcalcs
+# test-sync-large-onebyone-singleforceloop
+# test-sync-large-onebyone-singlereducedforceloop
+# test-sync-large-sendtoself
+# test-sync-large-sendtoself-betterverlet
+# test-sync-large-sendtoself-dtchange
+# test-sync-large-sendtoself-doublesqrt
+# test-sync-large-sendtoself-msgmgmt
+# test-sync-large-sendtoself-singleforceloop
+# test-sync-large-sendtoself-singlereducedforceloop
 test-sync-bonds
 test-sync-bonds-betterverlet
 test-sync-bonds-dtchange

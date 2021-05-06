@@ -1002,7 +1002,7 @@ test-sync-large-sendtoself-singleforceloop: test-sync-large-sendtoself
 test-sync-large-sendtoself-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
 test-sync-large-sendtoself-singlereducedforceloop: test-sync-large-sendtoself
 
-test-sync-bonds: DFLAGS+=-DBONDS
+test-sync-bonds: DFLAGS+=-DBONDS -DVESICLE_SELF_ASSEMBLY
 test-sync-bonds: test-sync
 
 test-sync-bonds-betterverlet: DFLAGS+=-DBETTER_VERLET
@@ -1176,7 +1176,7 @@ test-gals-large-onebyone-singleforceloop: test-gals-large-onebyone
 test-gals-large-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
 test-gals-large-onebyone-singlereducedforceloop: test-gals-large-onebyone
 
-test-gals-bonds: DFLAGS+=-DBONDS
+test-gals-bonds: DFLAGS+=-DBONDS -DVESICLE_SELF_ASSEMBLY
 test-gals-bonds: test-gals
 
 test-gals-bonds-betterverlet: DFLAGS+=-DBETTER_VERLET
@@ -1328,7 +1328,7 @@ test-improvedgals-large-onebyone-singleforceloop: test-improvedgals-large-onebyo
 test-improvedgals-large-onebyone-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
 test-improvedgals-large-onebyone-singlereducedforceloop: test-improvedgals-large-onebyone
 
-test-improvedgals-bonds: DFLAGS+=-DBONDS
+test-improvedgals-bonds: DFLAGS+=-DBONDS -DVESICLE_SELF_ASSEMBLY
 test-improvedgals-bonds: test-improvedgals
 
 test-improvedgals-bonds-betterverlet: DFLAGS+=-DBETTER_VERLET
@@ -1424,7 +1424,7 @@ test-serial-large-singleforceloop: test-serial-large
 test-serial-large-singlereducedforceloop: DFLAGS+=-DSINGLE_FORCE_LOOP -DREDUCED_LOCAL_CALCS
 test-serial-large-singlereducedforceloop: test-serial-large
 
-test-serial-bonds: DFLAGS+=-DBONDS
+test-serial-bonds: DFLAGS+=-DBONDS -DVESICLE_SELF_ASSEMBLY
 test-serial-bonds: test-serial
 
 test-serial-bonds-betterverlet: DFLAGS+=-DBETTER_VERLET

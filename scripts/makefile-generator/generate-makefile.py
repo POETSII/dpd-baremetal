@@ -72,7 +72,7 @@ operations = [visual, timed, stats]
 # Test flags
 default = MacroFlag("", "")
 large_test = MacroFlag("-DLARGE_TEST", "large")
-bonds = MacroFlag("-DBONDS", "bonds")
+bonds = MacroFlag("-DBONDS -DVESICLE_SELF_ASSEMBLY", "bonds")
 
 test_flags = [default, large_test, bonds]
 

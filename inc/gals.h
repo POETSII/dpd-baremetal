@@ -279,7 +279,7 @@ struct DPDDevice : PDevice<DPDState, None, DPDMessage> {
 	    }
 
         if(s->mode == UPDATE_COMPLETE) {
-            // msg->mode = UPDATE_COMPLETE;
+            msg->mode = UPDATE_COMPLETE;
         #ifndef IMPROVED_GALS
             // This message is only sent if there's no beads to be sent for update in IMPROVED_GALS
             msg->total_beads = s->updates_sent;
