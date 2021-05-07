@@ -41,91 +41,71 @@ client_run: bridge
 
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN)
-	@mkdir -p serial-state-dir
-	@mkdir -p polite-state-dir
+	@mkdir -p serial-dpd-states/
+	@mkdir -p polite-dpd-states/
 
 # -------------- Common object files --------------------------
-$(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/ExternalClient.o: $(DPD_BIN) $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalClient.o $(DPD_SRC)/ExternalClient.cpp
 
-$(DPD_BIN)/ExternalServer.o: $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/ExternalServer.o: $(DPD_BIN) $(DPD_SRC)/ExternalServer.cpp $(DPD_INC)/ExternalServer.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/ExternalServer.o $(DPD_SRC)/ExternalServer.cpp
 
-$(DPD_BIN)/HostMessenger.o: $(DPD_SRC)/HostMessenger.cpp $(DPD_INC)/HostMessenger.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/HostMessenger.o: $(DPD_BIN) $(DPD_SRC)/HostMessenger.cpp $(DPD_INC)/HostMessenger.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/HostMessenger.o $(DPD_SRC)/HostMessenger.cpp
 
-$(DPD_BIN)/Cells.o: $(DPD_SRC)/Cells.cpp $(DPD_INC)/Cells.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/Cells.o: $(DPD_BIN) $(DPD_SRC)/Cells.cpp $(DPD_INC)/Cells.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Cells.o $(DPD_SRC)/Cells.cpp
 
-$(DPD_BIN)/SimulationCells.o: $(DPD_SRC)/SimulationCells.cpp $(DPD_INC)/SimulationCells.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SimulationCells.o: $(DPD_BIN) $(DPD_SRC)/SimulationCells.cpp $(DPD_INC)/SimulationCells.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/SimulationCells.o $(DPD_SRC)/SimulationCells.cpp
 
-$(DPD_BIN)/Volume.o: $(DPD_SRC)/Volume.cpp $(DPD_INC)/Volume.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/Volume.o: $(DPD_BIN) $(DPD_SRC)/Volume.cpp $(DPD_INC)/Volume.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Volume.o $(DPD_SRC)/Volume.cpp
 
-$(DPD_BIN)/SimulationVolume.o: $(DPD_SRC)/SimulationVolume.cpp $(DPD_INC)/SimulationVolume.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SimulationVolume.o: $(DPD_BIN) $(DPD_SRC)/SimulationVolume.cpp $(DPD_INC)/SimulationVolume.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/SimulationVolume.o $(DPD_SRC)/SimulationVolume.cpp
 
-$(DPD_BIN)/Executor.o: $(DPD_SRC)/Executor.cpp $(DPD_INC)/Executor.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/Executor.o: $(DPD_BIN) $(DPD_SRC)/Executor.cpp $(DPD_INC)/Executor.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Executor.o $(DPD_SRC)/Executor.cpp
 
-$(DPD_BIN)/Simulator.o: $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/Simulator.o: $(DPD_BIN) $(DPD_SRC)/Simulator.cpp $(DPD_INC)/Simulator.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/Simulator.o $(DPD_SRC)/Simulator.cpp
 
 # -------------- POLite Object files --------------------------
-$(DPD_BIN)/POLiteMessenger.o: $(DPD_SRC)/POLiteMessenger.cpp $(DPD_INC)/POLiteMessenger.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/POLiteMessenger.o: $(DPD_BIN) $(DPD_SRC)/POLiteMessenger.cpp $(DPD_INC)/POLiteMessenger.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteMessenger.o $(DPD_SRC)/POLiteMessenger.cpp
 
-$(DPD_BIN)/POLiteCells.o: $(DPD_SRC)/POLiteCells.cpp $(DPD_INC)/POLiteCells.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/POLiteCells.o: $(DPD_BIN) $(DPD_SRC)/POLiteCells.cpp $(DPD_INC)/POLiteCells.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteCells.o $(DPD_SRC)/POLiteCells.cpp
 
-$(DPD_BIN)/POLiteVolume.o: $(DPD_SRC)/POLiteVolume.cpp $(DPD_INC)/POLiteVolume.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/POLiteVolume.o: $(DPD_BIN) $(DPD_SRC)/POLiteVolume.cpp $(DPD_INC)/POLiteVolume.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteVolume.o $(DPD_SRC)/POLiteVolume.cpp
 
-$(DPD_BIN)/POLiteSimulator.o: $(DPD_SRC)/POLiteSimulator.cpp $(DPD_INC)/POLiteSimulator.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/POLiteSimulator.o: $(DPD_BIN) $(DPD_SRC)/POLiteSimulator.cpp $(DPD_INC)/POLiteSimulator.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/POLiteSimulator.o $(DPD_SRC)/POLiteSimulator.cpp
 
 # -------------- Tinsel Object files --------------------------
 $(DPD_BIN)/Vector3D.o: $(DPD_SRC)/Vector3D.cpp $(DPD_INC)/Vector3D.hpp
-	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
 $(DPD_BIN)/utils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
-	mkdir -p $(DPD_BIN)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) $(LD_FLAGS) $< -o $@
 
 # ------------- Serial simulation object files ---------------------------
-$(DPD_BIN)/SerialMessenger.o: $(DPD_SRC)/SerialMessenger.cpp $(DPD_INC)/SerialMessenger.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SerialMessenger.o: $(DPD_BIN) $(DPD_SRC)/SerialMessenger.cpp $(DPD_INC)/SerialMessenger.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialMessenger.o $(DPD_SRC)/SerialMessenger.cpp
 
-$(DPD_BIN)/SerialCells.o: $(DPD_SRC)/SerialCells.cpp $(DPD_INC)/SerialCells.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SerialCells.o: $(DPD_BIN) $(DPD_SRC)/SerialCells.cpp $(DPD_INC)/SerialCells.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialCells.o $(DPD_SRC)/SerialCells.cpp
 
-$(DPD_BIN)/SerialVolume.o: $(DPD_SRC)/SerialVolume.cpp $(DPD_INC)/SerialVolume.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SerialVolume.o: $(DPD_BIN) $(DPD_SRC)/SerialVolume.cpp $(DPD_INC)/SerialVolume.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialVolume.o $(DPD_SRC)/SerialVolume.cpp
 
-$(DPD_BIN)/SerialSimulator.o: $(DPD_SRC)/SerialSimulator.cpp $(DPD_INC)/SerialSimulator.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SerialSimulator.o: $(DPD_BIN) $(DPD_SRC)/SerialSimulator.cpp $(DPD_INC)/SerialSimulator.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialSimulator.o $(DPD_SRC)/SerialSimulator.cpp
 
-$(DPD_BIN)/SerialUtils.o: $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
-	mkdir -p $(DPD_BIN)
+$(DPD_BIN)/SerialUtils.o: $(DPD_BIN) $(DPD_SRC)/utils.cpp $(DPD_INC)/utils.hpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) -I $(INC) -I $(QUEUE_INC) -I $(DPD_INC) -c -o $(DPD_BIN)/SerialUtils.o $(DPD_SRC)/utils.cpp
 
 # The external client
