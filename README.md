@@ -10,9 +10,9 @@ More details are provided in the `docs` directory of how the POETS DPD algorithm
 actually works, and how macro flags and makefile recipes work to produce
 simulations that achieve a result but with differing performance.
 
-Each directory has a README explaining what its containing files do. At the end
-of this README, a brief explanation of what each of the directories in the root
-contains is provided.
+Some directories have a README explaining what its containing files do. At the
+end of this README, a brief explanation of what each of the directories in the
+root contains is provided.
 
 ## Setup
 
