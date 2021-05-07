@@ -169,6 +169,13 @@ To use these for a given simulation example, simply append `-fastest` or
 make sync-visual-oilwater-smallest
 ```
 
+Providing these options allows for some breathing-room when developing. The
+`fastest` is the ideal performance we want, but when prototyping new features,
+the `smallest` version may allow us to fit everything inside the limited POLite
+instruction space. Once the feature is tested and working, then it can be
+optimised to fit within the instruction space, and used with `fastest` to
+profile and find how this affects the simulator performance.
+
 ### DRAM
 
 Large volumes may not fully fit in SRAM. In this case, when running with the
