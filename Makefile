@@ -22,7 +22,7 @@ DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 COMMON_OBJS = $(DPD_BIN)/HostMessenger.o $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o \
  			  $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/Simulator.o
-POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteMessenger.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POLITE_OBJS = $(INC)/config.h $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteMessenger.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
@@ -41,6 +41,8 @@ client_run: bridge
 
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN)
+	@mkdir -p serial-state-dir
+	@mkdir -p polite-state-dir
 
 # -------------- Common object files --------------------------
 $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
@@ -144,6 +146,15 @@ $(INC)/config.h: $(TINSEL_ROOT)/config.py
 $(HL)/%.o:
 	make -C $(HL)
 
+clean-tinsel:
+	make clean -C $(TINSEL_ROOT)
+
+$(TINSEL_LIB)/lib.o:
+	make -C $(TINSEL_LIB)
+
+print-stats: $(DPD_BIN)/stats.txt
+	./$(TINSEL_ROOT)/apps/POLite/util/sumstats.awk < $(DPD_BIN)/stats.txt
+
 # -------------- Synchronous elf --------------------------
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
@@ -153,7 +164,6 @@ $(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(RV_OBJCOPY) -O verilog --remove-section=.text \
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
 
-# One by one is the best form
 $(DPD_BIN)/dpd.elf: DFLAGS+=
 $(DPD_BIN)/dpd.elf: $(DPD_SRC)/sync.cpp $(DPD_INC)/sync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS) $(DPD_HEADERS)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/sync.o $<
@@ -212,35 +222,35 @@ clean:
 # ************** EXAMPLES **************
 
 oilwater: DFLAGS+=
-oilwater: $(DPD_EXAMPLES)/oilWater
+oilwater: $(DPD_EXAMPLES)/oilWater.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
-	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/oilWater.o $(DPD_EXAMPLES)/oilWater.cpp
+	-I $(HL) -I $(INC) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/oilWater.o $(DPD_EXAMPLES)/oilWater.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/oilWater.o \
-		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ -Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
-vesicle: $(DPD_EXAMPLES)/VesicleSelfAssembly
+vesicle: $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
-	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/VesicleSelfAssembly.o $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
+	-I $(HL) -I $(INC) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/VesicleSelfAssembly.o $(DPD_EXAMPLES)/VesicleSelfAssembly.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/VesicleSelfAssembly.o \
-		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ -Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 corners: DFLAGS+=
-corners: $(DPD_EXAMPLES)/corner-tests
+corners: $(DPD_EXAMPLES)/corner-tests.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
-	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/corner-tests.o $(DPD_EXAMPLES)/corner-tests.cpp
+	-I $(HL) -I $(INC) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/corner-tests.o $(DPD_EXAMPLES)/corner-tests.cpp
 	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/corner-tests.o \
-		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
+		-static-libgcc -static-libstdc++ -Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 gravity: DFLAGS+=-DGRAVITY
-gravity: $(DPD_EXAMPLES)/BoxOilWaterGravity
+gravity: $(DPD_EXAMPLES)/GravityOilWater.cpp
 	g++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \
-	-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/BoxOilWaterGravity.o $(DPD_EXAMPLES)/BoxOilWaterGravity.cpp
-	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/BoxOilWaterGravity.o \
-		-static-libgcc -static-libstdc++ 		-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
+	-I $(HL) -I $(INC) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/GravityOilWater.o $(DPD_EXAMPLES)/GravityOilWater.cpp
+	g++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/GravityOilWater.o \
+		-static-libgcc -static-libstdc++ -Wl,-rpath, $(METIS) -lpthread -lboost_program_options \
 		-lboost_filesystem -lboost_system -fopenmp
 
 # ************** Simulator: sync**************
@@ -249,15 +259,17 @@ gravity: $(DPD_EXAMPLES)/BoxOilWaterGravity
 
 sync-visual: OBJS+=$(POLITE_OBJS)
 sync-visual: METIS=-lmetis
-sync-visual: DFLAGS+=-DVISUALISE
+sync-visual: DFLAGS+=-DVISUALISE 
 sync-visual: $(POLITE_OBJS) base-sync
 
 # ******Example: oilwater******
 
-sync-visual-oilwater: DFLAGS+=
+sync-visual-oilwater: OBJS+=$(POLITE_OBJS)
+sync-visual-oilwater: METIS=-lmetis
+sync-visual-oilwater: DFLAGS+= 
 sync-visual-oilwater: sync-visual oilwater
 
-sync-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-visual-oilwater-fastest: sync-visual-oilwater
 
 sync-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -266,10 +278,12 @@ sync-visual-oilwater-smallest: sync-visual-oilwater
 
 # ******Example: vesicle******
 
-sync-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+sync-visual-vesicle: OBJS+=$(POLITE_OBJS)
+sync-visual-vesicle: METIS=-lmetis
+sync-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS 
 sync-visual-vesicle: sync-visual vesicle
 
-sync-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-visual-vesicle-fastest: sync-visual-vesicle
 
 sync-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -278,10 +292,12 @@ sync-visual-vesicle-smallest: sync-visual-vesicle
 
 # ******Example: corners******
 
-sync-visual-corners: DFLAGS+=
+sync-visual-corners: OBJS+=$(POLITE_OBJS)
+sync-visual-corners: METIS=-lmetis
+sync-visual-corners: DFLAGS+= 
 sync-visual-corners: sync-visual corners
 
-sync-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-visual-corners-fastest: sync-visual-corners
 
 sync-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -290,10 +306,12 @@ sync-visual-corners-smallest: sync-visual-corners
 
 # ******Example: gravity******
 
-sync-visual-gravity: DFLAGS+=-DGRAVITY
+sync-visual-gravity: OBJS+=$(POLITE_OBJS)
+sync-visual-gravity: METIS=-lmetis
+sync-visual-gravity: DFLAGS+=-DGRAVITY 
 sync-visual-gravity: sync-visual gravity
 
-sync-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-visual-gravity-fastest: sync-visual-gravity
 
 sync-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -304,15 +322,17 @@ sync-visual-gravity-smallest: sync-visual-gravity
 
 sync-timed: OBJS+=$(POLITE_OBJS)
 sync-timed: METIS=-lmetis
-sync-timed: DFLAGS+=-DTIMER
+sync-timed: DFLAGS+=-DTIMER 
 sync-timed: $(POLITE_OBJS) base-sync
 
 # ******Example: oilwater******
 
-sync-timed-oilwater: DFLAGS+=
+sync-timed-oilwater: OBJS+=$(POLITE_OBJS)
+sync-timed-oilwater: METIS=-lmetis
+sync-timed-oilwater: DFLAGS+= 
 sync-timed-oilwater: sync-timed oilwater
 
-sync-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-timed-oilwater-fastest: sync-timed-oilwater
 
 sync-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -321,10 +341,12 @@ sync-timed-oilwater-smallest: sync-timed-oilwater
 
 # ******Example: vesicle******
 
-sync-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+sync-timed-vesicle: OBJS+=$(POLITE_OBJS)
+sync-timed-vesicle: METIS=-lmetis
+sync-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS 
 sync-timed-vesicle: sync-timed vesicle
 
-sync-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-timed-vesicle-fastest: sync-timed-vesicle
 
 sync-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -333,10 +355,12 @@ sync-timed-vesicle-smallest: sync-timed-vesicle
 
 # ******Example: corners******
 
-sync-timed-corners: DFLAGS+=
+sync-timed-corners: OBJS+=$(POLITE_OBJS)
+sync-timed-corners: METIS=-lmetis
+sync-timed-corners: DFLAGS+= 
 sync-timed-corners: sync-timed corners
 
-sync-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-timed-corners-fastest: sync-timed-corners
 
 sync-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -345,10 +369,12 @@ sync-timed-corners-smallest: sync-timed-corners
 
 # ******Example: gravity******
 
-sync-timed-gravity: DFLAGS+=-DGRAVITY
+sync-timed-gravity: OBJS+=$(POLITE_OBJS)
+sync-timed-gravity: METIS=-lmetis
+sync-timed-gravity: DFLAGS+=-DGRAVITY 
 sync-timed-gravity: sync-timed gravity
 
-sync-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-timed-gravity-fastest: sync-timed-gravity
 
 sync-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -359,15 +385,18 @@ sync-timed-gravity-smallest: sync-timed-gravity
 
 sync-stats: OBJS+=$(POLITE_OBJS)
 sync-stats: METIS=-lmetis
-sync-stats: DFLAGS+=-DSTATS
-sync-stats: $(POLITE_OBJS) base-sync
+sync-stats: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+sync-stats: DFLAGS+=-DSTATS 
+sync-stats: clean-tinsel $(TINSEL_LIB)/lib.o $(POLITE_OBJS) base-sync
 
 # ******Example: oilwater******
 
-sync-stats-oilwater: DFLAGS+=
+sync-stats-oilwater: OBJS+=$(POLITE_OBJS)
+sync-stats-oilwater: METIS=-lmetis
+sync-stats-oilwater: DFLAGS+= 
 sync-stats-oilwater: sync-stats oilwater
 
-sync-stats-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-stats-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-stats-oilwater-fastest: sync-stats-oilwater
 
 sync-stats-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -376,10 +405,12 @@ sync-stats-oilwater-smallest: sync-stats-oilwater
 
 # ******Example: vesicle******
 
-sync-stats-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+sync-stats-vesicle: OBJS+=$(POLITE_OBJS)
+sync-stats-vesicle: METIS=-lmetis
+sync-stats-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS 
 sync-stats-vesicle: sync-stats vesicle
 
-sync-stats-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-stats-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-stats-vesicle-fastest: sync-stats-vesicle
 
 sync-stats-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -388,10 +419,12 @@ sync-stats-vesicle-smallest: sync-stats-vesicle
 
 # ******Example: corners******
 
-sync-stats-corners: DFLAGS+=
+sync-stats-corners: OBJS+=$(POLITE_OBJS)
+sync-stats-corners: METIS=-lmetis
+sync-stats-corners: DFLAGS+= 
 sync-stats-corners: sync-stats corners
 
-sync-stats-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-stats-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-stats-corners-fastest: sync-stats-corners
 
 sync-stats-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -400,10 +433,12 @@ sync-stats-corners-smallest: sync-stats-corners
 
 # ******Example: gravity******
 
-sync-stats-gravity: DFLAGS+=-DGRAVITY
+sync-stats-gravity: OBJS+=$(POLITE_OBJS)
+sync-stats-gravity: METIS=-lmetis
+sync-stats-gravity: DFLAGS+=-DGRAVITY 
 sync-stats-gravity: sync-stats gravity
 
-sync-stats-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+sync-stats-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 sync-stats-gravity-fastest: sync-stats-gravity
 
 sync-stats-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
@@ -416,54 +451,62 @@ sync-stats-gravity-smallest: sync-stats-gravity
 
 gals-visual: OBJS+=$(POLITE_OBJS)
 gals-visual: METIS=-lmetis
-gals-visual: DFLAGS+=-DVISUALISE
+gals-visual: DFLAGS+=-DVISUALISE -DGALS
 gals-visual: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
-gals-visual-oilwater: DFLAGS+=
+gals-visual-oilwater: OBJS+=$(POLITE_OBJS)
+gals-visual-oilwater: METIS=-lmetis
+gals-visual-oilwater: DFLAGS+= -DGALS
 gals-visual-oilwater: gals-visual oilwater
 
-gals-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-visual-oilwater-fastest: gals-visual-oilwater
 
-gals-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-visual-oilwater-smallest: gals-visual-oilwater
 
 
 # ******Example: vesicle******
 
-gals-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+gals-visual-vesicle: OBJS+=$(POLITE_OBJS)
+gals-visual-vesicle: METIS=-lmetis
+gals-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DGALS
 gals-visual-vesicle: gals-visual vesicle
 
-gals-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-visual-vesicle-fastest: gals-visual-vesicle
 
-gals-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-visual-vesicle-smallest: gals-visual-vesicle
 
 
 # ******Example: corners******
 
-gals-visual-corners: DFLAGS+=
+gals-visual-corners: OBJS+=$(POLITE_OBJS)
+gals-visual-corners: METIS=-lmetis
+gals-visual-corners: DFLAGS+= -DGALS
 gals-visual-corners: gals-visual corners
 
-gals-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-visual-corners-fastest: gals-visual-corners
 
-gals-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-visual-corners-smallest: gals-visual-corners
 
 
 # ******Example: gravity******
 
-gals-visual-gravity: DFLAGS+=-DGRAVITY
+gals-visual-gravity: OBJS+=$(POLITE_OBJS)
+gals-visual-gravity: METIS=-lmetis
+gals-visual-gravity: DFLAGS+=-DGRAVITY -DGALS
 gals-visual-gravity: gals-visual gravity
 
-gals-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-visual-gravity-fastest: gals-visual-gravity
 
-gals-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-visual-gravity-smallest: gals-visual-gravity
 
 
@@ -471,54 +514,62 @@ gals-visual-gravity-smallest: gals-visual-gravity
 
 gals-timed: OBJS+=$(POLITE_OBJS)
 gals-timed: METIS=-lmetis
-gals-timed: DFLAGS+=-DTIMER
+gals-timed: DFLAGS+=-DTIMER -DGALS
 gals-timed: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
-gals-timed-oilwater: DFLAGS+=
+gals-timed-oilwater: OBJS+=$(POLITE_OBJS)
+gals-timed-oilwater: METIS=-lmetis
+gals-timed-oilwater: DFLAGS+= -DGALS
 gals-timed-oilwater: gals-timed oilwater
 
-gals-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-timed-oilwater-fastest: gals-timed-oilwater
 
-gals-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-timed-oilwater-smallest: gals-timed-oilwater
 
 
 # ******Example: vesicle******
 
-gals-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+gals-timed-vesicle: OBJS+=$(POLITE_OBJS)
+gals-timed-vesicle: METIS=-lmetis
+gals-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DGALS
 gals-timed-vesicle: gals-timed vesicle
 
-gals-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-timed-vesicle-fastest: gals-timed-vesicle
 
-gals-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-timed-vesicle-smallest: gals-timed-vesicle
 
 
 # ******Example: corners******
 
-gals-timed-corners: DFLAGS+=
+gals-timed-corners: OBJS+=$(POLITE_OBJS)
+gals-timed-corners: METIS=-lmetis
+gals-timed-corners: DFLAGS+= -DGALS
 gals-timed-corners: gals-timed corners
 
-gals-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-timed-corners-fastest: gals-timed-corners
 
-gals-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-timed-corners-smallest: gals-timed-corners
 
 
 # ******Example: gravity******
 
-gals-timed-gravity: DFLAGS+=-DGRAVITY
+gals-timed-gravity: OBJS+=$(POLITE_OBJS)
+gals-timed-gravity: METIS=-lmetis
+gals-timed-gravity: DFLAGS+=-DGRAVITY -DGALS
 gals-timed-gravity: gals-timed gravity
 
-gals-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-timed-gravity-fastest: gals-timed-gravity
 
-gals-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-timed-gravity-smallest: gals-timed-gravity
 
 
@@ -526,54 +577,63 @@ gals-timed-gravity-smallest: gals-timed-gravity
 
 gals-stats: OBJS+=$(POLITE_OBJS)
 gals-stats: METIS=-lmetis
-gals-stats: DFLAGS+=-DSTATS
-gals-stats: $(POLITE_OBJS) base-gals
+gals-stats: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+gals-stats: DFLAGS+=-DSTATS -DGALS
+gals-stats: clean-tinsel $(TINSEL_LIB)/lib.o $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
-gals-stats-oilwater: DFLAGS+=
+gals-stats-oilwater: OBJS+=$(POLITE_OBJS)
+gals-stats-oilwater: METIS=-lmetis
+gals-stats-oilwater: DFLAGS+= -DGALS
 gals-stats-oilwater: gals-stats oilwater
 
-gals-stats-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-stats-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-stats-oilwater-fastest: gals-stats-oilwater
 
-gals-stats-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-stats-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-stats-oilwater-smallest: gals-stats-oilwater
 
 
 # ******Example: vesicle******
 
-gals-stats-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+gals-stats-vesicle: OBJS+=$(POLITE_OBJS)
+gals-stats-vesicle: METIS=-lmetis
+gals-stats-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DGALS
 gals-stats-vesicle: gals-stats vesicle
 
-gals-stats-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-stats-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-stats-vesicle-fastest: gals-stats-vesicle
 
-gals-stats-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-stats-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-stats-vesicle-smallest: gals-stats-vesicle
 
 
 # ******Example: corners******
 
-gals-stats-corners: DFLAGS+=
+gals-stats-corners: OBJS+=$(POLITE_OBJS)
+gals-stats-corners: METIS=-lmetis
+gals-stats-corners: DFLAGS+= -DGALS
 gals-stats-corners: gals-stats corners
 
-gals-stats-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-stats-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-stats-corners-fastest: gals-stats-corners
 
-gals-stats-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-stats-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-stats-corners-smallest: gals-stats-corners
 
 
 # ******Example: gravity******
 
-gals-stats-gravity: DFLAGS+=-DGRAVITY
+gals-stats-gravity: OBJS+=$(POLITE_OBJS)
+gals-stats-gravity: METIS=-lmetis
+gals-stats-gravity: DFLAGS+=-DGRAVITY -DGALS
 gals-stats-gravity: gals-stats gravity
 
-gals-stats-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+gals-stats-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 gals-stats-gravity-fastest: gals-stats-gravity
 
-gals-stats-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+gals-stats-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 gals-stats-gravity-smallest: gals-stats-gravity
 
 
@@ -583,54 +643,62 @@ gals-stats-gravity-smallest: gals-stats-gravity
 
 improvedgals-visual: OBJS+=$(POLITE_OBJS)
 improvedgals-visual: METIS=-lmetis
-improvedgals-visual: DFLAGS+=-DVISUALISE
+improvedgals-visual: DFLAGS+=-DVISUALISE -DGALS -DIMPROVED_GALS
 improvedgals-visual: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
-improvedgals-visual-oilwater: DFLAGS+=
+improvedgals-visual-oilwater: OBJS+=$(POLITE_OBJS)
+improvedgals-visual-oilwater: METIS=-lmetis
+improvedgals-visual-oilwater: DFLAGS+= -DGALS -DIMPROVED_GALS
 improvedgals-visual-oilwater: improvedgals-visual oilwater
 
-improvedgals-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-visual-oilwater-fastest: improvedgals-visual-oilwater
 
-improvedgals-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-visual-oilwater-smallest: improvedgals-visual-oilwater
 
 
 # ******Example: vesicle******
 
-improvedgals-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+improvedgals-visual-vesicle: OBJS+=$(POLITE_OBJS)
+improvedgals-visual-vesicle: METIS=-lmetis
+improvedgals-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DGALS -DIMPROVED_GALS
 improvedgals-visual-vesicle: improvedgals-visual vesicle
 
-improvedgals-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-visual-vesicle-fastest: improvedgals-visual-vesicle
 
-improvedgals-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-visual-vesicle-smallest: improvedgals-visual-vesicle
 
 
 # ******Example: corners******
 
-improvedgals-visual-corners: DFLAGS+=
+improvedgals-visual-corners: OBJS+=$(POLITE_OBJS)
+improvedgals-visual-corners: METIS=-lmetis
+improvedgals-visual-corners: DFLAGS+= -DGALS -DIMPROVED_GALS
 improvedgals-visual-corners: improvedgals-visual corners
 
-improvedgals-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-visual-corners-fastest: improvedgals-visual-corners
 
-improvedgals-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-visual-corners-smallest: improvedgals-visual-corners
 
 
 # ******Example: gravity******
 
-improvedgals-visual-gravity: DFLAGS+=-DGRAVITY
+improvedgals-visual-gravity: OBJS+=$(POLITE_OBJS)
+improvedgals-visual-gravity: METIS=-lmetis
+improvedgals-visual-gravity: DFLAGS+=-DGRAVITY -DGALS -DIMPROVED_GALS
 improvedgals-visual-gravity: improvedgals-visual gravity
 
-improvedgals-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-visual-gravity-fastest: improvedgals-visual-gravity
 
-improvedgals-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-visual-gravity-smallest: improvedgals-visual-gravity
 
 
@@ -638,54 +706,62 @@ improvedgals-visual-gravity-smallest: improvedgals-visual-gravity
 
 improvedgals-timed: OBJS+=$(POLITE_OBJS)
 improvedgals-timed: METIS=-lmetis
-improvedgals-timed: DFLAGS+=-DTIMER
+improvedgals-timed: DFLAGS+=-DTIMER -DGALS -DIMPROVED_GALS
 improvedgals-timed: $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
-improvedgals-timed-oilwater: DFLAGS+=
+improvedgals-timed-oilwater: OBJS+=$(POLITE_OBJS)
+improvedgals-timed-oilwater: METIS=-lmetis
+improvedgals-timed-oilwater: DFLAGS+= -DGALS -DIMPROVED_GALS
 improvedgals-timed-oilwater: improvedgals-timed oilwater
 
-improvedgals-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-timed-oilwater-fastest: improvedgals-timed-oilwater
 
-improvedgals-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-timed-oilwater-smallest: improvedgals-timed-oilwater
 
 
 # ******Example: vesicle******
 
-improvedgals-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+improvedgals-timed-vesicle: OBJS+=$(POLITE_OBJS)
+improvedgals-timed-vesicle: METIS=-lmetis
+improvedgals-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DGALS -DIMPROVED_GALS
 improvedgals-timed-vesicle: improvedgals-timed vesicle
 
-improvedgals-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-timed-vesicle-fastest: improvedgals-timed-vesicle
 
-improvedgals-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-timed-vesicle-smallest: improvedgals-timed-vesicle
 
 
 # ******Example: corners******
 
-improvedgals-timed-corners: DFLAGS+=
+improvedgals-timed-corners: OBJS+=$(POLITE_OBJS)
+improvedgals-timed-corners: METIS=-lmetis
+improvedgals-timed-corners: DFLAGS+= -DGALS -DIMPROVED_GALS
 improvedgals-timed-corners: improvedgals-timed corners
 
-improvedgals-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-timed-corners-fastest: improvedgals-timed-corners
 
-improvedgals-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-timed-corners-smallest: improvedgals-timed-corners
 
 
 # ******Example: gravity******
 
-improvedgals-timed-gravity: DFLAGS+=-DGRAVITY
+improvedgals-timed-gravity: OBJS+=$(POLITE_OBJS)
+improvedgals-timed-gravity: METIS=-lmetis
+improvedgals-timed-gravity: DFLAGS+=-DGRAVITY -DGALS -DIMPROVED_GALS
 improvedgals-timed-gravity: improvedgals-timed gravity
 
-improvedgals-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-timed-gravity-fastest: improvedgals-timed-gravity
 
-improvedgals-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-timed-gravity-smallest: improvedgals-timed-gravity
 
 
@@ -693,54 +769,63 @@ improvedgals-timed-gravity-smallest: improvedgals-timed-gravity
 
 improvedgals-stats: OBJS+=$(POLITE_OBJS)
 improvedgals-stats: METIS=-lmetis
-improvedgals-stats: DFLAGS+=-DSTATS
-improvedgals-stats: $(POLITE_OBJS) base-gals
+improvedgals-stats: TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o
+improvedgals-stats: DFLAGS+=-DSTATS -DGALS -DIMPROVED_GALS
+improvedgals-stats: clean-tinsel $(TINSEL_LIB)/lib.o $(POLITE_OBJS) base-gals
 
 # ******Example: oilwater******
 
-improvedgals-stats-oilwater: DFLAGS+=
+improvedgals-stats-oilwater: OBJS+=$(POLITE_OBJS)
+improvedgals-stats-oilwater: METIS=-lmetis
+improvedgals-stats-oilwater: DFLAGS+= -DGALS -DIMPROVED_GALS
 improvedgals-stats-oilwater: improvedgals-stats oilwater
 
-improvedgals-stats-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-stats-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-stats-oilwater-fastest: improvedgals-stats-oilwater
 
-improvedgals-stats-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-stats-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-stats-oilwater-smallest: improvedgals-stats-oilwater
 
 
 # ******Example: vesicle******
 
-improvedgals-stats-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+improvedgals-stats-vesicle: OBJS+=$(POLITE_OBJS)
+improvedgals-stats-vesicle: METIS=-lmetis
+improvedgals-stats-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DGALS -DIMPROVED_GALS
 improvedgals-stats-vesicle: improvedgals-stats vesicle
 
-improvedgals-stats-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-stats-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-stats-vesicle-fastest: improvedgals-stats-vesicle
 
-improvedgals-stats-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-stats-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-stats-vesicle-smallest: improvedgals-stats-vesicle
 
 
 # ******Example: corners******
 
-improvedgals-stats-corners: DFLAGS+=
+improvedgals-stats-corners: OBJS+=$(POLITE_OBJS)
+improvedgals-stats-corners: METIS=-lmetis
+improvedgals-stats-corners: DFLAGS+= -DGALS -DIMPROVED_GALS
 improvedgals-stats-corners: improvedgals-stats corners
 
-improvedgals-stats-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-stats-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-stats-corners-fastest: improvedgals-stats-corners
 
-improvedgals-stats-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-stats-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-stats-corners-smallest: improvedgals-stats-corners
 
 
 # ******Example: gravity******
 
-improvedgals-stats-gravity: DFLAGS+=-DGRAVITY
+improvedgals-stats-gravity: OBJS+=$(POLITE_OBJS)
+improvedgals-stats-gravity: METIS=-lmetis
+improvedgals-stats-gravity: DFLAGS+=-DGRAVITY -DGALS -DIMPROVED_GALS
 improvedgals-stats-gravity: improvedgals-stats gravity
 
-improvedgals-stats-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+improvedgals-stats-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS -DONE_BY_ONE 
 improvedgals-stats-gravity-fastest: improvedgals-stats-gravity
 
-improvedgals-stats-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+improvedgals-stats-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 improvedgals-stats-gravity-smallest: improvedgals-stats-gravity
 
 
@@ -750,54 +835,62 @@ improvedgals-stats-gravity-smallest: improvedgals-stats-gravity
 
 serial-visual: OBJS+=$(SERIAL_OBJS)
 serial-visual: METIS=
-serial-visual: DFLAGS+=-DVISUALISE
+serial-visual: DFLAGS+=-DVISUALISE -DSERIAL
 serial-visual: $(SERIAL_OBJS) serial
 
 # ******Example: oilwater******
 
-serial-visual-oilwater: DFLAGS+=
+serial-visual-oilwater: OBJS+=$(SERIAL_OBJS)
+serial-visual-oilwater: METIS=
+serial-visual-oilwater: DFLAGS+= -DSERIAL
 serial-visual-oilwater: serial-visual oilwater
 
-serial-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-visual-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-visual-oilwater-fastest: serial-visual-oilwater
 
-serial-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-visual-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-visual-oilwater-smallest: serial-visual-oilwater
 
 
 # ******Example: vesicle******
 
-serial-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+serial-visual-vesicle: OBJS+=$(SERIAL_OBJS)
+serial-visual-vesicle: METIS=
+serial-visual-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DSERIAL
 serial-visual-vesicle: serial-visual vesicle
 
-serial-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-visual-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-visual-vesicle-fastest: serial-visual-vesicle
 
-serial-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-visual-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-visual-vesicle-smallest: serial-visual-vesicle
 
 
 # ******Example: corners******
 
-serial-visual-corners: DFLAGS+=
+serial-visual-corners: OBJS+=$(SERIAL_OBJS)
+serial-visual-corners: METIS=
+serial-visual-corners: DFLAGS+= -DSERIAL
 serial-visual-corners: serial-visual corners
 
-serial-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-visual-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-visual-corners-fastest: serial-visual-corners
 
-serial-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-visual-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-visual-corners-smallest: serial-visual-corners
 
 
 # ******Example: gravity******
 
-serial-visual-gravity: DFLAGS+=-DGRAVITY
+serial-visual-gravity: OBJS+=$(SERIAL_OBJS)
+serial-visual-gravity: METIS=
+serial-visual-gravity: DFLAGS+=-DGRAVITY -DSERIAL
 serial-visual-gravity: serial-visual gravity
 
-serial-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-visual-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-visual-gravity-fastest: serial-visual-gravity
 
-serial-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-visual-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-visual-gravity-smallest: serial-visual-gravity
 
 
@@ -805,54 +898,62 @@ serial-visual-gravity-smallest: serial-visual-gravity
 
 serial-timed: OBJS+=$(SERIAL_OBJS)
 serial-timed: METIS=
-serial-timed: DFLAGS+=-DTIMER
+serial-timed: DFLAGS+=-DTIMER -DSERIAL
 serial-timed: $(SERIAL_OBJS) serial
 
 # ******Example: oilwater******
 
-serial-timed-oilwater: DFLAGS+=
+serial-timed-oilwater: OBJS+=$(SERIAL_OBJS)
+serial-timed-oilwater: METIS=
+serial-timed-oilwater: DFLAGS+= -DSERIAL
 serial-timed-oilwater: serial-timed oilwater
 
-serial-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-timed-oilwater-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-timed-oilwater-fastest: serial-timed-oilwater
 
-serial-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-timed-oilwater-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-timed-oilwater-smallest: serial-timed-oilwater
 
 
 # ******Example: vesicle******
 
-serial-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS
+serial-timed-vesicle: OBJS+=$(SERIAL_OBJS)
+serial-timed-vesicle: METIS=
+serial-timed-vesicle: DFLAGS+=-DVESICLE_SELF_ASSEMBLY -DBONDS -DSERIAL
 serial-timed-vesicle: serial-timed vesicle
 
-serial-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-timed-vesicle-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-timed-vesicle-fastest: serial-timed-vesicle
 
-serial-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-timed-vesicle-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-timed-vesicle-smallest: serial-timed-vesicle
 
 
 # ******Example: corners******
 
-serial-timed-corners: DFLAGS+=
+serial-timed-corners: OBJS+=$(SERIAL_OBJS)
+serial-timed-corners: METIS=
+serial-timed-corners: DFLAGS+= -DSERIAL
 serial-timed-corners: serial-timed corners
 
-serial-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-timed-corners-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-timed-corners-fastest: serial-timed-corners
 
-serial-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-timed-corners-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-timed-corners-smallest: serial-timed-corners
 
 
 # ******Example: gravity******
 
-serial-timed-gravity: DFLAGS+=-DGRAVITY
+serial-timed-gravity: OBJS+=$(SERIAL_OBJS)
+serial-timed-gravity: METIS=
+serial-timed-gravity: DFLAGS+=-DGRAVITY -DSERIAL
 serial-timed-gravity: serial-timed gravity
 
-serial-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DONE_BY_ONE -DREDUCED_LOCAL_CALCS 
+serial-timed-gravity-fastest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DREDUCED_LOCAL_CALCS 
 serial-timed-gravity-fastest: serial-timed-gravity
 
-serial-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSEND_TO_SELF -DSINGLE_FORCE_LOOP 
+serial-timed-gravity-smallest: DFLAGS+=-DBETTER_VERLET -DSMALL_DT_EARLY -DSINGLE_FORCE_LOOP 
 serial-timed-gravity-smallest: serial-timed-gravity
 
 #****************** REGRESSION TESTING ******************

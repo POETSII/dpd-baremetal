@@ -85,7 +85,7 @@ vesicle = ExampleFlag("VesicleSelfAssembly",
                       "-DVESICLE_SELF_ASSEMBLY -DBONDS",
                       "vesicle", )
 corners = ExampleFlag("corner-tests", "", "corners")
-gravity = ExampleFlag("BoxOilWaterGravity",
+gravity = ExampleFlag("GravityOilWater",
                       "-DGRAVITY", "gravity")
 
 examples = [oilwater, vesicle, corners, gravity]
@@ -156,7 +156,7 @@ gravity.add_clashing_flags([testing, large_test, oilwater, vesicle, corners])
 
 # Local calculation options
 # default.add_clashing_flags([])
-onebyone.add_clashing_flags([serial, ])
+onebyone.add_clashing_flags([serial])
 sendtoself.add_clashing_flags(
     [serial, reduced_local_calcs, gals, improved_gals])
 
@@ -179,13 +179,13 @@ makefile.write("\n# ************** EXAMPLES **************\n")
 for example in examples:
     makefile.write("""
 {makefile_string}: DFLAGS+={flag_string}
-{makefile_string}: $(DPD_EXAMPLES)/{filename}
+{makefile_string}: $(DPD_EXAMPLES)/{filename}.cpp
 \tg++ -O2 -std=c++11 $(DFLAGS) $(EXTERNAL_FLAGS) \\
-\t-I $(HL) -I $(DPD_INC) -c -o $(DPD_BIN)/{filename}.o \
+\t-I $(HL) -I $(INC) -I $(DPD_INC) -I $(QUEUE_INC) -c -o $(DPD_BIN)/{filename}.o \
 $(DPD_EXAMPLES)/{filename}.cpp
 \tg++ -O2 -std=c++11 -o $(DPD_BIN)/run $(OBJS) $(DPD_BIN)/{filename}.o \\
 \t\t-static-libgcc -static-libstdc++ \
-\t\t-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \\
+-Wl,-rpath, $(METIS) -lpthread -lboost_program_options \\
 \t\t-lboost_filesystem -lboost_system -fopenmp
 """.format(makefile_string=example.makefile_string,
            flag_string=example.flag_string,
@@ -193,6 +193,7 @@ $(DPD_EXAMPLES)/{filename}.cpp
 
 # Store all testing recipes so we can run all tests
 testing_recipes = []
+compiling_recipes = []
 
 
 def clash(flags_a, flags_b):
@@ -200,6 +201,11 @@ def clash(flags_a, flags_b):
     # If this is empty there is no clash
     clashes = list(set(flags_a) & set(flags_b))
     return (clashes != [])
+
+
+def remove_clashes(flags_a, flags_b):
+    clashes = set(flags_a) & set(flags_b)
+    return list(set(flags_a).difference(clashes))
 
 
 # Now for the recipes for individual simulators
@@ -217,11 +223,18 @@ for simulator in simulators:
         makefile.write(f"OBJS+=$({simulator.objs})\n")
         makefile.write(sim_op_recipe + ": ")
         makefile.write(f"METIS={simulator.metis}\n")
+        if operation == stats:
+            makefile.write(f"{sim_op_recipe}: ")
+            makefile.write(f"TINSEL_LIB_INC=$(TINSEL_LIB)/lib.o\n")
         makefile.write(f"{sim_op_recipe}: ")
-        makefile.write(f"DFLAGS+={operation.flag_string}\n")
+        makefile.write(f"DFLAGS+={operation.flag_string} ")
+        makefile.write(f"{simulator.flag_string}\n")
         makefile.write(sim_op_recipe + ": ")
+        if operation == stats:
+            makefile.write(f"clean-tinsel $(TINSEL_LIB)/lib.o ")
         makefile.write(f"$({simulator.objs}) ")
         makefile.write(f"{simulator.sim_recipe}\n")
+
         for example in examples:
             if clash(example.clashing_flags, [simulator, operation]):
                 continue
@@ -231,32 +244,39 @@ for simulator in simulators:
             sim_op_example_recipe = f"{sim_op_recipe}-"
             sim_op_example_recipe += f"{example.makefile_string}"
             makefile.write(f"{sim_op_example_recipe}: ")
-            makefile.write(f"DFLAGS+={example.flag_string}\n")
+            makefile.write(f"OBJS+=$({simulator.objs})\n")
+            makefile.write(f"{sim_op_example_recipe}: ")
+            makefile.write(f"METIS={simulator.metis}\n")
+            makefile.write(f"{sim_op_example_recipe}: ")
+            makefile.write(f"DFLAGS+={example.flag_string} ")
+            makefile.write(f"{simulator.flag_string}\n")
             makefile.write(f"{sim_op_example_recipe}: ")
             makefile.write(f"{sim_op_recipe} {example.makefile_string}\n\n")
+            compiling_recipes.append(sim_op_example_recipe)
 
             # Build the fastest and smallest recipes
             fastest_flags = ""
             smallest_flags = ""
 
-            if clash(best_result, [simulator, operation, example]):
-                continue
-            if clash(fastest, [simulator, operation, example]):
-                continue
-            if clash(smallest, [simulator, operation, example]):
-                continue
+            clash_flags = simulator.clashing_flags
+            clash_flags += operation.clashing_flags
+            clash_flags += example.clashing_flags
+
+            new_best = remove_clashes(best_result, clash_flags)
+            new_fast = remove_clashes(fastest, clash_flags)
+            new_smal = remove_clashes(smallest, clash_flags)
 
             # Best are all used in fastest and smallest
-            for best_flag in best_result:
+            for best_flag in new_best:
                 fastest_flags += best_flag.flag_string + " "
                 smallest_flags += best_flag.flag_string + " "
 
             # Fastest
-            for fast in fastest:
+            for fast in new_fast:
                 fastest_flags += fast.flag_string + " "
 
             # Smallest
-            for small in smallest:
+            for small in new_smal:
                 smallest_flags += small.flag_string + " "
 
             fastest_flags.strip()
@@ -267,12 +287,14 @@ for simulator in simulators:
             makefile.write(f"DFLAGS+={fastest_flags}\n")
             makefile.write(f"{sim_op_example_recipe}-fastest: ")
             makefile.write(f"{sim_op_example_recipe}\n\n")
+            compiling_recipes.append(f"{sim_op_example_recipe}-fastest")
 
             # Write the smallest
             makefile.write(f"{sim_op_example_recipe}-smallest: ")
             makefile.write(f"DFLAGS+={smallest_flags}\n")
             makefile.write(f"{sim_op_example_recipe}-smallest: ")
             makefile.write(f"{sim_op_example_recipe}\n\n")
+            compiling_recipes.append(f"{sim_op_example_recipe}-smallest")
 
 
 # Write testing
@@ -344,3 +366,7 @@ for test in testing_recipes:
     test_file.write(test + "\n")
 
 test_file.close()
+
+compile_file = open("compile-options.txt", "w+")
+for comp in compiling_recipes:
+    compile_file.write(comp + "\n")

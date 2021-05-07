@@ -235,7 +235,6 @@ int main(int argc, char *argv[]) {
     fprintf(f, "{\n\t\"beads\":[\n");
     bool first_bead = true;
 
-
     // Add water beads
     uint32_t b_uid = 0;
     for(int i=0; i<w; i++) {

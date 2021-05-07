@@ -22,7 +22,7 @@ DPD_HEADERS = $(DPD_INC)/DPDStructs.hpp $(DPD_INC)/dpd.hpp
 DPD_OBJS = $(DPD_BIN)/Vector3D.o $(DPD_BIN)/utils.o
 COMMON_OBJS = $(DPD_BIN)/HostMessenger.o $(DPD_BIN)/Cells.o $(DPD_BIN)/Volume.o \
  			  $(DPD_BIN)/SimulationVolume.o $(DPD_BIN)/Simulator.o
-POLITE_OBJS = $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteMessenger.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
+POLITE_OBJS = $(INC)/config.h $(COMMON_OBJS) $(HL)/*.o $(DPD_BIN)/POLiteMessenger.o $(DPD_BIN)/POLiteCells.o $(DPD_BIN)/POLiteVolume.o $(DPD_BIN)/POLiteSimulator.o $(DPD_BIN)/ExternalClient.o $(DPD_BIN)/ExternalServer.o
 SERIAL_OBJS = $(COMMON_OBJS) $(DPD_BIN)/SerialMessenger.o $(DPD_BIN)/SerialUtils.o $(DPD_BIN)/SerialCells.o $(DPD_BIN)/SerialVolume.o $(DPD_BIN)/SerialSimulator.o
 
 # Script for connecting device as external
@@ -41,6 +41,8 @@ client_run: bridge
 
 $(DPD_BIN):
 	mkdir -p $(DPD_BIN)
+	@mkdir -p serial-state-dir
+	@mkdir -p polite-state-dir
 
 # -------------- Common object files --------------------------
 $(DPD_BIN)/ExternalClient.o: $(DPD_SRC)/ExternalClient.cpp $(DPD_INC)/ExternalClient.hpp
@@ -144,6 +146,15 @@ $(INC)/config.h: $(TINSEL_ROOT)/config.py
 $(HL)/%.o:
 	make -C $(HL)
 
+clean-tinsel:
+	make clean -C $(TINSEL_ROOT)
+
+$(TINSEL_LIB)/lib.o:
+	make -C $(TINSEL_LIB)
+
+print-stats: $(DPD_BIN)/stats.txt
+	./$(TINSEL_ROOT)/apps/POLite/util/sumstats.awk < $(DPD_BIN)/stats.txt
+
 # -------------- Synchronous elf --------------------------
 $(DPD_BIN)/code.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(BIN)/checkelf.sh $(DPD_BIN)/dpd.elf
@@ -153,7 +164,6 @@ $(DPD_BIN)/data.v: $(DPD_BIN)/dpd.elf $(DPD_BIN)
 	$(RV_OBJCOPY) -O verilog --remove-section=.text \
                 --set-section-flags .bss=alloc,load,contents $(DPD_BIN)/dpd.elf $@
 
-# One by one is the best form
 $(DPD_BIN)/dpd.elf: DFLAGS+=
 $(DPD_BIN)/dpd.elf: $(DPD_SRC)/sync.cpp $(DPD_INC)/sync.h $(DPD_BIN)/link.ld $(INC)/config.h $(INC)/tinsel.h $(DPD_BIN)/entry.o $(DPD_BIN) $(DPD_OBJS) $(DPD_HEADERS)
 	$(RV_CC) $(CFLAGS) -Wall -c -DTINSEL $(DFLAGS) $(EXTERNAL_FLAGS) -I $(DPD_INC) -o $(DPD_BIN)/sync.o $<

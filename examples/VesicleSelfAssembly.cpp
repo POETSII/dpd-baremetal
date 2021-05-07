@@ -231,9 +231,11 @@ int main(int argc, char *argv[]) {
         velDist.at(i).z(sqrt(temp) * velDist.at(i).z() / vtotal);
     }
 
-    // std::string filepath = "../" + std::to_string(N) + "_vesicle_frames/state_0.json";
-    // FILE* f = fopen(filepath.c_str(), "w+");
-    // fprintf(f, "{\n\t\"beads\":[\n");
+    std::string init_state_file = state_dir + "state_0.json";
+
+    FILE* f = fopen(init_state_file.c_str(), "w+");
+    fprintf(f, "{\n\t\"beads\":[\n");
+    bool first_bead = true;
 
     for(int i = 0; i < lipid_total; i++) {
         bool added = false;
@@ -243,14 +245,17 @@ int main(int argc, char *argv[]) {
             prev_bead->type = 0; // First bead is H
             prev_bead->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
             prev_bead->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-        #ifndef GALS
-            prev_bead->acc.set(0.0, 0.0, 0.0);
-        #elif defined(BETTER_VERLET)
+        #ifdef BETTER_VERLET
             prev_bead->acc.set(0.0, 0.0, 0.0);
         #endif
             if (volume->space_for_bead(prev_bead.get())) {
                 volume->add_bead(prev_bead.get());
-                // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
+                if (first_bead) {
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
+                    first_bead = false;
+                } else {
+                    fprintf(f, ",\n\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u}", prev_bead->id, prev_bead->pos.x(), prev_bead->pos.y(), prev_bead->pos.z(), prev_bead->velo.x(), prev_bead->velo.y(), prev_bead->velo.z(), prev_bead->type);
+                }
                 added = true;
                 beads_added++;
             }
@@ -292,14 +297,12 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-            #ifndef GALS
-                b1->acc.set(0.0, 0.0, 0.0);
-            #elif defined(BETTER_VERLET)
+            #ifdef BETTER_VERLET
                 b1->acc.set(0.0, 0.0, 0.0);
             #endif
                 if(volume->space_for_bead(b1.get())) {
                     volume->add_bead(b1.get());
-                    // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                    fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                     added = true;
                     prev_bead = b1;
                     beads_added++;
@@ -320,22 +323,20 @@ int main(int argc, char *argv[]) {
             b1->type = 2;
             b1->pos.set((rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size), (rand() / (float)RAND_MAX * problem_size));
             b1->velo.set(velDist.at(beads_added).x(), velDist.at(beads_added).y(), velDist.at(beads_added).z());
-        #ifndef GALS
-            b1->acc.set(0.0, 0.0, 0.0);
-        #elif defined(BETTER_VERLET)
+        #ifdef BETTER_VERLET
             b1->acc.set(0.0, 0.0, 0.0);
         #endif
             if (volume->space_for_bead(b1)) {
                 volume->add_bead(b1);
-                // fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
+                fprintf(f, "\t\t{\"id\":%u, \"x\":%f, \"y\":%f, \"z\":%f, \"vx\":%f, \"vy\":%f, \"vz\":%f, \"type\":%u},\n", b1->id, b1->pos.x(), b1->pos.y(), b1->pos.z(), b1->velo.x(), b1->velo.y(), b1->velo.z(), b1->type);
                 added = true;
                 beads_added++;
             }
         }
     }
 
-    // fprintf(f, "]}");
-    // fclose(f);
+    fprintf(f, "]}");
+    fclose(f);
 
     simulator.write(); // Write the volume to the simulator memory
 
