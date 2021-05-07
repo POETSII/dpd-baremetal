@@ -3,7 +3,9 @@ _A POLite version of the DPD application_
 
 ## Documentation
 
-This README is designed to give an overview of how to run something quickly.
+This README is designed to give an overview of the repo, and get you testing
+and running stuff quickly.
+
 More details are provided in the `docs` directory of how the POETS DPD algorithm
 actually works, and how macro flags and makefile recipes work to produce
 simulations that achieve a result but with differing performance.
@@ -39,11 +41,11 @@ making changes during development.
 while, but it will test all the different macro flags. More information on what
 is tested can be found in the README of the `tests/` directory.
 
-To run the tests:
+If you are on a POETS box, you can run tests on the Tinsel hardware:
 
 ```bash
 cd tests/
-./test-all
+./test-all.sh
 ```
 
 This will run a script which tests everything. Again, it may take a long time,
@@ -51,65 +53,155 @@ and occasionally the boxes will fail a startup self-check. In this case, either
 comment-out the completed tests from the test-all script and run again, or run
 the whole thing again.
 
+If you are on a non-tinsel x86 machine, you can instead run:
+
+```bash
+cd tests/
+./test-serial.sh
+```
+
+This will test the DPD calculation code and all features that apply to it, but
+will not test any synchronisation or messaging based code. Enough to get
+started with at least.
+
 If all complete successfully, it will inform you, and you can start running
-other things and developing.
+and developing.
 
 ## Running a POETS DPD simulation
 
-There are a few methods of running a simulation, each of which the
-basics will be explained here.
+To compile, we need to select a **simulator**, an **operation** and an
+**example**.
 
-### Visual DPD Simulation
+### Simulators
 
-A visual simulation runs a DPD simulation and stores the state of the beads at
-given intervals (default: each timestep). The interval, `emitperiod`, can be
-changed in `inc/DPDConstants.hpp`.
+Included in this repo are three simulators:
 
-The x86 host machine will store the bead states in `polite-dpd-states/` as
-JSON files, one file per timestep. These files can then be used to generate a
-PDB file for use with [VMD](https://www.ks.uiuc.edu/Research/vmd/) which
-visualises the data, and can generate videos.
+- A POLite based synchronous simualator - `sync`
+- A POLite based GALS simulator - `gals`
+- An x86 naive serial simulator - `serial`
 
-The following commands build the volume, add the beads, and then write it down
-to hardware, which then runs the simulation. It is recommended to run `make
-clean` between each make, to avoid clashes.
+The POLite simulators need POETS boxes with Tinsel hardware and have
+comparative performance and produce the same results (given the same macros),
+and are capable of using up to 8 boxes.
 
-Build the simulation binaries:
+The serial simulator is slower, produced different (but similar) results to the
+POLite simulators but allows you to run and test things on any machine, and is
+handy for development, allowing you to add traces and use debug tools.
+
+### Operations
+
+Operations include are:
+
+#### `visual`
+
+Store the state of all beads at a given frequency for use in
+making videos of the simulation, or analysis. `inc/DPDConstants.hpp` has a
+variable `emitperiod` which sets the frequency (in timesteps) to store the
+state.
+
+The x86 host machine will store the bead states in `polite-dpd-states/` or
+`serial-dpd-states/` depending on the simulator used. These will be in JSON
+files, one file per timestep. These files can then be used to generate a PDB
+file for use with [VMD](https://www.ks.uiuc.edu/Research/vmd/) which
+visualises the data, and can generate videos, or in analysis with other tools.
+
+#### `timed`
+
+Run the simulation for a number of timesteps (provided at runtime)
+and record the length of time it takes. **Does not store the state** as this is
+slow.
+
+A timed simulation will report the runtime to stdout, and store it in a file
+`mega_results.csv`. This can be used for scripting, along with the provided
+`mega-tests.sh` file.
+
+#### `stats` **Does not work with serial simulator**
+
+Run the simulation for a given number of timesteps (provided at runtime) and then end, POLite will store
+some statistic about number of messages sent/received, CPU usage etc. **Does not
+store the state**.
+
+A stats simulation will store the data reported by POLite in `bin/stats.txt`.
+This can then be used with `make print-stats` to print the statistics to stdout.
+
+### Examples
+
+The `examples/` directory contains a few files which are used to build a volume,
+add beads and run a simulation. More information can be found in the README of
+that directory. A summary of the options:
+
+- Oil and Water: `oilwater` - 2 types of oil and water placed in a volume, which
+are expected to separate, forming a blob of oil.
+- Vesicle self-assembly: `vesicle` - Polymer chains are placed in a volume mostly
+full of water, and the polymers should merge and form hollow vesicles.
+- Oil and Water with gravity: `gravity` - 2 types of oil and water are placed in
+a volume with walls at the top and bottom. Water is subject to gravity, and
+the blob of oil initially placed should rise to the top as the water sinks.
+- Corner example `corners` - 2 beads are placed in a volume. This aims to show
+the workings of the periodic boundary conditions, and one of the beads should
+be pushed out of a corner and re-appear back in the opposite corner.
+
+## Compiling
+
+When you have selected a simulator, an operation and an example, we can now
+compile the binaries to run this. For this example, let's use
+`gals`, `timed` and `vesicle`. To compile this, in the root directory, run:
+
 ```bash
-make clean
-make visual-gals-vesicle-fastest
+make gals-timed-vesicle
 ```
 
-Once these have compiled, run the simulation:
+The binaries should compile, and the executable `run` will be in `bin/`.
+
+The compilation can take macro flags during compilation to use different
+available features. Each has their benefits and shortcomings, and more
+information on the flags is provided in [docs/macro-flags.md]
+(docs/macro-flags.md). However, for each simulator, operation and example
+combination, there is a `fastest` and `smallest` makefile recipe.
+
+`fastest` provides the simulator with the best performance.
+`smallest` provides the simulator with the smallest total instruction count.
+
+To use these for a given simulation example, simply append `-fastest` or
+`-smallest` to the makefile command, e.g.:
+
 ```bash
-cd bin/
-./run v
+make sync-visual-oilwater-smallest
 ```
 
-Where `v` is an integer >=3 for the length of one side of the volume.
+### DRAM
 
-This will run continuously until stopped with `Ctrl+C`.
-
-#### DRAM
-
-Large volumes may not fit in SRAM. In this case, when running with the above,
-the simulation will terminate before running and indicate that SRAM is full.
+Large volumes may not fully fit in SRAM. In this case, when running with the
+above, the simulation will terminate before running and indicate that SRAM is
+full.
 
 In this case, return to the root directory of dpd-baremetal and run the
 following:
 
 ```bash
 make clean
-make visual-gals-vesicle-fastest-dram
+EXTERNAL_FLAGS=-DDRAM make visual-gals-vesicle-fastest
 ```
 
 This will build the same simulation binaries, but this time direct the POLite
-mapper to store cells in DRAM instead. This will allow much larger simulations
-to be run, at a loss of performance (longer runtimes). Running this is the same
-as before.
+mapper to map the cells to DRAM instead. This will allow much larger
+simulations to be run, at a loss of performance (longer runtimes). Running
+this is the same as before.
 
-`-dram` can be applied to any Makefile recipe for this to allow for larger
-simulations of all types.
+`EXTERNAL_FLAGS` can be applied before any make command to add additional flags
+to a makefile recipe.
+
+## Running a simulation
+
+When a simulation has compiled, the `bin/` directory with have a `run`
+executable. To run this, `cd` into `bin/` and run:
+
+```bash
+./run v
+```
+
+Where v is an integer >= 3, the length of one dimension in terms of cells. The
+simulator always work on cube volumes.
 
 #### Box arrangement
 
@@ -126,100 +218,29 @@ the binaries are compiled, run:
 ./run v --boxes-x x --boxes-y y
 ```
 
-Where `v` is an integer >=3 for the length of one side of the volume, x is the
-number of boxes in the x-dimension and y is the number of boxes in the y
+`x` is the number of boxes in the x-dimension and `y` is the number of boxes in the y
 dimension.
 
 Using more boxes means there are more available threads, so larger simulations
-will run faster on more boxes.
+will run faster.
 
-### Timed DPD simulation
+NOTE: These arguments will not work with the serial simulator. That is designed
+to run on one thread on one machine.
 
-For the purposes of testing the performance of the simulator, we provide a timed
-method, which runs the simulation for a given number of timesteps, and reports
-the runtime when it has completed. This version **does not** emit any bead
-states, this is a slow process, we're trying to find the best-case runtimes of
-this simulator.
+### Number of timesteps
 
-Building the simulation binaries:
-```bash
-make clean
-make visual-gals-vesicle-fastest
-```
+The `timed` operation reports the runtime for a simulation to complete a given
+number of timesteps. By default, this is 10,000 timesteps, however it can be set
+for any of the simulators with the `--time t` argument.
 
 Once these have compiled, run the simulation:
 ```bash
-cd bin/
-./run v
-```
-
-Where `v` is an integer >=3 for the length of one side of the volume.
-
-By default, this will run for 10,000 timesteps, and the first cell to reach this
-will inform the host x86 machine, which will report the runtime, and store it
-in a file "mega_results.csv".
-
-This CSV file  can be used in conjunction with the `mega-tests.sh` script.
-`mega-tests.sh` is designed to run volume sizes from a given minimum and
-maximum, for a given Makefile recipe. It runs each volume size 3 times, as the
-runtimes are likely to change based on message orderings etc. These are averaged
-to provide a better idea of runtimes.
-
-#### Different length runs
-
-10,000 timesteps is chosen as, MPI DPD (which we compare to a lot as it is the
-gold-standard), the runtime includes set up times. Our runtimes do not, but to
-make sure the runtimes are negligible for MPI DPD when we compare runtimes, we
-use 10,000 timesteps.
-
-However, you can run POETS DPD simulations for any number of timesteps. Simply
-use:
-
-```bash
 ./run v --time t
 ```
 
-Where `v` is an integer >=3 for the length of one side of the volume, and `t` is
-an integer for the number of timesteps to run.
+`t` is an integer for the number of timesteps to run.
 
-This can also be used in conjunction with `--boxes-x` and `--boxes-y` to compare
-runtimes on any arrangement of POETS boxes.
-
-### Serial DPD simulator
-
-A serial simulator is provided which uses the same DPD calculation code
-`inc/dpd.hpp` as the POETS simulators (GALS and synchronous).
-
-Developing with POETS can be a challenge as there's very little output
-capabilities in order to debug when there is an error.
-
-The serial simulator is aimed at running the same simulations and producing
-similar results that can be indicative of those from the POETS boxes (x86 vs
-RISCV FPUs produce different results). There is the added benefit of using
-standard C++ tools to debug, and being able to output anything using stdout, as
-well as being able to develop on any x86 machine.
-
-The serial simulator can do visual and timed runs, the makefile recipes
-determine which type.
-
-```bash
-make serial-visual-vesicle
-```
-OR
-```bash
-make serial-timed-vesicle
-```
-
-Both can be run in the same way as the POETS simulator:
-
-```bash
-cd bin
-./run v --time t
-```
-
-Where `v` is an integer >=3 for the length of one side of the volume, and `t` is
-an integer for the number of timesteps to run. `--boxes-x` and `--boxes-y` will
-not work with this version.
+-------------------------------------------------------------------------------
 
 ## Directory information
 
