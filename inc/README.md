@@ -384,6 +384,16 @@ with `SerialMessenger` handling the messages, `test()` spawns another thread to
 run the simulation while awaiting messages to store and return for comparison to
 expected output.
 
+#### XMLGenerator.hpp
+
+This inherits from `Simulator<V>` as it used used to generate an XML file
+containing the application graph of DPD to be simulated by the Orchestrator on
+POETS hardware. The volume and the cells prepare the state of this simulation,
+and `run()` in this class simply takes this and generates an XML.
+
+It uses one of the graph types in `xml-graph-types`, and then writes the device
+instances and edge instances.
+
 ### BeadMap.hpp
 
 This holds several functions used for operating on bitmaps. Bitmaps are used
